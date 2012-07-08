@@ -1,5 +1,6 @@
 module FrameworkHs.Driver
-  ( runPass
+  ( runWrapper
+  , runPass
   )
   where
 
@@ -7,21 +8,27 @@ import System.Process
 import System.IO
 import Control.Monad (when)
 import Control.Exception (throw)
-
 import FrameworkHs.SExpReader.Parser
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
-schemeCmd :: String
-schemeCmd = "petite -q"
+scheme :: String
+scheme = "petite -q"
 
 loadFramework :: Handle -> IO ()
 loadFramework = flip hPutStrLn "(import (Framework driver) (Framework wrappers))"
 
-runWrapper :: PP a => String -> a -> IO (Exc LispVal)
+-- | A `Wrapper` is the name of the language-wrapper (a
+-- Scheme-identifier).  That is, the thing that makes the Scheme
+-- intermediate representation directly executable in Scheme.
+type WrapperName = String
+
+type PassName = String
+
+runWrapper :: PP a => WrapperName -> a -> IO (Exc LispVal)
 runWrapper wrapper code =
-  do (i,o,e,id) <- runInteractiveCommand schemeCmd
+  do (i,o,e,id) <- runInteractiveCommand scheme
      loadFramework i
      hPutStrLn i $ app wrapper $ quote code
      hClose i

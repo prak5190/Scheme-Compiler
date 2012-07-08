@@ -1,7 +1,4 @@
-module FrameworkHs.Testing
-  ( testAll
-  , TestResult
-  ) where
+module FrameworkHs.Testing (testAll, TestResult) where
 
 import Control.Exception
 import Text.Printf
@@ -114,6 +111,7 @@ handleTestFailure i e = do putStrLn (show i ++ " : fail")
 
 findTests :: [LispVal] -> Tests
 findTests l = Tests {valid=findValid l,invalid=findInvalid l}
+--findTests [(List l)] = Tests {valid=findValid l,invalid=findInvalid l}
 
 findValid :: [LispVal] -> [LispVal]
 findValid [] = throw NoValidTestsException
