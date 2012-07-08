@@ -32,10 +32,11 @@ all : grammars
 
 # Run the testing on the compiler
 grammars : $(SRC_GRAMMAR) GrammarCompiler
+	@mkdir -p Framework{,Hs}/GenGrammars
 	$(SC) --script $(SCRIPT_DIR)/$(CG_FILE) "$(SRC_GRAMMAR)"
 
 scheme :
-	$(SC) $(SCRIPT_DIR)/$(SC_FILE)
+	@$(SC) $(SCRIPT_DIR)/$(SC_FILE)
 
 haskell :
 	@$(HS) $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
