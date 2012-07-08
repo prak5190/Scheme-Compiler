@@ -59,11 +59,11 @@
          (begin
            (when lead-space? (printf " "))
            (printf "(")
-           (Form #f t)
+           (Form #f `(,t))
            (for-each
              (lambda (t)
                (printf ",")
-               (Form #f t))
+               (Form #f `(,t)))
              t*)
            (printf ")")))
         ((,x . ,rest)

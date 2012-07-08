@@ -66,6 +66,7 @@
                          capitalize-string)
                 ".hs"
                 (emit-haskell path)
+                ;pretty-print
                 path
                 name
                 code)))
