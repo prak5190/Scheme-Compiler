@@ -1,5 +1,5 @@
 
-module FrameworkHs.GenGrammars.ParseL01 where
+module FrameworkHs.ParseL01 where
 
 import FrameworkHs.GenGrammars.L01
 import FrameworkHs.SExpReader.LispData
