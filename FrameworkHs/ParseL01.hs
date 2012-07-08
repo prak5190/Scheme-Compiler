@@ -1,7 +1,7 @@
 
 module FrameworkHs.ParseL01 where
 
-import FrameworkHs.GenGrammars.L01
+import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
