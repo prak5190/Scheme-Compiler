@@ -46,6 +46,7 @@ module FrameworkHs.Helpers
   , catchExc
   , isInt32
   , isInt64
+  , isUInt6
   ) where
 
 import Prelude hiding (LT, EQ, GT)
@@ -367,6 +368,9 @@ inBitRange r i = (((- (2 ^ (r-1))) <= i) && (i <= ((2 ^ (r-1)) - 1)))
 
 isInt32 = inBitRange 32
 isInt64 = inBitRange 64
+
+isUInt6 :: Int -> Bool
+isUInt6 i = (0 <= i) && (i <= 63)
 
 class SuffixTerm a where
   extractSuffix :: a -> Int
