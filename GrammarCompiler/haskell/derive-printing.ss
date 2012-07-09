@@ -18,7 +18,7 @@
           (((,name . ,fields) ,form)
            (let ((field-names (field-names fields)))
              (let-values (((_ p) (Form (map cons field-names fields) form)))
-               (let ((p (condense-structures p)))
+               (let ((p (place-ppSexps (condense-structures p))))
                  `((,name . ,fields)
                    (print (,name . ,field-names) ,p))))))
           (,e (errorf 'derive/Sub "invalid: ~a" e)))))
@@ -82,6 +82,39 @@
      (map (lambda (f) (if (pair? f) 'l f))
           fs))))
 
+(define place-ppSexps
+  (lambda (e)
+    (define place
+      (lambda (b e)
+        (if b `(ppSexp ,e) e)))
+    (define Elem
+      (lambda (e)
+        (match e
+          ((list ,[l] ...)
+           `(ppSexp (list . ,l)))
+          ((cons ,[a] ,[List -> d])
+           `(ppSexp (cons ,a ,d)))
+          ((append ,[List -> l1] ,[List -> l2])
+           `(ppSexp (append ,l1 ,l2)))
+          ((map pp ,e) `(ppSexp (map pp ,e)))
+          ((map (lambda ,fml ,[Elem -> body]) ,e)
+           `(ppSexp (map (lambda ,fml ,body) ,e)))
+          (,e e))))
+    (define List
+      (lambda (e)
+        (match e
+          ((list ,[Elem -> l] ...)
+           `(list . ,l))
+          ((cons ,[Elem -> a] ,[d])
+           `(cons ,a ,d))
+          ((append ,[l1] ,[l2])
+           `(append ,l1 ,l2))
+          ((map pp ,e) `(map pp ,e))
+          ((map (lambda ,fml ,[Elem -> body]) ,e)
+           `(map (lambda ,fml ,body) ,e))
+          (,e (errorf 'place-ppSexps "huh? ~a" e)))))
+    (Elem e)))
+
 ;; Cleans up pretty-printing function into readable form,
 ;; as well as raises ppSexp function to proper positions
 (define condense-structures
@@ -89,28 +122,21 @@
     (match e
       ((cons ,[a] ,[d])
        (match d
-         ((ppSexp (list . ,l)) `(ppSexp (list ,a . ,l)))
-         ((ppSexp (append ,l1 ,l2)) `(ppSexp (cons ,a (append ,l1 ,l2))))
+         ((list . ,l) `(list ,a . ,l))
+         ((append ,l1 ,l2) `(cons ,a (append ,l1 ,l2)))
          (,else `(cons ,a ,d))))
       ((append ,[l1] ,[l2])
        (match `(,l1 ,l2)
-         (((ppSexp (list . ,ll1)) (ppSexp (list . ,ll2)))
-          `(ppSexp (list ,ll1 ... . ,ll2)))
-         (((ppSexp (list . ,ll1)) ,ll2)
-          (if (null? ll1)
-              ll2
-              `(append (list . ,ll1) ,ll2)))
-         ((,ll1 (ppSexp (list . ,ll2)))
-          (if (null? ll2)
-              ll1
-              `(ppSexp (append ,ll1 (list . ,ll2)))))
-         ((,ll1 ,ll2)
-          `(append ,ll1 ,ll2))))
+         (((list . ,ll1) (list . ,ll2))
+          `(list ,ll1 ... . ,ll2))
+         (((list . ,ll1) (cons ,a ,d))
+          `(append (list ,ll1 ... ,a) ,d))
+         (,e `(append ,l1 ,l2))))
       (() '(ppSexp (list)))
       ((map pp ,x)
-       `(ppSexp (map pp ,x)))
+       `(map pp ,x))
       ((map (lambda ,fml* ,[e]) ,x)
-       `(ppSexp (map (lambda ,fml* ,e) ,x)))
+       `(map (lambda ,fml* ,e) ,x))
       ((string ,s) `(string ,s))
       ((pp ,s) `(pp ,s))
       (,e (errorf 'condense "invalid: ~a" e)))))
