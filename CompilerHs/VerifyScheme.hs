@@ -32,6 +32,18 @@ assert True _ = return ()
 varMatchError :: Effect -> String
 varMatchError e = "Var and Triv1 must be identical in expression (" ++ show e ++ ")"
 
-if' :: Bool -> a -> a -> a
-if' True t f = t
-if' False t f = f
+reg :: Triv -> Bool
+reg (Var (Reg _)) = True
+reg _ = False
+
+fv :: Triv -> Bool
+fv (Var (FVar _)) = True
+fv _ = False
+
+int32 :: Triv -> Bool
+int32 (Int i) = isInt32 i
+int32 _ = False
+
+uInt6 :: Triv -> Bool
+uInt6 (Int i) = isUInt6 i
+uInt6 _ = False
