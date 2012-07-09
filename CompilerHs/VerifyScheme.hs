@@ -6,10 +6,12 @@ import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
 verifyScheme :: P423Config -> Prog -> Exc Prog
-verifyScheme c p@(Begin ls s) =
-  do mapM statement ls
-     statement s
+verifyScheme c p@(Letrec ls t) =
+  do labelsDistinct ll
+     mapM_ (tail ll) tt
+     tail ll t
      return p
+  where (ll,tt) = unzip ls
 
 statement :: Statement -> Exc ()
 statement s = case s of
@@ -27,5 +29,9 @@ assert :: Bool -> String -> Exc ()
 assert False msg = failure msg
 assert True _ = return ()
 
-varMatchError :: Var -> Var -> Statement -> String
-varMatchError v1 v2 s = show v1 ++ " and " ++ show v2 ++ " must be identical in expression (" ++ show s ++ ")"
+varMatchError :: Effect -> String
+varMatchError e = "Var and Triv1 must be identical in expression (" ++ show e ++ ")"
+
+if' :: Bool -> a -> a -> a
+if' True t f = t
+if' False t f = f
