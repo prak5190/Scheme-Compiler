@@ -127,6 +127,8 @@
          (,else `(cons ,a ,d))))
       ((append ,[l1] ,[l2])
        (match `(,l1 ,l2)
+         ((,ll1 (list)) ll1)
+         (((list) ,ll2) ll2)
          (((list . ,ll1) (list . ,ll2))
           `(list ,ll1 ... . ,ll2))
          (((list . ,ll1) (cons ,a ,d))
