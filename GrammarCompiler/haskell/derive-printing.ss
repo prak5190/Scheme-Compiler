@@ -132,7 +132,7 @@
          (((list . ,ll1) (cons ,a ,d))
           `(append (list ,ll1 ... ,a) ,d))
          (,e `(append ,l1 ,l2))))
-      (() '(ppSexp (list)))
+      (() '(list))
       ((map pp ,x)
        `(map pp ,x))
       ((map (lambda ,fml* ,[e]) ,x)
