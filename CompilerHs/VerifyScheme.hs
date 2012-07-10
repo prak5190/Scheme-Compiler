@@ -41,9 +41,9 @@ vFV (Var (FVar _)) = True
 vFV _ = False
 
 int32 :: Triv -> Bool
-int32 (Int i) = isInt32 i
+int32 (Integer i) = isInt32 i
 int32 _ = False
 
 uInt6 :: Triv -> Bool
-uInt6 (Int i) = isUInt6 i
+uInt6 (Integer i) = isUInt6 i
 uInt6 _ = False

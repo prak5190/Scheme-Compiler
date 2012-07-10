@@ -1,17 +1,16 @@
 module CompilerHs.GenerateX86_64 where
 
-import FrameworkHs.GenGrammars.L01VerifyScheme
+import FrameworkHs.GenGrammars.L41FlattenProgram
 import FrameworkHs.Helpers
 import FrameworkHs.Prims
 import System.IO (Handle)
 
 generateX86_64 :: P423Config -> Prog -> Handle -> IO ()
-generateX86_64 c (Begin ls s) h =
-  do emitOp2 h ".globl" "_scheme_entry"
-     emitLabel h "_scheme_entry"
+generateX86_64 c (Code ls s) h =
+  do emitEntry h
      mapM (statement h) ls
      statement h s
-     emitOp1 h "ret"
+     emitExit h
 
 statement :: Handle -> Statement -> IO ()
 statement h s = case s of
@@ -25,3 +24,6 @@ binop b = case b of
   ADD -> "addq"
   SUB -> "subq"
   MUL -> "imulq"
+  LOGAND -> "andq"
+  LOGOR  -> "orq"
+  SRA    -> "sarq"
