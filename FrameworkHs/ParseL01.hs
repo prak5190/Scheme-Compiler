@@ -23,7 +23,7 @@ parseTail :: LispVal -> Exc Tail
 parseTail (List [(Symbol "app"), t]) =
   do t <- parseTriv t
      return (App t)
-parseTail (List ((Symbol "begin"):ls) =
+parseTail (List ((Symbol "begin"):ls)) =
   do (es,t) <- parseListWithFinal parseEffect parseTail ls
      return (Begin es t)
 parseTail e = failure ("Invalid Tail: " ++ show e)
@@ -44,7 +44,7 @@ parseEffect e = failure ("Invalid Effect: " ++ show e)
 parseTriv :: LispVal -> Exc Triv
 parseTriv i@(IntNumber _) =
   do i <- parseInt64 i
-     return (Int i)
+     return (Integer i)
 parseTriv s@(Symbol _) =
   catchExc (do v <- parseVar s
                return (Var v))
@@ -71,7 +71,7 @@ parseVar x =
 --    (set! Var (Binop Triv Triv)))
 --   (Triv
 --    Var
---    Int
+--    Integer
 --    Label)
 --   (Var
 --    Reg
