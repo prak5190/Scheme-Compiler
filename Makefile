@@ -35,10 +35,10 @@ grammars : $(SRC_GRAMMAR) GrammarCompiler
 	@mkdir -p Framework{,Hs}/GenGrammars
 	$(SC) --script $(SCRIPT_DIR)/$(CG_FILE) "$(SRC_GRAMMAR)"
 
-scheme :
+scheme : grammars
 	@$(SC) $(SCRIPT_DIR)/$(SC_FILE)
 
-haskell :
+haskell : grammars
 	@$(HS) $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
 
 clean :
