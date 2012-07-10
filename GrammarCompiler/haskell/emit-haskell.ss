@@ -104,7 +104,7 @@
       (lambda (t)
         (match t
           ((data ,name . ,subs)
-           (print-deriving '(Read Show Eq Ord) name))
+           (print-deriving '(Read Show Eq) name))
           (,else (void))))
       types)))
 
