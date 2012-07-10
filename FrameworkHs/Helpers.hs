@@ -344,15 +344,17 @@ parseReg (Symbol s) = case s of
 parseReg e = failure ("Not a symbol: " ++ show e)
 
 parseInt32 :: LispVal -> Exc Int
-parseInt32 (IntNumber i) = if isInt32 i
-                              then return (fromIntegral i)
+parseInt32 (IntNumber i) = if isInt32 n
+                              then return n
                               else failure ("Out of range: " ++ show i)
+  where n = fromIntegral i
 parseInt32 e = failure ("Not an int: " ++ show e)
 
 parseInt64 :: LispVal -> Exc Int
-parseInt64 (IntNumber i) = if isInt64 i
-                              then return (fromIntegral i)
+parseInt64 (IntNumber i) = if isInt64 n
+                              then return (fromIntegral n)
                               else failure ("Out of range: " ++ show i)
+  where n = fromIntegral i
 parseInt64 e = failure ("Not an int: " ++ show e)
 
 ------------------------------------------------------------
