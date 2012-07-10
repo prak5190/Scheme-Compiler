@@ -363,8 +363,9 @@ catchExc m1 m2 = case m1 of
   Left e -> m2
   Right a  -> m1
 
-inBitRange :: Int -> Int -> Bool
-inBitRange r i = (((- (2 ^ (r-1))) <= i) && (i <= ((2 ^ (r-1)) - 1)))
+inBitRange :: Integral a => Int -> a -> Bool
+inBitRange r i = (((- (2 ^ (r-1))) <= n) && (n <= ((2 ^ (r-1)) - 1)))
+  where n = fromIntegral i
 
 isInt32 = inBitRange 32
 isInt64 = inBitRange 64
