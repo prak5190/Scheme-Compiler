@@ -8,8 +8,8 @@ import FrameworkHs.Helpers
 verifyScheme :: P423Config -> Prog -> Exc Prog
 verifyScheme c p@(Letrec ls t) =
   do labelsDistinct ll
-     mapM_ (tail ll) tt
-     tail ll t
+     mapM_ (vTail ll) tt
+     vTail ll t
      return p
   where (ll,tt) = unzip ls
 
@@ -32,13 +32,13 @@ assert True _ = return ()
 varMatchError :: Effect -> String
 varMatchError e = "Var and Triv1 must be identical in expression (" ++ show e ++ ")"
 
-reg :: Triv -> Bool
-reg (Var (Reg _)) = True
-reg _ = False
+vReg :: Triv -> Bool
+vReg (Var (Reg _)) = True
+vReg _ = False
 
-fv :: Triv -> Bool
-fv (Var (FVar _)) = True
-fv _ = False
+vFV :: Triv -> Bool
+vFV (Var (FVar _)) = True
+vFV _ = False
 
 int32 :: Triv -> Bool
 int32 (Int i) = isInt32 i
