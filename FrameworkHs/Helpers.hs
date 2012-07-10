@@ -47,12 +47,13 @@ module FrameworkHs.Helpers
   , isInt32
   , isInt64
   , isUInt6
+  , chomp
   ) where
 
 import Prelude hiding (LT, EQ, GT)
 import Data.List (intercalate)
 import Data.Set (size, fromList)
-import Data.Char (isDigit)
+import Data.Char (isDigit, isSpace)
 import Data.Int
 import Control.Monad (unless)
 import qualified Data.Set as S
@@ -392,3 +393,6 @@ instance SuffixTerm FVar where
 
 instance SuffixTerm Label where
   extractSuffix (L name ind) = ind
+
+chomp :: String -> String
+chomp = reverse . dropWhile isSpace . reverse
