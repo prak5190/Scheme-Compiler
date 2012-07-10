@@ -1,4 +1,4 @@
-module FrameworkHs.Testing (testAll, TestResult) where
+module FrameworkHs.Testing (testAll, TestResult, testDefault, showResults) where
 
 import Control.Exception
 import Text.Printf
@@ -28,6 +28,12 @@ catchTestFailures e = case e of
   (WrapperFailureException w e) -> yes
   where yes = Just e
         no  = Nothing
+
+testDefault :: IO ([TestResult],[TestResult])
+testDefault = testAll Default Default
+
+showResults :: [TestResult] -> IO ()
+showResults = mapM_ print
 
 testAll :: Option String -> Option P423Config -> IO ([TestResult],[TestResult])
 testAll testFile config =

@@ -43,6 +43,7 @@ haskell : grammars
 
 clean :
 	rm -f t.s t
+	rm -rf Framework{,Hs}/GenGrammars
 #	find . -name "*.o" -exec rm -f {} \;
 #	find . -name "*.hi" -exec rm -f {} \;
 
