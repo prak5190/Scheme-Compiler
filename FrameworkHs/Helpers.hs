@@ -137,7 +137,7 @@ class X86Print a where
 instance X86Print String where
   format = pp
 
-instance X86Print Int64 where
+instance X86Print Integer where
   format i = "$" ++ pp i
 
 instance X86Print Reg where
@@ -218,7 +218,7 @@ ppSexp ls = "(" ++ intercalate " " ls ++ ")"
 instance PP String where
   pp = id
 
-instance PP Int64 where
+instance PP Integer where
   pp = show
 
 instance PP UVar where
@@ -268,7 +268,7 @@ instance PP Reg where
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 
-parseSuffix :: String -> Exc Int64
+parseSuffix :: String -> Exc Integer
 parseSuffix i@('0':_) = failure ("Leading zero in index: " ++ i)
 parseSuffix i = if (and $ map isDigit i)
                    then return $ read i
@@ -344,14 +344,14 @@ parseReg (Symbol s) = case s of
   e     -> failure ("Not a register: " ++ e)
 parseReg e = failure ("Not a symbol: " ++ show e)
 
-parseInt32 :: LispVal -> Exc Int64
+parseInt32 :: LispVal -> Exc Integer
 parseInt32 (IntNumber i) = if isInt32 n
                               then return n
                               else failure ("Out of range: " ++ show i)
   where n = fromIntegral i
 parseInt32 e = failure ("Not an int: " ++ show e)
 
-parseInt64 :: LispVal -> Exc Int64
+parseInt64 :: LispVal -> Exc Integer
 parseInt64 (IntNumber i) = if isInt64 n
                               then return (fromIntegral n)
                               else failure ("Out of range: " ++ show i)
@@ -366,18 +366,18 @@ catchExc m1 m2 = case m1 of
   Left e -> m2
   Right a  -> m1
 
-inBitRange :: Int64 -> Int64 -> Bool
+inBitRange :: Integer -> Integer -> Bool
 inBitRange r i = (((- (2 ^ (r-1))) <= n) && (n <= ((2 ^ (r-1)) - 1)))
   where n = fromIntegral i
 
 isInt32 = inBitRange 32
 isInt64 = inBitRange 64
 
-isUInt6 :: Int64 -> Bool
+isUInt6 :: Integer -> Bool
 isUInt6 i = (0 <= i) && (i <= 63)
 
 class SuffixTerm a where
-  extractSuffix :: a -> Int64
+  extractSuffix :: a -> Integer
   uniqueSuffixes :: [a] -> Bool
   uniqueSuffixes as = isSet $ map extractSuffix as
 
