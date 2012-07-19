@@ -20,7 +20,7 @@ parseProg (List [(Symbol "letrec"),List bs,t]) =
 parseProg e = failure ("Invalid Prog: " ++ show e)
 
 parseTail :: LispVal -> Exc Tail
-parseTail (List [(Symbol "app"), t]) =
+parseTail (List [t]) =
   do t <- parseTriv t
      return (App t)
 parseTail (List ((Symbol "begin"):ls)) =
@@ -29,12 +29,12 @@ parseTail (List ((Symbol "begin"):ls)) =
 parseTail e = failure ("Invalid Tail: " ++ show e)
 
 parseEffect :: LispVal -> Exc Effect
-parseEffect (List [(Symbol "op-set!"),v,List[b,t1,t2]]) =
+parseEffect (List [(Symbol "set!"),v,List[b,t1,t2]]) =
   do v <- parseVar v
      b <- parseBinop b
      t1 <- parseTriv t1
      t2 <- parseTriv t2
-     return (OpSet v b t1 t2)
+     return (Set' v b t1 t2)
 parseEffect (List [(Symbol "set!"),v,t]) =
   do v <- parseVar v
      t <- parseTriv t
