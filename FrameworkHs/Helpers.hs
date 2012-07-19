@@ -148,10 +148,10 @@ instance X86Print Label where
   format (L name ind) = "L" ++ pp ind ++ "(%rip)"
 
 instance X86Print Disp where
-  format (Disp reg off) = pp off ++ "(%" ++ pp reg ++ ")"
+  format (D reg off) = pp off ++ "(%" ++ pp reg ++ ")"
 
 instance X86Print Ind where
-  format (Ind bReg iReg) = "(%" ++ pp bReg ++ ", %" ++ pp iReg ++ ")"
+  format (I bReg iReg) = "(%" ++ pp bReg ++ ", %" ++ pp iReg ++ ")"
 
 type OpCode = String
 
