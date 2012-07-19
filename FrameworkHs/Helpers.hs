@@ -231,6 +231,12 @@ instance PP FVar where
 instance PP Label where
   pp (L name ind) = name ++ "$" ++ show ind
 
+instance PP Disp where
+  pp (D r i) = pp r ++ "#<index " ++ pp r ++ " " ++ pp i ++ ">"
+
+instance PP Ind where
+  pp (I r1 r2) = "#<disp " ++ pp r1 ++ " " ++ pp r2 ++ ">"
+
 instance PP Relop where
   pp r = case r of
     LT  -> "<"
