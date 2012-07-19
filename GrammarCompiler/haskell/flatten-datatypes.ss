@@ -21,12 +21,9 @@
     (match x
       ((,name
         (start ,st)
-        ;(with-terminals . ,term/p*)
         ,[Type -> type*] ...)
        `(tags ,seen-tags
-          ;(terminals ,term/p*
-            (module ,name . ,type*)))
-        ;)
+         (module ,name . ,type*)))
       (,e (errorf 'flatten-datatypes "invalid grammar: ~a" e)))))
 
 ;; builds an alist that merges the values associated with a given key.
@@ -59,10 +56,11 @@
   (lambda (type)
     (lambda (x)
       (match x
-        ;; should be unnecessary
-        ;(,t (guard (prim-type? t))
-        ;    (let ((t (translate-prim-type t)))
-        ;      `(,t ,t)))
+        ((,t . ,e*) (guard (terminal? t))
+         (begin
+           (add-tag t type)
+           (let ((new-e* (flatten-form e*)))
+             `((,t . ,new-e*) (,t . ,e*)))))
         (,nt (guard (non-terminal? nt))
              (begin
                (add-tag
@@ -73,11 +71,6 @@
                   (symbol->string nt)))
                 type)
                `((,nt ,nt) ,nt)))
-        ((,t . ,e*) (guard (terminal? t))
-         (begin
-           (add-tag t type)
-           (let ((new-e* (flatten-form e*)))
-             `((,t . ,new-e*) (,t . ,e*)))))
         ;; untagged subforms, eg. (Relop Triv Triv), are tagged with 'app'
         (,e*
          (begin
