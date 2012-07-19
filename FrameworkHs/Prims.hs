@@ -54,5 +54,5 @@ data Reg = RAX | RCX | RDX | RBX | RBP | RSI | RDI | R8 | R9
 data Relop = LT | LTE | EQ | GT | GTE               deriving (Read,Show,Eq,Ord)
 data Binop = MUL | ADD | SUB | LOGAND | LOGOR | SRA deriving (Read,Show,Eq,Ord)
 
-data Disp = D Reg Integer
-data Ind = I Reg Reg
+data Disp = D Reg Integer deriving (Read,Show,Eq)
+data Ind = I Reg Reg deriving (Read,Show,Eq)
