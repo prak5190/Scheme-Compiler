@@ -46,6 +46,8 @@ module FrameworkHs.Helpers
   , parseReg
   , parseInt32
   , parseInt64
+  , ash
+  , wordShift
   , catchExc
   , isInt32
   , isInt64

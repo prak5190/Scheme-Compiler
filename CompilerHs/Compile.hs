@@ -18,6 +18,8 @@ import FrameworkHs.SExpReader.LispData
 import FrameworkHs.ParseL01
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import CompilerHs.VerifyScheme
+import CompilerHs.ExposeFrameVar
+import CompilerHs.FlattenProgram
 import CompilerHs.GenerateX86_64
 
 compileAssemblyCmd :: String
@@ -41,10 +43,24 @@ vfs = P423Pass { pass = verifyScheme
                , trace = False
                }
 
+efv = P423Pass { pass = exposeFrameVar
+               , passName = "exposeFrameVar"
+               , wrapperName = "expose-frame-var/wrapper"
+               , trace = False
+               }
+
+flp = P423Pass { pass = flattenProgram
+               , passName = "flattenProgram"
+               , wrapperName = "flatten-program/wrapper"
+               , trace = False
+               }
+
 p423Compile :: P423Config -> Compiler
-p423Compile conf l =
-  do p <- runPass vfs conf p
-     assemble $ generateX86_64 conf p
+p423Compile c l = do
+  p <- runPass vfs c p
+  p <- runPass efv c p
+  p <- runPass flp c p
+  assemble $ generateX86_64 c p
   where p = case (parseProg l) of
               Left e -> throw (ASTParseException e)
               Right x -> x
