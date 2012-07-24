@@ -106,12 +106,12 @@
          (let ((tag (car first)))
            (list (cons tag '())))))
       ((all-equal? ls*)
-       (distinct-suffixes (map car ls*)))
-        ;(map
-        ; (lambda (ls)
-        ;   (let ((tag (car ls)))
-        ;     (cons tag '())))
-        ; ls*)))
+       (distinct-suffixes
+        (map
+         (lambda (ls)
+           (let ((tag (car ls)))
+             (cons tag '())))
+         ls*)))
       (else
        (let-values (((n nn)
                      (partition
