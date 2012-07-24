@@ -34,11 +34,11 @@ parseEffect (List [(Symbol "set!"),v,List[b,t1,t2]]) =
      b <- parseBinop b
      t1 <- parseTriv t1
      t2 <- parseTriv t2
-     return (Set' v b t1 t2)
+     return (Set2 v b t1 t2)
 parseEffect (List [(Symbol "set!"),v,t]) =
   do v <- parseVar v
      t <- parseTriv t
-     return (Set v t)
+     return (Set1 v t)
 parseEffect e = failure ("Invalid Effect: " ++ show e)
 
 parseTriv :: LispVal -> Exc Triv
