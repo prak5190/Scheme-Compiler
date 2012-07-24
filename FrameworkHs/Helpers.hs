@@ -46,8 +46,6 @@ module FrameworkHs.Helpers
   , parseReg
   , parseInt32
   , parseInt64
-  , ash
-  , wordShift
   , catchExc
   , isInt32
   , isInt64
@@ -100,10 +98,6 @@ split s (c:cs)
   | (c == s)  = ([],cs)
   | otherwise = (c:before,cs')
     where (before,cs') = split s cs
-
-wordShift = 3
-ash :: Integer -> Integer -> Integer
-ash n = (* (2 ^ n))
 
 ------------------------------------------------------------
 -- Exceptions ----------------------------------------------

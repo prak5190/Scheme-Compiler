@@ -28,13 +28,13 @@ tail c t = case t of
 
 effect :: P423Config -> L1.Effect -> Exc L2.Effect
 effect c e = case e of
-  L1.Set v tr          -> do v  <- var c v
-                             tr <- triv c tr
-                             return (L2.Set v tr)
-  L1.OpSet v b tr1 tr2 -> do v   <- var c v
-                             tr1 <- triv c tr1
-                             tr2 <- triv c tr2
-                             return (L2.OpSet v b tr1 tr2)
+  L1.Set1 v tr        -> do v  <- var c v
+                            tr <- triv c tr
+                            return (L2.Set1 v tr)
+  L1.Set2 v b tr1 tr2 -> do v   <- var c v
+                            tr1 <- triv c tr1
+                            tr2 <- triv c tr2
+                            return (L2.Set2 v b tr1 tr2)
 
 triv :: P423Config -> L1.Triv -> Exc L2.Triv
 triv c tr = case tr of
