@@ -14,11 +14,7 @@
 (define assign-tags
   (lambda (x)
     (match x
-      ((tags ,tags
-         ;(terminals ,t/p*
-           ,module)
-         ;)
-       ;(set! prints '())
+      ((tags ,tags ,module)
        (let ((assigned-pre (shortest-distinct-prefixes
                             (append (prep-builtins) (tagged-sl* tags)))))
          (let ((assigned (map (lambda (tt)
@@ -27,8 +23,6 @@
                                   (cons tag (make-haskell-type type-ls))))
                               assigned-pre)))
            (walk-module assigned module))))
-           ;(let ((new-module (walk-module assigned module)))
-           ;  `(terminals ,t/p* ,new-module)))))
       (,else (errorf 'assign-tags "invalid: ~a" else)))))
 
 ;; produces a haskell datatype constructor out of the output from
@@ -53,8 +47,6 @@
              ,[Type -> types] ...)
            ;; lifting prints from the subform level to the module level
            `(module ,name . ,types))
-           ;`((module ,name . ,types)
-           ;  (print . ,prints)))
           (,else (errorf 'assign/Module "invalid: ~a" else)))))
 
     (define Type
@@ -114,12 +106,12 @@
          (let ((tag (car first)))
            (list (cons tag '())))))
       ((all-equal? ls*)
-       (distinct-suffixes
-        (map
-         (lambda (ls)
-           (let ((tag (car ls)))
-             (cons tag '())))
-         ls*)))
+       (distinct-suffixes (map car ls*)))
+        ;(map
+        ; (lambda (ls)
+        ;   (let ((tag (car ls)))
+        ;     (cons tag '())))
+        ; ls*)))
       (else
        (let-values (((n nn)
                      (partition
@@ -176,16 +168,25 @@
                 (all-equal? d))))))))
 
 (define distinct-suffixes
-  (lambda (ls-null)
-    (cond
-      ((null? ls-null) '())
-      (else
-       (cons (car ls-null)
-             (map
-              (lambda (ls)
-                (cons (car ls)
-                      (cons #\' (cdr ls))))
-              (distinct-suffixes (cdr ls-null))))))))
+  (lambda (ls)
+    (let loop ((ls ls) (i 1))
+      (cond
+        ((null? ls) '())
+        (else
+         (cons (append (car ls) (string->list (number->string i)))
+               (loop (cdr ls) (+ i 1))))))))
+
+;(define distinct-suffixes
+;  (lambda (ls-null)
+;    (cond
+;      ((null? ls-null) '())
+;      (else
+;       (cons (car ls-null)
+;             (map
+;              (lambda (ls)
+;                (cons (car ls)
+;                      (cons #\' (cdr ls))))
+;              (distinct-suffixes (cdr ls-null))))))))
 
 (define rebuild-lists
   (lambda (c ls*)
