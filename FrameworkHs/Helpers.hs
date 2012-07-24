@@ -47,6 +47,8 @@ module FrameworkHs.Helpers
   , isInt32
   , isInt64
   , isUInt6
+  , wordShift
+  , ash
   , chomp
   ) where
 
@@ -95,6 +97,10 @@ split s (c:cs)
   | (c == s)  = ([],cs)
   | otherwise = (c:before,cs')
     where (before,cs') = split s cs
+
+wordShift = 3
+ash :: Integer -> Integer -> Integer
+ash n = (* (2 ^ n))
 
 ------------------------------------------------------------
 -- Exceptions ----------------------------------------------
