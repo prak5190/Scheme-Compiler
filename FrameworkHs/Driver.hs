@@ -28,19 +28,19 @@ type PassName = String
 
 runWrapper :: PP a => WrapperName -> a -> IO (Exc LispVal)
 runWrapper wrapper code =
-  do (i,o,e,id) <- runInteractiveCommand scheme
+  do (i,o,e,pid) <- runInteractiveCommand scheme
      loadFramework i
      hPutStrLn i $ app wrapper $ quote code
      hClose i
      eOut <- hGetContents e
      if (eOut == "")
         then (do oOut <- hGetContents o
-                 terminateProcess id
+                 terminateProcess pid
                  return $
                    (case (readExpr oOut) of
                      Left e -> Left $ show e
                      Right code -> Right code))
-        else (do terminateProcess id
+        else (do terminateProcess pid
                  return $ Left eOut)
   where app :: String -> String -> String
         app rator rand = "(" ++ rator ++ " " ++ rand ++ ")"
