@@ -105,7 +105,7 @@ ash n = (* (2 ^ n))
 ------------------------------------------------------------
 -- Exceptions ----------------------------------------------
 
-data P423Exception = AssemblyFailedException
+data P423Exception = AssemblyFailedException String
                    | ASTParseException String
                    | ParseErrorException ParseError
                    | NoValidTestsException
@@ -116,8 +116,8 @@ data P423Exception = AssemblyFailedException
 
 instance Exception P423Exception
 instance Show P423Exception where
-  show e@(AssemblyFailedException)      = showShort e
-  show e@(ParseErrorException pe)       = showShort e ++ ": " ++ show pe
+  show e@(AssemblyFailedException e')   = showShort e ++ ": " ++ show e'
+  show e@(ParseErrorException e')       = showShort e ++ ": " ++ show e'
   show e@(ASTParseException s)          = showShort e ++ ": " ++ s
   show e@(NoValidTestsException)        = showShort e
   show e@(NoInvalidTestsException)      = showShort e
