@@ -27,6 +27,9 @@ module FrameworkHs.Helpers
   , Exc, failure
   , X86Print, format
   , OpCode
+  , Out
+  , OutF (Put, Done)
+  , output, done, runOut
   , emitOp1, emitOp2, emitOp3
   , emitLabel
   , emitJumpLabel, emitJump
@@ -138,6 +141,36 @@ showShort e = case e of
 ------------------------------------------------------------
 -- Emitting ------------------------------------------------
 
+data Free f r = Free (f (Free f r)) | Pure r
+
+instance (Functor f) => Monad (Free f) where
+  return = Pure
+  (Free x) >>= f = Free (fmap (>>= f) x)
+  (Pure r) >>= f = f r
+
+data OutF b next
+  = Put b next
+  | Done
+
+type Out = Free (OutF String) ()
+
+instance Functor (OutF b) where
+  fmap f (Put x next) = Put x (f next)
+  fmap f Done         = Done
+
+liftF :: (Functor f) => f r -> Free f r
+liftF cmd = Free (fmap Pure cmd)
+
+output :: b -> Free (OutF b) ()
+output x = liftF $ Put x ()
+done :: Free (OutF b) ()
+done     = liftF Done
+
+runOut :: Handle -> Free (OutF String) r -> IO ()
+runOut h (Free (Put s x)) = hPutStrLn h s >> runOut h x
+runOut h (Free  Done    ) = return ()
+runOut h (Pure r)         = throwIO (userError "Improper termination")
+
 class X86Print a where
   format :: a -> String
 
@@ -161,57 +194,109 @@ instance X86Print Ind where
 
 type OpCode = String
 
-emitOp1 :: Handle -> OpCode -> IO ()
-emitOp1 h op = hPutStrLn h ("    " ++ op)
+emitOp1 :: OpCode -> Out
+emitOp1 op = output ("    " ++ op)
 
-emitOp2 :: (X86Print a) => Handle -> OpCode -> a -> IO ()
-emitOp2 h op a = hPutStrLn h ("    " ++ op ++ " " ++ format a)
+emitOp2 :: (X86Print a) => OpCode -> a -> Out
+emitOp2 op a = output ("    " ++ op ++ " " ++ format a)
 
-emitOp3 :: (X86Print a, X86Print b) => Handle -> OpCode -> a -> b -> IO ()
-emitOp3 h op a b = hPutStrLn h ("    " ++ op ++ " " ++ format a ++ ", " ++ format b)
+emitOp3 :: (X86Print a, X86Print b) => OpCode -> a -> b -> Out
+emitOp3 op a b = output ("    " ++ op ++ " " ++ format a ++ ", " ++ format b)
 
-emitLabel :: (X86Print a) => Handle -> a -> IO ()
-emitLabel h a = hPutStrLn h (format a ++ ":")
+emitLabel :: (X86Print a) => a -> Out
+emitLabel a = output (format a ++ ":")
 
-emitJumpLabel :: Handle -> OpCode -> Label -> IO ()
-emitJumpLabel h op (L name ind) = emitOp2 h op ("L" ++ pp ind)
+emitJumpLabel :: OpCode -> Label -> Out
+emitJumpLabel op (L name ind) = emitOp2 op ("L" ++ pp ind)
 
-emitJump :: (X86Print a) => Handle -> OpCode -> a -> IO ()
+emitJump :: (X86Print a) => OpCode -> a -> Out
 emitJump = emitOp2
 
-pushq, popq :: (X86Print a) => Handle -> a -> IO ()
-movq, leaq :: (X86Print a, X86Print b) => Handle -> a -> b -> IO ()
-pushq h = emitOp2 h "pushq"
-popq h = emitOp2 h "popq"
-movq h = emitOp3 h "movq"
-leaq h = emitOp3 h "leaq"
+--emitOp1 :: Handle -> OpCode -> IO ()
+--emitOp1 h op = hPutStrLn h ("    " ++ op)
+--
+--emitOp2 :: (X86Print a) => Handle -> OpCode -> a -> IO ()
+--emitOp2 h op a = hPutStrLn h ("    " ++ op ++ " " ++ format a)
+--
+--emitOp3 :: (X86Print a, X86Print b) => Handle -> OpCode -> a -> b -> IO ()
+--emitOp3 h op a b = hPutStrLn h ("    " ++ op ++ " " ++ format a ++ ", " ++ format b)
+--
+--emitLabel :: (X86Print a) => Handle -> a -> IO ()
+--emitLabel h a = hPutStrLn h (format a ++ ":")
+--
+--emitJumpLabel :: Handle -> OpCode -> Label -> IO ()
+--emitJumpLabel h op (L name ind) = emitOp2 h op ("L" ++ pp ind)
+--
+--emitJump :: (X86Print a) => Handle -> OpCode -> a -> IO ()
+--emitJump = emitOp2
 
-emitEntry :: P423Config -> Handle -> IO ()
-emitEntry c h =
-  do emitOp2 h ".globl" "_scheme_entry"
-     emitLabel h "_scheme_entry"
-     pushq h RBX
-     pushq h RBP
-     pushq h R12
-     pushq h R13
-     pushq h R14
-     pushq h R15
-     movq  h RDI (framePointerRegister c)
-     movq  h RSI (allocationPointerRegister c)
-     leaq  h "_scheme_exit(%rip)" (returnAddressRegister c)
+pushq, popq :: (X86Print a) => a -> Out
+movq, leaq :: (X86Print a, X86Print b) => a -> b -> Out
+pushq = emitOp2 "pushq"
+popq = emitOp2 "popq"
+movq = emitOp3 "movq"
+leaq = emitOp3 "leaq"
 
-emitExit :: P423Config -> Handle -> IO ()
-emitExit c h =
-  do emitLabel h "_scheme_exit"
-     unless (returnValueRegister c == RAX)
-            (movq h (returnValueRegister c) RAX)
-     popq h R15
-     popq h R14
-     popq h R13
-     popq h R12
-     popq h RBP
-     popq h RBX
-     emitOp1 h "ret"
+--pushq, popq :: (X86Print a) => Handle -> a -> IO ()
+--movq, leaq :: (X86Print a, X86Print b) => Handle -> a -> b -> IO ()
+--pushq h = emitOp2 h "pushq"
+--popq h = emitOp2 h "popq"
+--movq h = emitOp3 h "movq"
+--leaq h = emitOp3 h "leaq"
+
+emitEntry :: P423Config -> Out
+emitEntry c = do
+  emitOp2 ".globl" "_scheme_entry"
+  emitLabel "_scheme_entry"
+  pushq RBX
+  pushq RBP
+  pushq R12
+  pushq R13
+  pushq R14
+  pushq R15
+  movq  RDI (framePointerRegister c)
+  movq  RSI (allocationPointerRegister c)
+  leaq  "_scheme_exit(%rip)" (returnAddressRegister c)
+
+--emitEntry :: P423Config -> Handle -> IO ()
+--emitEntry c h =
+--  do emitOp2 h ".globl" "_scheme_entry"
+--     emitLabel h "_scheme_entry"
+--     pushq h RBX
+--     pushq h RBP
+--     pushq h R12
+--     pushq h R13
+--     pushq h R14
+--     pushq h R15
+--     movq  h RDI (framePointerRegister c)
+--     movq  h RSI (allocationPointerRegister c)
+--     leaq  h "_scheme_exit(%rip)" (returnAddressRegister c)
+
+emitExit :: P423Config -> Out
+emitExit c = do
+  emitLabel "_scheme_exit"
+  unless (returnValueRegister c == RAX)
+         (movq (returnValueRegister c) RAX)
+  popq R15
+  popq R14
+  popq R13
+  popq R12
+  popq RBP
+  popq RBX
+  emitOp1 "ret"
+
+--emitExit :: P423Config -> Handle -> IO ()
+--emitExit c h =
+--  do emitLabel h "_scheme_exit"
+--     unless (returnValueRegister c == RAX)
+--            (movq h (returnValueRegister c) RAX)
+--     popq h R15
+--     popq h R14
+--     popq h R13
+--     popq h R12
+--     popq h RBP
+--     popq h RBX
+--     emitOp1 h "ret"
 
 ------------------------------------------------------------
 -- Pretty Printing -----------------------------------------
