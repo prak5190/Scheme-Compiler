@@ -126,7 +126,7 @@ instance Show P423Exception where
 
 showShort :: P423Exception -> String
 showShort e = case e of
-  (AssemblyFailedException)     -> "Assembly failure"
+  (AssemblyFailedException e)   -> "Assembly failure"
   (ParseErrorException pe)      -> "SExp parse failure"
   (ASTParseException s)         -> "AST parse failure"
   (NoValidTestsException)       -> "Couldn't find valid tests"
