@@ -11,6 +11,7 @@ generateX86_64 c (Code ls s) =
      mapM statement ls
      statement s
      emitExit c
+     done
 
 statement :: Handle -> Statement -> IO ()
 statement h s = case s of
