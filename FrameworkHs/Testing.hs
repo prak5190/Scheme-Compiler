@@ -19,7 +19,7 @@ instance Show TestResult where
 
 catchTestFailures :: P423Exception -> Maybe P423Exception
 catchTestFailures e = case e of
-  (AssemblyFailedException) -> yes
+  (AssemblyFailedException e) -> yes
   (ASTParseException s) -> yes
   (ParseErrorException pe) -> no
   (NoValidTestsException) ->  no
