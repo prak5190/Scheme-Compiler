@@ -11,7 +11,6 @@
   (l01-verify-scheme
     (start Prog)
     (Prog
-<<<<<<< HEAD
       (letrec ((Label (lambda () Tail)) *) Tail))
     (Tail
       (Triv)
