@@ -156,20 +156,28 @@ type Out = Free (OutF String) ()
 
 instance Functor (OutF b) where
   fmap f (Put x next) = Put x (f next)
-  fmap f Done         = Done
+  fmap f  Done        = Done
 
 liftF :: (Functor f) => f r -> Free f r
 liftF cmd = Free (fmap Pure cmd)
+
+showOut :: (Show a, Show r) => Free (OutF a) r -> String
+showOut (Free (Put a x)) =
+  "put " ++ show a ++ "\n" ++ showOut x
+showOut (Free Done) =
+  "done\n"
+showOut (Pure r) =
+  "return " ++ show r ++ "\n"
 
 output :: b -> Free (OutF b) ()
 output x = liftF $ Put x ()
 done :: Free (OutF b) ()
 done     = liftF Done
 
-runOut :: Handle -> Free (OutF String) r -> IO ()
-runOut h (Free (Put s x)) = hPutStrLn h s >> runOut h x
-runOut h (Free  Done    ) = return ()
-runOut h (Pure r)         = throwIO (userError "Improper termination")
+runOut :: Free (OutF String) r -> Handle -> IO ()
+runOut (Free (Put s x)) h = hPutStrLn h s >> runOut x h
+runOut (Free  Done    ) h = return ()
+runOut (Pure r)         h = throwIO (userError "Improper termination")
 
 class X86Print a where
   format :: a -> String
