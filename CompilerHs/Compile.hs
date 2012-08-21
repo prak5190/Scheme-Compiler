@@ -54,7 +54,7 @@ efv = P423Pass { pass = exposeFrameVar
 flp = P423Pass { pass = flattenProgram
                , passName = "flattenProgram"
                , wrapperName = "flatten-program/wrapper"
-               , trace = False
+               , trace = True
                }
 
 p423Compile :: P423Config -> Compiler
@@ -70,11 +70,10 @@ p423Compile c l = do
 ------------------------------------------------------------
 -- Helpers -------------------------------------------------
 
-assemble :: (Handle -> IO ()) -> IO String
-assemble f =
-  do withFile "t.s" WriteMode f
-     (ec,o,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
-     --ec <- system compileAssemblyCmd
+assemble :: Out -> IO String
+assemble out =
+  do withFile "t.s" WriteMode (runOut out)
+     (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
      case ec of
        ExitSuccess   -> do res <- readProcess "./t" [] ""
                            return (chomp res)

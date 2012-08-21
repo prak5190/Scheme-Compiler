@@ -4,14 +4,13 @@ module CompilerHs.GenerateX86_64 where
 import FrameworkHs.GenGrammars.L41FlattenProgram
 import FrameworkHs.Helpers
 import FrameworkHs.Prims
-import System.IO (Handle)
 
-generateX86_64 :: P423Config -> Prog -> Handle -> IO ()
-generateX86_64 c (Code ls s) h =
-  do emitEntry c h
-     mapM (statement h) ls
-     statement h s
-     emitExit c h
+generateX86_64 :: P423Config -> Prog -> Out
+generateX86_64 c (Code ls s) =
+  do emitEntry c
+     mapM statement ls
+     statement s
+     emitExit c
 
 statement :: Handle -> Statement -> IO ()
 statement h s = case s of
