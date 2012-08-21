@@ -29,7 +29,7 @@ module FrameworkHs.Helpers
   , OpCode
   , Out
   , OutF (Put, Done)
-  , output, done, runOut
+  , output, done, runOut, showOut
   , emitOp1, emitOp2, emitOp3
   , emitLabel
   , emitJumpLabel, emitJump
