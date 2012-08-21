@@ -22,8 +22,10 @@ import CompilerHs.ExposeFrameVar
 import CompilerHs.FlattenProgram
 import CompilerHs.GenerateX86_64
 
-compileAssemblyCmd :: String
-compileAssemblyCmd = "cc -m64 -o t t.s Framework/runtime.c"
+assemblyCmd :: String
+assemblyCmd = "cc"
+assemblyArgs :: [String]
+assemblyArgs = ["-m64","-o","t","t.s","Framework/runtime.c"]
 
 defaultTestFile :: String
 defaultTestFile = "test-suite.ss"
@@ -71,7 +73,8 @@ p423Compile c l = do
 assemble :: (Handle -> IO ()) -> IO String
 assemble f =
   do withFile "t.s" WriteMode f
-     ec <- system compileAssemblyCmd
+     (ec,o,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
+     --ec <- system compileAssemblyCmd
      case ec of
        ExitSuccess   -> do res <- readProcess "./t" [] ""
                            return (chomp res)

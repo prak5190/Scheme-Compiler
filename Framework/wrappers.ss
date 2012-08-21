@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 (library (Framework wrappers aux)
   (export
     handle-overflow
@@ -96,18 +97,35 @@
     '(except (chezscheme) set!)
     '(Framework helpers)
     '(Framework helpers frame-variables)))
+=======
+(library (Framework wrappers)
+  (export pass->wrapper source/wrapper verify-scheme/wrapper generate-x86-64/wrapper)
+  (import
+    (chezscheme)
+    (Framework helpers)
+    (Framework driver))
+
+(define env
+  (environment
+    '(chezscheme)
+    '(Framework helpers)))
+>>>>>>> f63b0c47c78434807da00e4d88ce8616c376d4fc
 
 (define pass->wrapper
   (lambda (pass)
     (case pass
       ((source) source/wrapper)
       ((verify-scheme) verify-scheme/wrapper)
+<<<<<<< HEAD
       ((expose-frame-var) expose-frame-var/wrapper)
       ((flatten-program) flatten-program/wrapper)
+=======
+>>>>>>> f63b0c47c78434807da00e4d88ce8616c376d4fc
       ((generate-x86-64) generate-x86-64/wrapper)
       (else (errorf 'pass->wrapper
               "Wrapper for pass ~s not found" pass)))))
 
+<<<<<<< HEAD
 (define-language-wrapper (source/wrapper verify-scheme/wrapper)
   (x)
   (environment env)
@@ -133,6 +151,34 @@
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds x)))
+=======
+(define-language-wrapper
+  (source/wrapper verify-scheme/wrapper)
+  (x)
+  (environment env)
+  (import
+    (except (chezscheme) set!)
+    (Framework helpers))
+  (define int64-in-range?
+    (lambda (x)
+      (<= (- (expt 2 63)) x (- (expt 2 63) 1))))
+  (define handle-overflow
+    (lambda (x)
+      (cond
+        [(not (number? x)) x]
+        [(int64-in-range? x) x]
+        [(not (= x (logand 18446744073709551615 x)))
+         (handle-overflow (logand 18446744073709551615 x))]
+        [(< x 0) (handle-overflow (+ x (expt 2 64)))]
+        [else (handle-overflow (- x (expt 2 64)))])))
+  (define-syntax set!
+    (let ()
+      (import scheme)
+      (syntax-rules ()
+        [(_ x expr) (set! x (handle-overflow expr))])))
+  (reset-machine-state!)
+  ,x
+>>>>>>> f63b0c47c78434807da00e4d88ce8616c376d4fc
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)
