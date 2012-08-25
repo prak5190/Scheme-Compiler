@@ -40,7 +40,7 @@ efv = P423Pass { pass = exposeFrameVar
 flp = P423Pass { pass = flattenProgram
                , passName = "flattenProgram"
                , wrapperName = "flatten-program/wrapper"
-               , trace = True
+               , trace = False
                }
 
 p423Compile :: P423Config -> LispVal -> IO String

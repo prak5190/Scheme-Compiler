@@ -44,7 +44,7 @@ triv tr = case tr of
   L1.Var v     -> do v <- var v
                      return (L2.Var v)
   L1.Integer i -> return (L2.Integer i)
-  L1.Label l   -> return (L2.Label l)
+  L1.Label l   -> return (L2.LabelT l)
 
 var :: L1.Var -> Exc L2.Var
 var v = case v of
