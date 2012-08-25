@@ -8,6 +8,7 @@ module FrameworkHs.Testing
   , defaultTestFile
   , defaultConfig
   , RunTests (AllFrom, SelV, SelI)
+  , valid, invalid
   ) where
 
 import Control.Exception

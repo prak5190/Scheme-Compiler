@@ -30,6 +30,7 @@ module FrameworkHs.Helpers
   , OutF (Put, Done)
   , output, done, runOut, showOut
   , emitOp1, emitOp2, emitOp3
+  , emitLabelLabel
   , emitLabel
   , emitJumpLabel, emitJump
   , pushq, popq
@@ -208,6 +209,9 @@ emitOp2 op a = output ("    " ++ op ++ " " ++ format a)
 emitOp3 :: (X86Print a, X86Print b) => OpCode -> a -> b -> Out
 emitOp3 op a b = output ("    " ++ op ++ " " ++ format a ++ ", " ++ format b)
 
+emitLabelLabel :: Label -> Out
+emitLabelLabel (L name ind) = output ("L" ++ pp ind ++ ":")
+
 emitLabel :: (X86Print a) => a -> Out
 emitLabel a = output (format a ++ ":")
 
@@ -215,7 +219,7 @@ emitJumpLabel :: OpCode -> Label -> Out
 emitJumpLabel op (L name ind) = emitOp2 op ("L" ++ pp ind)
 
 emitJump :: (X86Print a) => OpCode -> a -> Out
-emitJump = emitOp2
+emitJump op a = emitOp2 op ("*" ++ (format a))
 
 --emitOp1 :: Handle -> OpCode -> IO ()
 --emitOp1 h op = hPutStrLn h ("    " ++ op)
