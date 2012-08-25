@@ -28,13 +28,13 @@ assemblyArgs = ["-m64","-o","t","t.s","Framework/runtime.c"]
 vfs = P423Pass { pass = verifyScheme
                , passName = "verifyScheme"
                , wrapperName = "verify-scheme/wrapper"
-               , trace = True
+               , trace = False
                }
 
 efv = P423Pass { pass = exposeFrameVar
                , passName = "exposeFrameVar"
                , wrapperName = "expose-frame-var/wrapper"
-               , trace = True
+               , trace = False
                }
 
 flp = P423Pass { pass = flattenProgram

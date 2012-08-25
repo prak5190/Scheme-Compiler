@@ -7,11 +7,12 @@ import FrameworkHs.Helpers
 
 verifyScheme :: P423Config -> Prog -> Exc Prog
 verifyScheme c p@(Letrec ls t) =
-  do labelsDistinct ll
+  do labelSuffixesDistinct (map index ll)
      mapM_ (vTail ll) tt
      vTail ll t
      return p
   where (ll,tt) = unzip ls
+        index (L name ind) = ind
 
 statement :: Statement -> Exc ()
 statement s = case s of

@@ -13,7 +13,7 @@ flattenProgram :: P423Config -> L1.Prog -> Exc L2.Prog
 flattenProgram  c (L1.Letrec ls t) =
   do ss1 <- mapM ltTuple ls
      ss2 <- tail t
-     let ss = (concat ss1) ++ ss2
+     let ss =  ss2 ++ (concat ss1)
      return (L2.Code (init ss) (last ss))
 
 ltTuple :: (Label,L1.Tail) -> Exc [L2.Statement]
