@@ -36,12 +36,21 @@
   (lambda (x)
     (match x
       ((,name . ,sub*)
-       (let ((sub* (map (if (for-all non-terminal? sub*) Simple Sub) sub*)))
-         `(define ,name
-            (lambda (x)
-              (match x
-                ,sub* ...
-                (,(uq 'e) (invalid-expr ',name e))))))))))
+       (let-values (((s ns) (partition non-terminal? sub*)))
+         (let ((ns (map Sub ns))
+               (s (map Simple s)))
+           `(define ,name
+              (lambda (x)
+                (match x
+                  ,s ...
+                  ,ns ...
+                  (,(uq 'e) (invalid-expr ',name e)))))))))))
+       ;(let ((sub* (map (if (for-all non-terminal? sub*) Simple Sub) sub*)))
+       ;  `(define ,name
+       ;     (lambda (x)
+       ;       (match x
+       ;         ,sub* ...
+       ;         (,(uq 'e) (invalid-expr ',name e))))))))))
 
 (define Simple
   (lambda (s)

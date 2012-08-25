@@ -23,7 +23,6 @@ module FrameworkHs.Helpers
              )
   , showShort
   , Option (Default, Option)
-  , Compiler
   , Exc, failure
   , X86Print, format
   , OpCode
@@ -86,8 +85,6 @@ data P423Pass a b =
     , wrapperName :: String
     , trace :: Bool
     }
-
-type Compiler = LispVal -> IO String
 
 type Exc = Either String
 failure = Left
@@ -331,10 +328,10 @@ instance PP Label where
   pp (L name ind) = name ++ "$" ++ show ind
 
 instance PP Disp where
-  pp (D r i) = pp r ++ "#<index " ++ pp r ++ " " ++ pp i ++ ">"
+  pp (D r i) = pp r ++ "(disp " ++ pp r ++ " " ++ pp i ++ ")"
 
 instance PP Ind where
-  pp (I r1 r2) = "#<disp " ++ pp r1 ++ " " ++ pp r2 ++ ">"
+  pp (I r1 r2) = "(index " ++ pp r1 ++ " " ++ pp r2 ++ ")"
 
 instance PP Relop where
   pp r = case r of
@@ -375,10 +372,14 @@ instance PP Reg where
 -- Parsing -------------------------------------------------
 
 parseSuffix :: String -> Exc Integer
-parseSuffix i@('0':_) = failure ("Leading zero in index: " ++ i)
-parseSuffix i = if (and $ map isDigit i)
-                   then return $ read i
-                   else failure ("Not a number: " ++ i)
+parseSuffix i@('0':rest) =
+  if (null rest)
+     then return 0
+     else failure ("Leading zero in index: " ++ i)
+parseSuffix i =
+  if (and $ map isDigit i)
+     then return $ read i
+     else failure ("Not a number: " ++ i)
 
 parseListWithFinal :: (LispVal -> Exc a) -> (LispVal -> Exc b) ->
                         [LispVal] -> Exc ([a],b)

@@ -1,4 +1,14 @@
-module FrameworkHs.Testing (testAll, TestResult, testDefault, showResults) where
+module FrameworkHs.Testing
+  ( TestResult
+  , runDefault
+  , runTests
+  , getTests
+  , filterInd
+  , showResults
+  , defaultTestFile
+  , defaultConfig
+  , RunTests (AllFrom, SelV, SelI)
+  ) where
 
 import Control.Exception
 import Text.Printf
@@ -6,6 +16,7 @@ import Text.Printf
 import FrameworkHs.SExpReader.Parser
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Helpers
+import FrameworkHs.Prims
 import CompilerHs.Compile
 
 data Tests = Tests { valid :: [LispVal]
@@ -16,6 +27,23 @@ data TestResult = Pass String | Fail P423Exception
 instance Show TestResult where
   show (Pass s) = s
   show (Fail e) = show e
+
+data RunTests
+  = AllFrom String
+  | SelV [Int] RunTests
+  | SelI [Int] RunTests
+
+defaultTestFile :: RunTests
+defaultTestFile = AllFrom "test-suite.ss"
+
+defaultConfig :: P423Config
+defaultConfig = P423Config
+         { framePointerRegister      = RBP
+         , allocationPointerRegister = RDX
+         , returnAddressRegister     = R15
+         , returnValueRegister       = RAX
+         , parameterRegisters        = [R8,R9]
+         }
 
 catchTestFailures :: P423Exception -> Maybe P423Exception
 catchTestFailures e = case e of
@@ -29,28 +57,45 @@ catchTestFailures e = case e of
   where yes = Just e
         no  = Nothing
 
-testDefault :: IO ([TestResult],[TestResult])
-testDefault = testAll Default Default
+runDefault :: IO ([TestResult],[TestResult])
+runDefault = runTests defaultTestFile defaultConfig
 
 showResults :: [TestResult] -> IO ()
 showResults = mapM_ print
 
-testAll :: Option String -> Option P423Config -> IO ([TestResult],[TestResult])
-testAll testFile config =
-  do ts <- lexTests file
-     vs <- runTests "Valid" (p423Compile conf) (valid ts)
-     is <- runTests "Invalid" (p423Compile conf) (invalid ts)
-     testResults vs is
-     return (vs,is)
-  where conf = case config of
-                 Default  -> defaultConf
-                 Option c -> c
-        file = case testFile of
-                 Default  -> defaultTestFile
-                 Option f -> f
+runTests :: RunTests -> P423Config -> IO ([TestResult],[TestResult])
+runTests tests conf = do
+  ts <- getTests tests
+  vs <- runSet "Valid" (p423Compile conf) (valid ts)
+  is <- runSet "Invalid" (p423Compile conf) (invalid ts)
+  testResults vs is
+  return (vs,is)
 
-runTests :: String -> Compiler -> [LispVal] -> IO [TestResult]
-runTests name c ts =
+getTests :: RunTests -> IO Tests
+getTests t =
+  case t of
+    AllFrom f  -> lexTests f
+    SelV vs t' -> do
+      ts <- getTests t'
+      let vs' = filterInd vs (valid ts)
+      return Tests { valid = vs', invalid = invalid ts }
+    SelI is t' -> do
+      ts <- getTests t'
+      let is' = filterInd is (invalid ts)
+      return Tests { valid = valid ts, invalid = is' }
+
+filterInd :: [Int] -> [a] -> [a]
+filterInd xs as =
+  case xs of
+    []                              -> []
+    (x:xs')
+      | x `elem` xs'                -> filterInd xs' as
+      | (x >= 0) && (x < length as) -> (as !! x) : filterInd xs' as
+      | otherwise                   -> filterInd xs' as
+
+runSet :: String -> (LispVal -> IO String) -> [LispVal] -> IO [TestResult]
+runSet name c [] = return []
+runSet name c ts =
   do putStrLn ("\nTesting " ++ name)
      putStrLn "Test    Result"
      putStrLn "---------------------------"
@@ -59,7 +104,7 @@ runTests name c ts =
         mapIndexed i f (t:ts) = do a <- f i t
                                    as <- mapIndexed (i+1) f ts
                                    return (a:as)
-        wrapTest :: Compiler -> Int -> LispVal -> IO TestResult
+        wrapTest :: (LispVal -> IO String) -> Int -> LispVal -> IO TestResult
         wrapTest c i l = catchJust catchTestFailures
                            (do res <- c l
                                printf "%4d    Pass\n" i

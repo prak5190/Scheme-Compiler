@@ -62,15 +62,14 @@
            (let ((new-e* (flatten-form e*)))
              `((,t . ,new-e*) (,t . ,e*)))))
         (,nt (guard (non-terminal? nt))
-             (begin
-               (add-tag
-                ;; covers cases like Disp, where a Loc will use the Disp constructor,
-                ;; but the Disp datatype will also.
-                (string->symbol
-                 (string-downcase
-                  (symbol->string nt)))
-                type)
-               `((,nt ,nt) ,nt)))
+             (let ((tag (string->symbol
+                         (string-downcase
+                          (symbol->string nt)))))
+               (begin
+                  ;; covers cases like Disp, where a Loc will use the Disp constructor,
+                  ;; but the Disp datatype will also.
+                 (add-tag nt type)
+                 `((,nt ,nt) ,nt))))
         ;; untagged subforms, eg. (Relop Triv Triv), are tagged with 'app'
         (,e*
          (begin

@@ -52,11 +52,10 @@ runPass p conf code =
   case ((pass p) conf code) of
     Left e      -> throw $ PassFailureException pn e
     Right code' -> do res <- runWrapper wn code'
+                      when (trace p) (printTrace (passName p) code')
                       case res of
                         Left e  -> throw $ WrapperFailureException wn e
-                        Right _ -> do when (trace p)
-                                        (printTrace (passName p) code')
-                                      return code'
+                        Right _ -> return code'
   where pn = passName p
         wn = wrapperName p
         printTrace :: PP a => String -> a -> IO ()
