@@ -328,10 +328,10 @@ instance PP Label where
   pp (L name ind) = name ++ "$" ++ show ind
 
 instance PP Disp where
-  pp (D r i) = pp r ++ "(disp " ++ pp r ++ " " ++ pp i ++ ")"
+  pp (D r i) = ppSexp ["disp",(pp r),(pp i)]
 
 instance PP Ind where
-  pp (I r1 r2) = "(index " ++ pp r1 ++ " " ++ pp r2 ++ ")"
+  pp (I r1 r2) = ppSexp ["index",(pp r1),(pp r2)]
 
 instance PP Relop where
   pp r = case r of
