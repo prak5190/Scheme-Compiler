@@ -1,7 +1,5 @@
 module CompilerHs.Compile
-  ( defaultConf
-  , defaultTestFile
-  , p423Compile
+  ( p423Compile
   ) where
 
 import System.IO
@@ -27,28 +25,16 @@ assemblyCmd = "cc"
 assemblyArgs :: [String]
 assemblyArgs = ["-m64","-o","t","t.s","Framework/runtime.c"]
 
-defaultTestFile :: String
-defaultTestFile = "test-suite.ss"
-
-defaultConf :: P423Config
-defaultConf = P423Config
-         { framePointerRegister      = RBP
-         , allocationPointerRegister = RDX
-         , returnAddressRegister     = R15
-         , returnValueRegister       = RAX
-         , parameterRegisters        = [R8,R9]
-         }
-
 vfs = P423Pass { pass = verifyScheme
                , passName = "verifyScheme"
                , wrapperName = "verify-scheme/wrapper"
-               , trace = False
+               , trace = True
                }
 
 efv = P423Pass { pass = exposeFrameVar
                , passName = "exposeFrameVar"
                , wrapperName = "expose-frame-var/wrapper"
-               , trace = False
+               , trace = True
                }
 
 flp = P423Pass { pass = flattenProgram
@@ -57,7 +43,7 @@ flp = P423Pass { pass = flattenProgram
                , trace = True
                }
 
-p423Compile :: P423Config -> Compiler
+p423Compile :: P423Config -> LispVal -> IO String
 p423Compile c l = do
   p <- runPass vfs c p
   p <- runPass efv c p

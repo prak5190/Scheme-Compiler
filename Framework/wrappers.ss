@@ -38,6 +38,20 @@
       [(,[expr*] ...) expr*]
       [,x x])))
 
+(define-syntax disp
+  (let ()
+    (import (chezscheme))
+    (syntax-rules ()
+      [(_ r i)
+       (make-disp-opnd r i)])))
+
+(define-syntax index
+  (let ()
+    (import (chezscheme))
+    (syntax-rules ()
+      [(_ r1 r2)
+       (make-index-opnd r1 r2)])))
+
 (define-syntax set!
   (let ()
     (import (chezscheme))
