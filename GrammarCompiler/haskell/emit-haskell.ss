@@ -3,21 +3,77 @@
          (import (chezscheme)
                  (GrammarCompiler common match))
 
+(define pragmas
+  (lambda ()
+    '("StandaloneDeriving")))
+
+(define imports
+  (lambda ()
+    '("StringTable.Atom"
+      "Data.Int"
+      "FrameworkHs.Prims"
+      "FrameworkHs.Helpers")))
+
+(define derives
+  (lambda ()
+    '("Eq"
+      "Read"
+      "Show")))
+
+(define-syntax spaces
+  (syntax-rules ()
+    ((_) (void))
+    ((_ e e* ...)
+     (begin
+       e (newline)
+       (spaces e* ...)))))
+
 (define emit-haskell
   (lambda (path)
     (lambda (x)
       (match x
         (((module ,name . ,types) (print . ,prints))
-         (let ((path (replace #\/ #\. path)))
-           (begin
-             (deriving-pragma)
-             (printf "module ~a.~a where\n\n" path name)
-             (haskell-imports)
+         (let ((path (replace #\/ #\. path))
+               (type-names (map cadr types)))
+           (spaces
+             (Pragmas)
+             (Module path name)
+             (Imports)
              (Types types)
-             (newline)
              (PP prints)
-             (newline)
-             (Deriving types))))))))
+             (Deriving type-names))))))))
+
+(define Pragmas
+  (lambda ()
+    (let ((ls (pragmas)))
+      (cond
+        ((null? ls) (newline))
+        (else
+          (begin
+            (printf "{-# LANGUAGE ")
+            (printf (car ls))
+            (let loop ((ls (cdr ls)))
+              (cond
+                ((null? ls) (printf " #-}\n\n"))
+                (else
+                  (begin
+                    (printf ",")
+                    (printf (car ls))
+                    (loop (cdr ls))))))))))))
+
+(define Module
+  (lambda (path name)
+    (printf "module ~a.~a where\n" path name)))
+
+(define Imports
+  (lambda ()
+    (let loop ((ls (imports)))
+      (cond
+        ((null? ls) (newline))
+        (else
+          (begin
+            (printf (string-append "import " (car ls) "\n"))
+            (loop (cdr ls))))))))
 
 (define Types
   (lambda (types)
@@ -71,19 +127,6 @@
            (Form lead-space? x)
            (Form #t rest)))))))
 
-(define deriving-pragma
-  (lambda ()
-    (printf "{-# LANGUAGE StandaloneDeriving #-}\n")
-    (newline)))
-
-(define haskell-imports
-  (lambda ()
-    (printf "import StringTable.Atom\n")
-    (printf "import Data.Int\n")
-    (printf "import FrameworkHs.Prims\n")
-    (printf "import FrameworkHs.Helpers\n")
-    (newline)))
-
 (define format-term/preds
   (lambda (t/p*)
     (let ((ss (map (lambda (t/p)
@@ -98,26 +141,9 @@
          (apply string-append first rest)
          "  )\n")))))
 
-(define Deriving
-  (lambda (types)
-    (for-each
-      (lambda (t)
-        (match t
-          ((data ,name . ,subs)
-           (print-deriving '(Read Show Eq) name))
-          (,else (void))))
-      types)))
-
-(define print-deriving
-  (lambda (classes type)
-    (for-each
-     (lambda (c)
-       (printf "deriving instance ~a ~a\n" c type))
-     classes)))
-
 (define PP
   (lambda (prints)
-    (map
+    (for-each
      (lambda (p)
        (match p
          ((,name (,form* ,f*) ...)
@@ -157,6 +183,27 @@
        (format "(~a ++ ~a)" l1 l2))
       ((pp ,s) (format "(pp ~a)" s))
       (,e (format "~a" e)))))
+
+(define Deriving
+  (lambda (types)
+    (let ((ls (derives)))
+      (for-each
+        (lambda (t)
+          (match t
+            ((data ,name . ,subs)
+             (print-deriving ls name))
+            (,else (void))))
+        types))))
+
+(define print-deriving
+  (lambda (types classes)
+    (for-each
+      (lambda (t)
+        (for-each
+          (lambda (c)
+            (printf "deriving instance ~a ~a\n" c t))
+          classes))
+      types)))
 
 (define replace
   (lambda (old new s)
