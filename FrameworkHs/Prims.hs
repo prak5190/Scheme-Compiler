@@ -1,44 +1,19 @@
 
 module FrameworkHs.Prims
-  ( UVar ( UV )
-  , FVar ( FV )
-  , Label ( L )
-  , Reg ( RAX
-        , RCX 
-        , RDX 
-        , RBX 
-        , RBP 
-        , RSI 
-        , RDI 
-        , R8 
-        , R9 
-        , R10 
-        , R11 
-        , R12 
-        , R13 
-        , R14 
-        , R15
-        )
-  , Relop ( LT
-          , LTE
-          , EQ
-          , GT
-          , GTE
-          )
-  , Binop ( MUL
-          , ADD
-          , SUB
-          , LOGAND
-          , LOGOR
-          , SRA
-          )
-  , Disp ( D )
-  , Ind ( I )
+  ( UVar (..)
+  , FVar (..)
+  , Label (..)
+  , Reg (..)
+  , Relop (..)
+  , Binop (..)
+  , Disp (..)
+  , Ind (..)
   )
   where
 
 import Prelude hiding (LT, EQ, GT)
 import Data.Int
+import Data.Symbol
 
 --------------------------------------------------------------------------------
 -- Terminal Type Definitions ---------------------------------------------------
@@ -46,6 +21,9 @@ import Data.Int
 data UVar = UV String Integer deriving (Read, Show, Eq)
 data FVar = FV Integer        deriving (Read, Show, Eq)
 data Label = L String Integer deriving (Read, Show, Eq)
+
+data UVar' = UV' Symbol Integer deriving (Show, Eq)
+data Label' = L' Symbol Integer deriving (Show, Eq)
 
 data Reg = RAX | RCX | RDX | RBX | RBP | RSI | RDI | R8 | R9
          | R10 | R11 | R12 | R13 | R14 | R15
