@@ -414,6 +414,12 @@ parseLabel (Symbol s) = case (split '$' s) of
   (name,ind) -> do ind <- parseSuffix ind; return (L name ind)
 parseLabel e = failure ("Not a symbol: " ++ show e)
 
+-- parseLabel :: LispVal -> Exc Label
+-- parseLabel (Symbol s) = case (split '$' s) of
+--   (_,"")     -> failure ("No index: " ++ s)
+--   (name,ind) -> do ind <- parseSuffix ind; return (L name ind)
+-- parseLabel e = failure ("Not a symbol: " ++ show e)
+
 parseRelop :: LispVal -> Exc Relop
 parseRelop (Symbol s) = case s of
   "<"  -> return LT
