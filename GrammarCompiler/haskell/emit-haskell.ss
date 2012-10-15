@@ -9,9 +9,7 @@
 
 (define imports
   (lambda ()
-    '("StringTable.Atom"
-      "Data.Int"
-      "FrameworkHs.Prims"
+    '("FrameworkHs.Prims"
       "FrameworkHs.Helpers")))
 
 (define derives
@@ -67,13 +65,13 @@
 
 (define Imports
   (lambda ()
-    (let loop ((ls (imports)))
-      (cond
-        ((null? ls) (newline))
-        (else
-          (begin
-            (printf (string-append "import " (car ls) "\n"))
-            (loop (cdr ls))))))))
+    (let ((ls (imports)))
+      (for-each
+        (lambda (i)
+          (printf "import ")
+          (printf i)
+          (newline))
+        ls))))
 
 (define Types
   (lambda (types)
@@ -189,10 +187,10 @@
     (let ((ls (derives)))
       (for-each
         (lambda (t)
-          (match t
-            ((data ,name . ,subs)
-             (print-deriving ls name))
-            (,else (void))))
+          (for-each
+            (lambda (c)
+              (printf "deriving instance ~a ~a\n" c t))
+            ls))
         types))))
 
 (define print-deriving
