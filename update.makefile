@@ -14,7 +14,8 @@ a4_public:
 	git checkout a4 ; git merge --no-edit common
 
 
-
+# This assumes that you have done:
+#   git remote add framework git@github.iu.edu:p423-523-sp13/framework-public.git
 update_private: a1_private a2_private a3_private a4_private #a5_private
 	git push origin
 
