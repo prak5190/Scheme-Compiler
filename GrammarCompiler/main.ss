@@ -26,7 +26,7 @@
    flatten-datatypes
    derive-printing
    assign-tags
-   ;derive-parsing))
+   ;derive-parsing
    lift-prints))
 
 (define scheme-passes
