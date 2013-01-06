@@ -14,17 +14,65 @@ verifyScheme c p@(Letrec ls t) =
   where (ll,tt) = unzip ls
         index (L name ind) = ind
 
-statement :: Statement -> Exc ()
-statement s = case s of
-  Set1 _v i        -> assert (isInt64 i) ("Out of 64-bit range: " ++ show i)
-  Set3 v1 b v2 _i  -> do assert (v1 == v2) (varMatchError v1 v2 s)
-                         binop b
-  Set4 v1 b v2 _v3 -> do assert (v1 == v2) (varMatchError v1 v2 s)
-                         binop b
-  _                -> return ()
 
-binop :: Binop -> Exc ()
-binop b = assert (elem b [ADD,MUL,SUB]) ("Anachronistic Binop: " ++ show b)
+vTail :: [Label] -> Tail -> Exc ()
+vTail ll (App t) =
+  case t of
+    (Integer i) -> failure ("Violates machine constraints: " ++ pp t)
+    _       -> vTriv ll t
+vTail ll (Begin es t) =
+  do mapM_ (vEffect ll) es
+     vTail ll t
+
+vEffect :: [Label] -> Effect -> Exc ()
+vEffect ll e@(Set1 v t) =
+  do assert (setConstraints v t) $ setError e
+     vTriv ll t
+vEffect ll e@(Set2 v b t1 t2) =
+  do assert (t1 == Var v) $ varMatchError e
+     assert (opSetConstraints v b t2) $ setError e
+
+setConstraints :: Var -> Triv -> Bool
+setConstraints v t = case v of
+  Reg _ -> True
+  FVar _ -> case t of
+    (Var (Reg _)) -> True
+    (Integer i)   -> isInt32 i
+    _             -> False
+
+opSetConstraints :: Var -> Binop -> Triv -> Bool
+opSetConstraints v b t = case b of
+  MUL -> vReg (Var v) && (vReg t || vFV t || int32 t)
+  SRA -> (vReg (Var v) || vFV (Var v)) && uInt6 t
+  _   -> (vReg (Var v) && (vReg t || vFV t || int32 t))
+           || (vFV (Var v) && (vReg t || int32 t))
+
+setError :: Effect -> String
+setError e = "Expression violates machine constraints: (" ++ show e ++ ")"
+
+--labelSuffixesDistinct :: [Label] -> Exc ()
+labelSuffixesDistinct [] = return ()
+labelSuffixesDistinct (i:is) =
+  if i `elem` is
+     then failure ("Duplicate label suffix: " ++ show i)
+     else labelSuffixesDistinct is
+
+vTriv :: [Label] -> Triv -> Exc ()
+vTriv ll t = case t of
+  (Label l) -> assert (l `elem` ll) ("Unbound label: " ++ show l)
+  _         -> return ()
+
+-- statement :: Statement -> Exc ()
+-- statement s = case s of
+--   Set1 _v i        -> assert (isInt64 i) ("Out of 64-bit range: " ++ show i)
+--   Set3 v1 b v2 _i  -> do assert (v1 == v2) (varMatchError v1 v2 s)
+--                          binop b
+--   Set4 v1 b v2 _v3 -> do assert (v1 == v2) (varMatchError v1 v2 s)
+--                          binop b
+--   _                -> return ()
+
+-- binop :: Binop -> Exc ()
+-- binop b = assert (elem b [ADD,MUL,SUB]) ("Anachronistic Binop: " ++ show b)
 
 assert :: Bool -> String -> Exc ()
 assert False msg = failure msg

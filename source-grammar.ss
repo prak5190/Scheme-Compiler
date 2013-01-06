@@ -26,11 +26,11 @@
       Reg
       FVar))
 
-(l36-expose-frame-var
+(l37-expose-frame-var
   (%rename
     (FVar -> Disp)))
 
-(l40-flatten-program
+(l41-flatten-program
   (%remove
     Prog
     Tail)
