@@ -114,10 +114,6 @@ split s (c:cs)
   | otherwise = (c:before,cs')
     where (before,cs') = split s cs
 
-wordShift = 3
-ash :: Integer -> Integer -> Integer
-ash n = (* (2 ^ n))
-
 ------------------------------------------------------------
 -- Exceptions ----------------------------------------------
 
@@ -524,6 +520,12 @@ instance SuffixTerm FVar where
 
 instance SuffixTerm Label where
   extractSuffix (L name ind) = ind
+
+wordShift :: Integer
+wordShift = 3
+
+ash :: Integer -> Integer -> Integer
+ash n = (* (2 ^ n))
 
 -- | Remove whitespace from both ends of a string.
 chomp :: String -> String
