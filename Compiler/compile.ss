@@ -7,6 +7,8 @@
     (Framework match)
     (Framework helpers)
     (Compiler verify-scheme)
+    (Compiler expose-frame-var)
+    (Compiler flatten-program)
     (Compiler generate-x86-64))
 
 (define (assemble thunk)
@@ -19,5 +21,8 @@
 
 (define-compiler (p423-compile p423-compile-passes pass->wrapper)
   (verify-scheme)
+  (expose-frame-var)
+  (flatten-program)
   (generate-x86-64 assemble))
+
 )
