@@ -1,5 +1,5 @@
 ;;; helpers.ss
-;;; Copyright (c) 2000-2010 R. Kent Dybvig, Andy Keep, Oscar Waddell, Daniel P. Friedman
+;;; Copyright (c) 2000-2013 R. Kent Dybvig, Andy Keep, Oscar Waddell, Daniel P. Friedman, Ryan Newton, Kyle Carter
 ;;;
 ;;; In this file:
 ;;;
@@ -704,7 +704,8 @@
             [else chars]))
         (s0 (reverse chars))))))
 
-#;(define extract-suffix
+#;
+(define extract-suffix
   (lambda (sym)
     (let ([str (symbol->string sym)])
       (let ([n (string-length str)]
@@ -734,7 +735,7 @@
 ;;; extract-suffix returns the numeric portion of the unique suffix
 ;;; of a unique name or label.  It returns #f if passed something other
 ;;; than a unique name or label.
-; (module (unique-name unique-name-count extract-suffix unique-label)
+; module (unique-name unique-name-count extract-suffix unique-label)
   (define count 0)
   (define unique-suffix
     (lambda ()
@@ -974,7 +975,7 @@
 
 (reset-machine-state!)
 
-)
+) ;; End library
 
 (library (Framework helpers frame-variables)
   (export
