@@ -111,7 +111,7 @@ runSet name c ts =
                                printf "%4d    Pass\n" i
                                return $ Pass res)
                            (\e ->
-                             (do printf "%4d    Fail    %s\n" i (showShort e)
+                             (do printf "%4d    Fail    %s\n" i (shortExcDescrip e)
                                  return $ Fail e))
 
 testResults :: [TestResult] -> [TestResult] -> IO ()
