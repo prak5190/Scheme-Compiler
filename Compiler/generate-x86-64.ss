@@ -1,9 +1,9 @@
 #!chezscheme
-(library (compiler generate-x86-64)
+(library (Compiler generate-x86-64)
   (export generate-x86-64)
   (import (chezscheme)
-	  (framework helpers)
-	  (framework match))
+	  (Framework helpers)
+	  (Framework match))
 
 (define-who generate-x86-64
   (define prim->opcode

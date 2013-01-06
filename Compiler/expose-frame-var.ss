@@ -1,8 +1,8 @@
-(library (compiler expose-frame-var)
+(library (Compiler expose-frame-var)
   (export expose-frame-var)
   (import (chezscheme)
-          (framework helpers)
-          (framework match))
+          (Framework helpers)
+          (Framework match))
 
 ;;; expose-frame-var traverses the scheme source in the same grammar
 ;;; accepted by verify-scheme and changes frame-vars in the form

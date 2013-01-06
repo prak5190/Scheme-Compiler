@@ -1,8 +1,8 @@
-(library (compiler flatten-program)
+(library (Compiler flatten-program)
   (export flatten-program)
   (import (chezscheme)
-          (framework helpers)
-          (framework match))
+          (Framework helpers)
+          (Framework match))
 
 (define-who flatten-program
   (define Effect

@@ -1,9 +1,9 @@
-(library (compiler finalize-locations)
+(library (Compiler finalize-locations)
   (export finalize-locations)
   (import
     (chezscheme)
-    (framework helpers)
-    (framework match))
+    (Framework helpers)
+    (Framework match))
 
 (define-who finalize-locations
   (define Var

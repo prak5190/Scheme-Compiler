@@ -1,8 +1,8 @@
-(library (compiler verify-scheme)
+(library (Compiler verify-scheme)
   (export verify-scheme)
   (import (chezscheme)
-	  (framework helpers)
-	  (framework match))
+	  (Framework helpers)
+	  (Framework match))
 
 ;;; Andy Keep, Kent Dybvig
 ;;; P423/P523

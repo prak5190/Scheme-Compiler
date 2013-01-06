@@ -1,9 +1,9 @@
-(library (compiler expose-basic-blocks)
+(library (Compiler expose-basic-blocks)
   (export expose-basic-blocks)
   (import
     (chezscheme)
-    (framework helpers)
-    (framework match))
+    (Framework helpers)
+    (Framework match))
 
 (define-who expose-basic-blocks
   (define (Tail x)
