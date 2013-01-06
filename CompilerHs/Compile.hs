@@ -63,4 +63,4 @@ assemble out =
      case ec of
        ExitSuccess   -> do res <- readProcess "./t" [] ""
                            return (chomp res)
-       ExitFailure i -> throw AssemblyFailedException
+       ExitFailure i -> throw (AssemblyFailedException e)

@@ -13,12 +13,12 @@ generateX86_64 c (Code ls s) =
      emitExit c
      done
 
-statement :: Handle -> Statement -> IO ()
-statement h s = case s of
-  Set1 (Reg r) i             -> movq h i r
-  Set2 (Reg r1) (Reg r2)     -> movq h r2 r1
-  Set3 (Reg r) b _ i         -> emitOp3 h (binop b) i r
-  Set4 (Reg r1) b _ (Reg r2) -> emitOp3 h (binop b) r2 r1
+statement :: Statement -> Out
+statement s = case s of
+  Set1 (Reg r) i             -> movq i r
+  Set2 (Reg r1) (Reg r2)     -> movq r2 r1
+  Set3 (Reg r) b _ i         -> emitOp3 (binop b) i r
+  Set4 (Reg r1) b _ (Reg r2) -> emitOp3 (binop b) r2 r1
 
 binop :: Binop -> String
 binop b = case b of
