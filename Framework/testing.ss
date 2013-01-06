@@ -1,12 +1,10 @@
 ;; P423 Testing Framework
 
-;; Copyright $\copyright$ 2011 Aaron W. Hsu $\langle\.{arcfide@sacrideo.us}\rangle$
-;; \smallskip\noindent
+;; Copyright (C) 2011 Aaron W. Hsu {arcfide@sacrideo.us}
 ;; Permission to use, copy, modify, and distribute this software for any
 ;; purpose with or without fee is hereby granted, provided that the above
 ;; copyright notice and this permission notice appear in all copies.
-;; \smallskip\noindent
-;; THE SOFTWARE IS PROVIDED ``AS IS'' AND THE AUTHOR DISCLAIMS ALL
+;; THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
 ;; WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
 ;; WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
 ;; AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
@@ -14,9 +12,6 @@
 ;; PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 ;; TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 ;; PERFORMANCE OF THIS SOFTWARE.
-;; }
-;;
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -52,17 +47,21 @@
 ;; Customizations:
 ;;
 ;; (test-suite <new-test-suite>)
-;;    will redefine the test suite. 
-;; (refine-test-suite <list of numbers>)
-;;    test suite is refined to only include the tests from
-;;    given list. causes original numbering to be lost.
+;;    Creates a test-suite from the list of test cases specified by
+;;    <new-test-suite>
+;; (refine-test-suite <test-number>*)
+;;    Reduces the current test suite to those specified by the
+;;    <test-number>* set. Note that this causes original numbering to
+;;    be lost.
 ;;
 ;; (test-compiler <new-test-compiler>)
-;;    redefines which compiler is called. this should be a compiler
-;;    exported in your (Compiler compile) library.
+;;    Specifies which compiler is to be used. This is generally
+;;    defined by the (Compiler compile) library.
 ;;
 ;; (reset-test-runner)
-;;    reset the current test runner to a fresh test runner
+;;    Resets the current test runner to a fresh test runner,
+;;    discarding all the information from the previous run of the test
+;;    suite
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -75,26 +74,61 @@
     run-tests
 
     ;; to change the parameters
-    test-suite
+    test-compiler
+    test-suite invalid-tests valid-tests invalid valid
     refine-test-suite
-
-    invalid-tests
-    valid-tests
-    invalid
-    valid
+    refine-to-unexpected
 
     ;; debugging
+    test-ref
     display-test-failure
     test-failure-condition)
-
+  
   (import
     (chezscheme)
-    ;(Framework test-suite)
     (Compiler compile)
     (Framework driver))
 
-(define invalid-tests (make-parameter 'dummy))
-(define valid-tests (make-parameter 'dummy))
+
+;; Each test is labeled with whether it is expected to be a valid test
+;; or an invalid one.
+
+;; Defines the test-case record, along with a writer that prints
+;; whether the test case is a valid test or not, and the test source.
+(define-record test-case (valid? source))
+#;
+(record-writer (type-descriptor test-case)
+  (lambda (r p wr)
+    (begin
+      (display "<" p)
+      (if (test-case-valid? r)
+          (display "valid test " p)
+          (display "invalid test " p))
+      (wr (test-case-source r) p)
+      (display ">" p))))
+
+;; Look up a given test in the test-suite by index, return its source code.
+(define (test-ref suite num)
+  (test-case-source (list-ref suite num)))
+
+;; This automatically adds the test-case wrapper.
+(define invalid-tests
+  (make-parameter '()
+    (lambda (x)
+      (unless (and (list? x))
+        (errorf 'invalid-tests "~s not a valid test suite" x))
+      (map (lambda (t) (make-test-case #f t)) x))))
+
+(define valid-tests
+  (make-parameter '()
+    (lambda (x)
+      (unless (and (list? x))
+        (errorf 'valid-tests "~s not a valid test suite" x))
+      (map (lambda (t) (make-test-case #t t)) x))))
+
+;; These are mutable parameters filled in by loading a separate file:
+; (define invalid-tests (make-parameter 'uninitialized-invalid-tests-parameter))
+; (define valid-tests (make-parameter 'uninitialized-valid-tests-parameter))
 
 (define-syntax invalid
   (syntax-rules ()
@@ -106,39 +140,59 @@
     ((_ ts ...)
      (valid-tests '(ts ...)))))
 
+
 ;; Record that defines the test runner. This records the number of
 ;; passed/failed tests cases, the result of the previous test, and an
 ;; entire test history.
 (define-record test-runner
-  (passed failed test-history))
+  (pass-expected pass-unexpected
+   fail-expected fail-unexpected
+   history))
+
+(define (incr-field record-set! field)
+  (lambda (runner)
+    (record-set! runner (+ (field runner) 1))))
+(define incr-pass-expected
+  (incr-field set-test-runner-pass-expected! test-runner-pass-expected))
+(define incr-pass-unexpected
+  (incr-field set-test-runner-pass-unexpected! test-runner-pass-unexpected))
+(define incr-fail-expected
+  (incr-field set-test-runner-fail-expected! test-runner-fail-expected))
+(define incr-fail-unexpected
+  (incr-field set-test-runner-fail-unexpected! test-runner-fail-unexpected))
+(define (add-to-history runner p)
+  (set-test-runner-history! runner
+    (cons p (test-runner-history runner))))
+
 (define (fresh-test-runner)
-  (make-test-runner 0 0 '()))
+  (make-test-runner 0 0 0 0 '()))
 (define (reset-test-runner)
   (current-test-runner (fresh-test-runner)))
 (define current-test-runner
   (make-parameter (fresh-test-runner)
     (lambda (x)
-      (unless (test-runner? x)
-        (errorf 'current-test-runner
-          "~s is not a valid test-runner" x))
-      x)))
+      (cond
+        [(test-runner? x) x]
+        [else (errorf 'current-test-runner
+                "~s is not a valid test-runner" x)]))))
 
 (define test-suite
   (make-parameter '()
     (lambda (x)
-      (unless (list? x)
-        (errorf 'test-suite
-          "~s is not a valid test suite" x))
-      x)))
+      (cond
+        [(and (list? x) (for-all test-case? x)) x]
+        [else (errorf 'test-suite
+                "~s is not a valid test suite" x)]))))
+
 (define test-compiler
   (make-parameter p423-compile
     (lambda (x)
-      (unless (procedure? x)
-        (errorf 'test-compiler
-          "~s is not a valid compiler" x))
-      x)))
+      (cond
+        [(procedure? x) x]
+        [else (errorf 'test-compiler
+                "~s is not a valid compiler" x)]))))
 
-(define (refine-test-suite . num)
+(define (refine-test-suite . num*)
   (let* ((suite (test-suite))
          (max-index (- (length suite) 1)))
     (let ((new-suite
@@ -148,10 +202,16 @@
                   (errorf 'refine-test-suite
                     "Number ~s not a valid test index" n))
                 (list-ref suite n))
-              num)))
+              num*)))
       (begin
         (test-suite new-suite)
         (reset-test-runner)))))
+
+(define (refine-to-unexpected)
+  (let ((runner (current-test-runner)))
+    (let ((unexpected
+            (map car (filter cadr (test-runner-history runner)))))
+      (apply refine-test-suite unexpected))))
 
 (define (test-valid)
   (begin
@@ -168,28 +228,38 @@
     (load "test-suite.ss")
     (reset-test-runner)
     (let ((compiler (test-compiler))
-          (runner (current-test-runner)))
+          (runner (current-test-runner))
+          (vt (valid-tests))
+          (it (invalid-tests)))
       (begin
-        (test-suite (valid-tests))
+        ;; Process the valid tests
+        (test-suite vt)
         (printf "Testing (valid-tests)\n")
         (print-group-heading)
         (for-each (test-one compiler runner) (test-suite))
+
+        ;; Process the invalid tests
+        (test-suite it)
         (printf "\nTesting (invalid-tests)\n")
         (print-group-heading)
-        (test-suite (invalid-tests))
         (for-each (test-one compiler runner) (test-suite))
-        (print-finalization runner)
-        (test-suite
-          (append (valid-tests) (invalid-tests)))))))
 
+        ;; Finish up
+	(test-suite (append vt it))
+        (print-finalization runner)
+        ))))
+
+;; Runs the compiler in (test-compiler) over the tests in (test-suite)
+;; with a fresh test runner. If you've customized anything, use this
+;; to run your customizations.
 (define (run-tests)
   (begin
     (reset-test-runner)
-    (print-group-heading)
     (let ((compiler (test-compiler))
           (runner (current-test-runner))
           (suite (test-suite)))
-      (begin
+      (begin 
+        (print-group-heading)
         (for-each (test-one compiler runner) suite)
         (print-finalization runner)))))
 
@@ -198,92 +268,129 @@
 ;; just call the current compiler on that program.
 (define (test-one compiler runner)
   (lambda (input)
-    (let ((pr (guard (x [else x]) (compiler input))))
+    (let ((pr (guard (x [else x])
+                (compiler (test-case-source input))))
+          (expected-failure
+            (not (test-case-valid? input))))
       (begin
         (print-individual-completion pr runner)
-        (record-test-result pr runner)))))
+        (record-test-result pr expected-failure runner)))))
 
 (define (print-group-heading)
   (printf "Test~8,8tResult\n")
   (printf "---------------------------~n"))
 
-(define (test-passed? pr)
-  (and (not (error? pr))
-       (not (pass-verification-violation? pr))))
-
+;; Prints an individual test completion.
+;; Example output:
+;;
 ;;    1    Pass    
 ;;    2    Fail    Pass: PASS-NAME
-;;    3    Fail    Runtime error
+;;    3    Fail    Runtime error (in who)
 ;; ...
 (define (print-individual-completion pr runner)
   (apply printf "~4d    ~8a~a~n"
     (current-test-number runner)
     (result->string pr)))
 
-(define (result->string pr)
+(define (result->string pass-result)
   (cond
-    [(wrapper-violation? pr)
+    [(wrapper-violation? pass-result)
      (list "Fail" "Wrapper violation")]
-    [(pass-verification-violation? pr)
+    [(pass-verification-violation? pass-result)
      (list "Fail"
        (format "~a: ~s"
          "Verification error"
-         (pass-verification-violation-pass pr)))]
-    [(error? pr)
-     (list "Fail" "Runtime error")]
+         (pass-verification-violation-pass pass-result)))]
+    [(or (error? pass-result) (violation? pass-result))
+     (list "Fail" 
+       (if (who-condition? pass-result)
+           (format "Runtime error in ~s" (condition-who pass-result))
+           "Runtime error"))]
     [else (list "Pass" "")]))
 
+;; Prints a final summary for the testing.
+;; Example output:
+;;
 ;; Testing Summary
-;; ---------------
-;; Passes:         105
-;; Failures:        25
-;; Total:          200
+;; ----------------------------
+;; Expected Passess:        100
+;; Unexpected Passes:        10
+;; Expected Failures:        20
+;; Unexpected Failures:      25
+;; Total:                   200
 (define (print-finalization runner)
-  (let ((passed (test-runner-passed runner))
-        (failed (test-runner-failed runner)))
+  (let ((pass-expected   (test-runner-pass-expected   runner))
+        (pass-unexpected (test-runner-pass-unexpected runner))
+        (fail-expected   (test-runner-fail-expected   runner))
+        (fail-unexpected (test-runner-fail-unexpected runner)))
     (printf "~nTesting Summary~n")
-    (printf "~a~n" (make-string 15 #\-))
-    (printf "Passes:~16,8t~4d~n" passed)
-    (printf "Failures:~16,8t~4d~n" failed)
-    (printf "Total:~16,8t~4d~n" (+ passed failed))))
+    (printf "~a~n" (make-string 28 #\-))
+    (printf "Expected Passes:~24,8t~4d~n"      pass-expected)
+    (printf "Unexpected Passes:~24,8t~4d~n"    pass-unexpected)
+    (printf "Expected Failures:~24,8t~4d~n"    fail-expected)
+    (printf "Unexpected Failures: ~24,8t~4d~n" fail-unexpected)
+    (printf "Total:~24,8t~4d~n"
+      (+ pass-expected pass-unexpected
+         fail-expected fail-unexpected))
+    (zero? (+ fail-unexpected pass-unexpected))))
+	
 
+;; Calculates the current test number
 (define (current-test-number runner)
-  (+ (test-runner-passed runner)
-    (test-runner-failed runner)))
+  (+ (test-runner-pass-expected   runner)
+     (test-runner-pass-unexpected runner)
+     (test-runner-fail-expected   runner)
+     (test-runner-fail-unexpected runner)))
 
-;; This records the result of the previous test, whether it be a pass
-;; (just increments test-runner-passed), or failed (increments
-;; test-runner-failed and stores the error condition in the history).
-(define (record-test-result pr runner)
+;; This records the result of the previous test, whether it be an
+;; expected pass (just increments test-runner-pass-expected), or
+;; failed (increments test-runner-failed-[un]expected and stores the
+;; error condition in the history). also store the unexpected-passes.
+(define (record-test-result pass-result expected-fail runner)
   (cond
-    ((test-passed? pr)
-     (set-test-runner-passed! runner
-       (+ (test-runner-passed runner) 1)))
+    ((or (error? pass-result)
+         (wrapper-violation? pass-result)
+         (pass-verification-violation? pass-result)
+         (violation? pass-result))
+     (begin
+       (add-to-history runner
+         (cons (current-test-number runner)
+           ;; If the failure was expected, store #f. otherwise #t
+           (cons (not expected-fail) pass-result)))
+       (if expected-fail
+           ;; An expected failure
+           (incr-fail-expected runner)
+           ;; An unexpected failure
+           (incr-fail-unexpected runner))))
     (else
-      (begin
-        (set-test-runner-test-history! runner
-          (cons
-            (cons (current-test-number runner) pr)
-            (test-runner-test-history runner)))
-        (set-test-runner-failed! runner
-          (+ (test-runner-failed runner) 1))))))
+      (if expected-fail
+          ;; An unexpected pass
+          ;; Since this is an unexpected result, store #t.
+          (begin
+            (add-to-history runner
+              (cons (current-test-number runner)
+                (cons #t (void))))
+            (incr-pass-unexpected runner))
+          ;; An expected pass
+          (incr-pass-expected runner)))))
 
 (define (display-test-failure test-num)
-  (let ([res (test-failure-condition test-num)])
-    (when res
+  (let ([result (test-failure-condition test-num)])
+    (when result
       (cond
-        [(pass-verification-violation? res)
-         (display-pass-verification-violation res)]
-        [(wrapper-violation? res)
+        [(pass-verification-violation? result)
+         (display-pass-verification-violation result)]
+        [(wrapper-violation? result)
          (printf "Error in wrapper ~a:~n"
-           (wrapper-violation-name res))
-         (display-condition res)]
-        [else (display-condition res)])
+           (wrapper-violation-name result))
+         (display-condition result)]
+        [else (display-condition result)])
       (newline))))
 
 (define (test-failure-condition test-num)
   (let ((runner (current-test-runner)))
-    (let ([res (assv test-num (test-runner-test-history runner))])
-      (and res (cdr res)))))
+    (let ([result (assv test-num (test-runner-history runner))])
+      (and result (cddr result)))))
 
 )
+
