@@ -1,42 +1,36 @@
 #!chezscheme
-(library (compiler generate-x86-64)
+(library (Compiler generate-x86-64)
   (export generate-x86-64)
   (import (chezscheme)
-	  (framework helpers)
-	  (framework match))
+	  (Framework helpers)
+	  (Framework match))
+
+;;; generate-x86-64 accepts a valid program in the grammar described
+;;; in source-grammar.ss, and writes an equivalent x86_64 assembly
+;;; language program to the current output port.  It uses the emit
+;;; macro from helpers.ss, which is smart enough to handle register
+;;; and immediate operands properly (among others), which simplifies
+;;; the task.
 
 (define-who generate-x86-64
-  (define prim->opcode
-    (lambda (prim)
-      (cdr (assq prim
-             '((+ . addq) (- . subq) (* . imulq)
-               (logand . andq) (logor . orq) (sra . sarq))))))
-  (define relop->opcode
-    (lambda (relop not?)
-      (cdr (assq relop (if not?
-                            '((= . jne) (< . jge) (<= . jg) (> . jle) (>= . jl))
-                            '((= . je) (< . jl) (<= . jle) (> . jg) (>= . jge)))))))
-  (define Code
-    (lambda (ef)
-      (match ef
-        [,lab (guard (label? lab)) (emit-label lab)]
-        [(jump ,rand) (emit-jump 'jmp rand)]
-        [(set! ,rand1 ,lab)
-         (guard (label? lab))
-         (emit 'leaq lab rand1)]
-        [(set! ,rand1 (,prim ,rand1 ,rand2))
-         (emit (prim->opcode prim) rand2 rand1)]
-        [(set! ,rand1 ,rand2) (emit 'movq rand2 rand1)]
-        [(if (not (,relop ,rand1 ,rand2)) (jump ,lab))
-         (emit 'cmpq rand2 rand1)
-         (emit-jump (relop->opcode relop #t) lab)]
-        [(if (,relop ,rand1 ,rand2) (jump ,lab))
-         (emit 'cmpq rand2 rand1)
-         (emit-jump (relop->opcode relop #f) lab)]
-        [,ef (error who "invalid Code syntax ~s" ef)])))
+  (define prim->inst
+    (lambda (op)
+      (case op
+        [(+) 'addq]
+        [(-) 'subq]
+        [(*) 'imulq]
+        [else (error who "unexpected binop ~s" op)])))
+  (define Statement
+    (lambda (st)
+      (match st
+        [(set! ,dst (,prim ,dst ,src))
+         (emit (prim->inst prim) src dst)]
+        [(set! ,dst ,src)
+         (emit 'movq src dst)]
+        [,st (error who "unexpected statement ~s" st)])))
   (lambda (x)
     (match x
-      [(code ,code* ...) (emit-program (for-each Code code*))]
-      [,x (error who "invalid Program syntax ~s" x)])))
+      [(begin ,st* ...) (emit-program (for-each Statement st*))]
+      [,x (error who "unexpected program ~s" x)])))
 
 )
