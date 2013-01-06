@@ -57,7 +57,7 @@ function check_pub_branch() {
   echo; echo "Checking public framework branch a$n"
   echo "========================================"
   #  set -x
-  git co a"$n"
+  git checkout a"$n"
 
   if [ $n -gt 1 ]; then    
     check_merge a"$((n-1))"
@@ -73,7 +73,7 @@ function check_sol_branch() {
   echo; echo "Checking solution branch a"$n"sol"
   echo "========================================"
 
-  git co a"$n"sol
+  git checkout a"$n"sol
 
   # Merge the public one first:
   check_merge remotes/framework/a$n
