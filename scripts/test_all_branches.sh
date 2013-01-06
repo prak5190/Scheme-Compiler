@@ -16,13 +16,19 @@ done
 
 function test_branch() {
   n=$1
-  echo; echo "Running tests on branch a$n"
+  echo; 
   echo "========================================"
-  git checkout a$n
+  echo "Running tests on branch a$n"
+  echo "========================================"
+  git checkout a"$n"sol
+  make clean
 
-  # TODO: Need a way to exit with a meaningful error code:
+  # We don't use "load_and_test.ss" because we want to exit immediately with an error code:
+  echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
 
-  echo '(exit)' | make scheme
+  if [ $SCHEMEONLY == 0 ]; then 
+     make haskell
+  fi
 }
 
 for ((i=1; i <= NUMASSIGNS; i++)); do 
