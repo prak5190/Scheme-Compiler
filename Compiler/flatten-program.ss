@@ -5,12 +5,12 @@
           (Framework match))
 
 (define-who flatten-program
-  (trace-define Effect
+  (define Effect
     (lambda (ef)
       (match ef
         [(set! ,var ,rhs) `((set! ,var ,rhs))]
         [,ef (error who "invalid syntax for Effect ~s" ef)])))
-  (trace-define Tail
+  (define Tail
     (lambda (tail)
       (match tail
         [(,t) `((jump ,t))]
