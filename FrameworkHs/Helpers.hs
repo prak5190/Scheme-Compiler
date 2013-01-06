@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeSynonymInstances,FlexibleInstances,DeriveDataTypeable #-}
 module FrameworkHs.Helpers
-  ( P423Config ( P423Config
+  (
+    -- * Types for compiler configuration and construction
+    P423Config ( P423Config
                , framePointerRegister
                , allocationPointerRegister
                , returnAddressRegister
@@ -15,28 +17,36 @@ module FrameworkHs.Helpers
                   , PassFailureException
                   , WrapperFailureException
                   )
+  , shortExcDescrip
   , P423Pass ( P423Pass
              , pass
              , passName
              , wrapperName
              , trace
              )
-  , showShort
-  , Option (Default, Option)
-  , Exc, failure
+  , Option (..)
+    
+  -- * An alternative `Show` class for printing to X86 assembly code:
   , X86Print, format
   , OpCode
-  , Out
-  , OutF (Put, Done)
+
+  -- * Emitting text to a handle
+  , Out, OutF (Put, Done)
   , output, done, runOut, showOut
   , emitOp1, emitOp2, emitOp3
   , emitLabelLabel
   , emitLabel
   , emitJumpLabel, emitJump
+  , emitEntry, emitExit
+               
+  -- * Shorthands for common emissions:
   , pushq, popq
   , movq, leaq
-  , emitEntry, emitExit
+
+  -- * Pretty printing:
   , PP, pp, ppSexp
+
+  -- * Parsing
   , parseListWithFinal
   , parseUVar
   , parseFVar
@@ -46,7 +56,12 @@ module FrameworkHs.Helpers
   , parseReg
   , parseInt32
   , parseInt64
+
+  -- * A simple homemade failure type
+  , Exc, failure
   , catchExc
+    
+  -- * Misc numeric and string helpers
   , isInt32
   , isInt64
   , isUInt6
@@ -113,16 +128,16 @@ data P423Exception = AssemblyFailedException String
 
 instance Exception P423Exception
 instance Show P423Exception where
-  show e@(AssemblyFailedException e')   = showShort e ++ ": " ++ show e'
-  show e@(ParseErrorException e')       = showShort e ++ ": " ++ show e'
-  show e@(ASTParseException s)          = showShort e ++ ": " ++ s
-  show e@(NoValidTestsException)        = showShort e
-  show e@(NoInvalidTestsException)      = showShort e
-  show e@(PassFailureException p e')       = showShort e ++ ": " ++ e'
-  show e@(WrapperFailureException w e') = showShort e ++ ": " ++ e'
+  show e@(AssemblyFailedException e')   = shortExcDescrip e ++ ": " ++ show e'
+  show e@(ParseErrorException e')       = shortExcDescrip e ++ ": " ++ show e'
+  show e@(ASTParseException s)          = shortExcDescrip e ++ ": " ++ s
+  show e@(NoValidTestsException)        = shortExcDescrip e
+  show e@(NoInvalidTestsException)      = shortExcDescrip e
+  show e@(PassFailureException p e')       = shortExcDescrip e ++ ": " ++ e'
+  show e@(WrapperFailureException w e') = shortExcDescrip e ++ ": " ++ e'
 
-showShort :: P423Exception -> String
-showShort e = case e of
+shortExcDescrip :: P423Exception -> String
+shortExcDescrip e = case e of
   (AssemblyFailedException e)   -> "Assembly failure"
   (ParseErrorException pe)      -> "SExp parse failure"
   (ASTParseException s)         -> "AST parse failure"
@@ -171,7 +186,7 @@ done     = liftF Done
 runOut :: Free (OutF String) r -> Handle -> IO ()
 runOut (Free (Put s x)) h = hPutStrLn h s >> runOut x h
 runOut (Free  Done    ) h = return ()
-runOut (Pure r)         h = throwIO (userError "Improper termination")
+runOut (Pure r)         h = throwIO (userError "runOut: did not call 'done' at the end.")
 
 class X86Print a where
   format :: a -> String
@@ -506,5 +521,6 @@ instance SuffixTerm FVar where
 instance SuffixTerm Label where
   extractSuffix (L name ind) = ind
 
+-- | Remove whitespace from both ends of a string.
 chomp :: String -> String
 chomp = reverse . dropWhile isSpace . reverse

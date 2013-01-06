@@ -1,5 +1,5 @@
 module FrameworkHs.Testing
-  ( TestResult
+  ( TestResult(..)
   , runDefault
   , runTests
   , getTests
@@ -48,22 +48,25 @@ defaultConfig = P423Config
 
 catchTestFailures :: P423Exception -> Maybe P423Exception
 catchTestFailures e = case e of
-  (AssemblyFailedException e) -> yes
-  (ASTParseException s) -> yes
-  (ParseErrorException pe) -> no
-  (NoValidTestsException) ->  no
-  (NoInvalidTestsException) -> no
-  (PassFailureException p e) -> yes
-  (WrapperFailureException w e) -> yes
+  (AssemblyFailedException _)   -> yes
+  (ASTParseException _)         -> yes
+  (ParseErrorException _)      -> no
+  (NoValidTestsException)       ->  no
+  (NoInvalidTestsException)     -> no
+  (PassFailureException _ _)    -> yes
+  (WrapperFailureException _ _) -> yes
   where yes = Just e
         no  = Nothing
 
+-- | Run the default set of tests (all found in the file).
+--   Returns the test results for (valid,invalid) tests respectively.
 runDefault :: IO ([TestResult],[TestResult])
 runDefault = runTests defaultTestFile defaultConfig
 
 showResults :: [TestResult] -> IO ()
 showResults = mapM_ print
 
+-- | Returns the test results for (valid,invalid) tests respectively.
 runTests :: RunTests -> P423Config -> IO ([TestResult],[TestResult])
 runTests tests conf = do
   ts <- getTests tests
@@ -85,8 +88,10 @@ getTests t =
       let is' = filterInd is (invalid ts)
       return Tests { valid = valid ts, invalid = is' }
 
+-- | Filter a list to only elements at the given set of positions.
 filterInd :: [Int] -> [a] -> [a]
 filterInd xs as =
+  -- RRN: FIXME: this is quadratic:
   case xs of
     []                              -> []
     (x:xs')
@@ -111,7 +116,7 @@ runSet name c ts =
                                printf "%4d    Pass\n" i
                                return $ Pass res)
                            (\e ->
-                             (do printf "%4d    Fail    %s\n" i (showShort e)
+                             (do printf "%4d    Fail    %s\n" i (shortExcDescrip e)
                                  return $ Fail e))
 
 testResults :: [TestResult] -> [TestResult] -> IO ()

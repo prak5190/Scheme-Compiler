@@ -42,13 +42,19 @@ scheme : grammars
 haskell: build-haskell
 	./$(HS_EXE)
 
-build-haskell: $(HS_EXE)
-$(HS_EXE):
+build-haskell: 
 	$(HS) --make -o $(HS_EXE) $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
 
 # Load up the compiler interactively so as to run the tests:
 haskell-interactive : grammars
 	$(HS) --interactive $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
+
+# Test both backends:
+test: 
+	$(MAKE) clean
+	$(MAKE) grammars
+	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
+	$(MAKE) haskell
 
 clean :
 	rm -f t.s t
