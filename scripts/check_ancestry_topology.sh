@@ -1,6 +1,8 @@
 #!/bin/bash
 
-NUMASSIGNS=3
+if [ "$NUMASSIGNS" == "" ]; then 
+  NUMASSIGNS=3
+fi
 
 cat <<EOF
 
