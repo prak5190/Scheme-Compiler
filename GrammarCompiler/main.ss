@@ -81,7 +81,7 @@
     (write-code scheme-passes
                 scheme->filename/string
                 ".ss"
-                emit-scheme
+                (emit-scheme name (verifier-name name))
                 path
                 name
                 code)))
