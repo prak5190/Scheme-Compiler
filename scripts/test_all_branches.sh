@@ -1,6 +1,8 @@
 #!/bin/bash
 
-NUMASSIGNS=3
+if [ "$NUMASSIGNS" == "" ]; then 
+  NUMASSIGNS=3
+fi
 
 set -e
 
@@ -22,6 +24,7 @@ function test_branch() {
   echo "========================================"
   git checkout a"$n"sol
   make clean
+  make grammars
 
   # We don't use "load_and_test.ss" because we want to exit immediately with an error code:
   echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme

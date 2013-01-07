@@ -1,6 +1,8 @@
 #!/bin/bash
 
-NUMASSIGNS=3
+if [ "$NUMASSIGNS" == "" ]; then 
+  NUMASSIGNS=3
+fi
 
 cat <<EOF
 
@@ -21,17 +23,12 @@ EOF
 set -e
 
 NOCOMMIT="--no-commit"
-PUBLIC=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --commit)
       shift; 
       NOCOMMIT=""
       ;; 
-    --public)
-      shift;
-      PUBLIC=1
-      ;;
   esac
 done
 
@@ -76,12 +73,14 @@ function check_sol_branch() {
   git checkout a"$n"sol
 
   # Merge the public one first:
-  check_merge remotes/framework/a$n
+  # check_merge remotes/framework/a$n
+  check_merge a$n
 
   if [ $n -gt 1 ]; then    
     check_merge a"$((n-1))"sol
   fi
 }
+
 
 echo
 echo "--------------------------------------------------------------------------------"
