@@ -69,7 +69,9 @@
         (let ((rem (car ds)) (ren (cadr ds)) (add (caddr ds)))
           (match prev
             ((,old-name (start ,st) . ,[(compose (Remove rem) (Rename ren) (Add add) merge-alists) -> types])
-             `(,name (start ,st) . ,types))
+             (let ((result `(,name (start ,st) . ,types)))
+	       (pretty-print result)
+	       result))
             (,e (errorf 'increment-grammar "invalid: ~a" e))))))))
 
 (define Remove
