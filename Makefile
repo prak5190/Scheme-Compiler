@@ -31,7 +31,8 @@ HS_EXE=$(HS_FILE:.hs=.exe)
 # The main point of this file is to run the tests
 all : grammars
 
-grammars : $(SRC_GRAMMAR) GrammarCompiler
+grammars : Framework/GenGrammars
+Framework/GenGrammars: $(SRC_GRAMMAR) GrammarCompiler
 	@mkdir -p Framework{,Hs}/GenGrammars
 	$(SC) --script $(SCRIPT_DIR)/$(CG_FILE) "$(SRC_GRAMMAR)"
 

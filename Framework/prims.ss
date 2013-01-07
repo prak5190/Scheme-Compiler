@@ -1,8 +1,8 @@
 (library (Framework prims)
          (export
-          UVar FVar Label Reg Relop Binop Disp Ind Int64 Int32 UInt6
+          UVar FVar Label Reg Relop Binop Disp Ind Int64 Int32 UInt6 Integer
           isUVar isFVar isLabel isReg isRelop isBinop isDisp isInd
-          isInt64 isInt32 isUInt6)
+          isInt64 isInt32 isUInt6 invalid-expr)
          (import (chezscheme)
                  (Framework match)
                  (Framework helpers))
@@ -23,6 +23,7 @@
        (let-values (((b a) (split c (cdr ls))))
          (values (cons (car ls) b) a))))))
 
+;; Return a string representing an error message:
 (define invalid-expr
   (lambda (t e)
     (format "Invalid ~a: ~a\n" t e)))
@@ -89,6 +90,9 @@
 
 (define isUInt6 uint6?)
 
+;; Terminals -- the contract is that these functions return #f if
+;; NOTHING IS WRONG (i.e. the datum passes).  Otherwise, they return
+;; an error message.
 (define UVar (lambda (x) (if (isUVar x) #f (invalid-expr 'UVar x))))
 (define FVar (lambda (x) (if (isFVar x) #f (invalid-expr 'FVar x)))) 
 (define Label (lambda (x) (if (isLabel x) #f (invalid-expr 'Label x))))
@@ -100,5 +104,6 @@
 (define Int64 (lambda (x) (if (isInt64 x) #f (invalid-expr 'Int64 x))))
 (define Int32 (lambda (x) (if (isInt32 x) #f (invalid-expr 'Int32 x))))
 (define UInt6 (lambda (x) (if (isUInt6 x) #f (invalid-expr 'UInt6 x))))
+(define Integer (lambda (x) (if (integer? x) #f (invalid-expr 'Integer x))))
 
 )
