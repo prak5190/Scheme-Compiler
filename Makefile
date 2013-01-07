@@ -39,7 +39,7 @@ scheme : grammars
 	$(SC) $(SCRIPT_DIR)/$(SC_FILE)
 
 # Run the tests straight away:
-haskell: build-haskell
+haskell: grammars build-haskell
 	./$(HS_EXE)
 
 build-haskell: 
@@ -57,9 +57,11 @@ test:
 	$(MAKE) haskell
 
 clean :
-	rm -f t.s t
+	rm -f t.s t $(HS_EXE)
 	rm -rf Framework{,Hs}/GenGrammars
-#	find . -name "*.o" -exec rm -f {} \;
-#	find . -name "*.hi" -exec rm -f {} \;
+	find FrameworkHs -name "*.o" -exec rm -f {} \;
+	find FrameworkHs -name "*.hi" -exec rm -f {} \;
+	find CompilerHs  -name "*.o" -exec rm -f {} \;
+	find CompilerHs  -name "*.hi" -exec rm -f {} \;
 
 .PHONY: scheme haskell grammars clean test test-scheme test-haskell
