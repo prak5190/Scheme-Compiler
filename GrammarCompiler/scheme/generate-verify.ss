@@ -4,7 +4,7 @@
                  (GrammarCompiler common match)
                  (GrammarCompiler common aux))
 
-(trace-define generate-verify
+(define generate-verify
   (lambda (x)
     (match x
       ((,[Name -> name]
@@ -43,10 +43,12 @@
                (s (map Simple s)))
            `(define ,name
               (lambda (x)
-                (match x
-                  ,s ...
-                  ,ns ...
-                  (,(uq 'e) (invalid-expr ',name e)))))))))))
+		,(make-match-chain name 'x (append s ns))
+                ; (match x
+                ;   ,s ...
+                ;   ,ns ...
+                ;   (,(uq 'e) (invalid-expr ',name e)))
+		))))))))
        ;(let ((sub* (map (if (for-all non-terminal? sub*) Simple Sub) sub*)))
        ;  `(define ,name
        ;     (lambda (x)
@@ -58,11 +60,24 @@
   (lambda (s)
     `(,(uq 'e) (guard (not (,s e))) #f)))
 
-(define Sub
-  (lambda (s)
-    (let-values
+(define (make-match-chain name obj clauses)
+  (match clauses
+    [() `(invalid-expr ',name ,obj)]
+    [(,last) `(let ((next (lambda () (invalid-expr ',name ,obj))))
+		(match ,obj ,last (,(uq 'e) (next))))]
+    [(,fst . ,rst) 
+     `(let ((next (lambda () ,(make-match-chain name obj rst))))
+	(match ,obj
+	  ,fst
+	  (,(uq 'e) (next))))]
+    ))
+
+;; Handle each nontrivial pattern for a nonterminal:
+(define (Sub s)
+  (let-values
         (((s n seen)
           (let loop ((s s) (n 1) (seen '()))
+            ;; seen - accumulate nonterminals encountered
             (cond
               ((null? s) (values '() n seen))
               (else
@@ -77,7 +92,7 @@
                       (values `(,a . ,d) n seen)))
                    ((non-terminal? a)
                     (let ((name (number-symbol "x" n)))
-                      (let-values (((d n seen) (loop d (add1 n) `(,name . ,seen))))
+                      (let-values (((d n seen) (loop d (add1 n) (cons name seen))))
                         (values
                          (cons (uq `(,a -> ,name)) d)
                          n
@@ -85,7 +100,8 @@
                    ((eq? a '*)
                     (let-values (((d n seen) (loop d n seen)))
                       (values `(... . ,d) n seen))))))))))
-      `(,s (any . ,seen)))))
+      `(,s (and (any . ,seen) (next)))
+      ))
 
 (define uq
   (lambda (s)
