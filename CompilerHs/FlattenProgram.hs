@@ -2,51 +2,67 @@ module CompilerHs.FlattenProgram
   (flattenProgram)
   where
 
-import qualified FrameworkHs.GenGrammars.L37ExposeFrameVar as L1
+import FrameworkHs.GenGrammars.L39ExposeBasicBlocks
 import qualified FrameworkHs.GenGrammars.L41FlattenProgram as L2
 
-import Prelude hiding (tail)
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
-flattenProgram :: P423Config -> L1.Prog -> Exc L2.Prog
-flattenProgram  c (L1.Letrec ls t) =
-  do ss1 <- mapM ltTuple ls
-     ss2 <- tail t
-     let ss =  ss2 ++ (concat ss1)
-     return (L2.Code (init ss) (last ss))
+flattenProgram :: P423Config -> Prog -> Exc L2.Prog
+flattenProgram  c (Letrec ls t) = return $ L2.Code ss s
+  where
+    (labels,tails) = unzip ls
+    ss             = init statements
+    s              = last statements
+    f :: Tail -> [Label] -> [Tail] -> [L2.Statement]
+    f ta las tas   = if null tas
+                        then fTail Nothing ta
+                        else concat
+                               [ fTail (Just $ head las) ta
+                               , [L2.LabelS $ head las]
+                               , f (head tas) (tail las) (tail tas)
+                               ]
+    statements     = f t labels tails
 
-ltTuple :: (Label,L1.Tail) -> Exc [L2.Statement]
-ltTuple (l,t) =
-  do t <- tail t
-     return ((L2.LabelS l) : t)
+fTail :: Maybe Label -> Tail -> [L2.Statement]
+fTail nextL ta = case ta of
+  App tr             |  tr `mTrEq` nextL -> []
+                     |  otherwise        -> [L2.Jump $ fTriv tr]
+  If r tr1 tr2 tL fL |  fL `mEq` nextL   -> [L2.If1 r (fTriv tr1) (fTriv tr2) tL]
+                     |  tL `mEq` nextL   -> [L2.If2 r (fTriv tr1) (fTriv tr2) fL]
+                     |  otherwise        -> [L2.If1 r (fTriv tr1) (fTriv tr2) tL
+                                            ,L2.Jump $ L2.LabelT fL
+                                            ]
+  Begin es t         -> concat [map fEffect es, fTail nextL t]
 
-tail :: L1.Tail -> Exc [L2.Statement]
-tail t = case t of
-  L1.App tr     -> do tr <- triv tr
-                      return [(L2.Jump tr)]
-  L1.Begin es t -> do es <- mapM effect es
-                      t  <- tail t
-                      return (es ++ t)
+fEffect :: Effect -> L2.Statement
+fEffect ef = case ef of
+  Set1 l tr        -> L2.Set1 (fLoc l) (fTriv tr)
+  Set2 l b tr1 tr2 -> L2.Set2 (fLoc l) b (fTriv tr1) (fTriv tr2)
 
-effect :: L1.Effect -> Exc L2.Statement
-effect e = case e of
-  L1.Set1 v tr        -> do v  <- var v
-                            tr <- triv tr
-                            return (L2.Set1 v tr)
-  L1.Set2 v b tr1 tr2 -> do v   <- var v
-                            tr1 <- triv tr1
-                            tr2 <- triv tr2
-                            return (L2.Set2 v b tr1 tr2)
+------------------------------------------------------------
+-- Helpers
 
-triv :: L1.Triv -> Exc L2.Triv
-triv tr = case tr of
-  L1.Var v     -> do v <- var v
-                     return (L2.Var v)
-  L1.Integer i -> return (L2.Integer i)
-  L1.Label l   -> return (L2.LabelT l)
+mTrEq :: Triv -> Maybe Label -> Bool
+mTrEq tr mL = case tr of
+  Label la -> la `mEq` mL
+  _        -> False
 
-var :: L1.Var -> Exc L2.Var
-var v = case v of
-  L1.Reg r  -> return (L2.Reg r)
-  L1.Disp d -> return (L2.Disp d)
+mEq :: Label -> Maybe Label -> Bool
+mEq l mL = case mL of
+  Just l' -> l == l'
+  Nothing -> False
+
+------------------------------------------------------------
+-- Boilerplate
+
+fTriv :: Triv -> L2.Triv
+fTriv tr = case tr of
+  Loc lo    -> L2.Loc $ fLoc lo
+  Integer i -> L2.Integer i
+  Label la  -> L2.LabelT la
+
+fLoc :: Loc -> L2.Loc
+fLoc l = case l of
+  Reg r  -> L2.Reg r
+  Disp d -> L2.Disp d

@@ -43,7 +43,7 @@
       Reg
       FVar))
 
- (l30-finalize-locations
+ (l36-finalize-locations
   (%remove
     (Body locate)
     UVar
@@ -52,11 +52,11 @@
     (Body -> Tail)
     (Var -> Loc)))
 
- (l36-expose-frame-var
+ (l37-expose-frame-var
    (%rename
      (FVar -> Disp)))
 
- (l38-expose-basic-blocks
+ (l39-expose-basic-blocks
    (%remove
      (Tail if)
      Pred
@@ -65,7 +65,7 @@
      (Tail
        (if (Relop Triv Triv) (Label) (Label)))))
 
- (l40-flatten-program
+ (l41-flatten-program
    (%remove
      Prog
      Tail)
