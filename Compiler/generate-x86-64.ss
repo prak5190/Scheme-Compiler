@@ -3,6 +3,7 @@
   (export generate-x86-64)
   (import (chezscheme)
 	  (Framework helpers)
+	  (Framework GenGrammars l01-verify-scheme)
 	  (Framework match))
 
 ;;; generate-x86-64 accepts a valid program in the grammar described
@@ -29,6 +30,7 @@
          (emit 'movq src dst)]
         [,st (error who "unexpected statement ~s" st)])))
   (lambda (x)
+    (verify-grammar:l01-verify-scheme x)
     (match x
       [(begin ,st* ...) (emit-program (for-each Statement st*))]
       [,x (error who "unexpected program ~s" x)])))
