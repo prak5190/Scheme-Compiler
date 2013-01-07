@@ -4,48 +4,47 @@
 	  (Framework helpers)
 	  (Framework match))
 
-;;; Andy Keep, Kent Dybvig
-;;; P423/P523
-;;; Spring 2010
-
 ;;; verify-scheme accept a single value and verifies that the value
 ;;; is a valid program in the current source language.
 ;;;
-;;; Grammar assignment 3:
+;;; Grammar for verify-scheme (assignment 4):
 ;;;
-;;; Program --> (letrec ([<label> (lambda () <Body>)]*) <Body>)
-;;; Body    --> (locate ([uvar <Loc>]*) <Tail>)
-;;; Tail    --> (<Triv>)
+;;; Program --> (letrec ((<label> (lambda () <Body>))*) <Body>)
+;;; Body    --> (locals (<uvar>*) <Tail>)
+;;; Tail    --> (<Triv> <Var>*)
 ;;;          |  (begin <Effect>* <Tail>)
 ;;;          |  (if <Pred> <Tail> <Tail>)
 ;;; Pred    --> (true)
 ;;;          |  (false)
-;;;          |  (relop <Triv> <Triv>)
-;;;          |  (begin <Effect>* <Pred>)
+;;;          |  (<relop> <Triv> <Triv>)
+;;;          |  (begin <Effect*> <Pred>)
 ;;;          |  (if <Pred> <Pred> <Pred>)
 ;;; Effect  --> (nop)
 ;;;          |  (set! <Var> <Triv>)
-;;;          |  (set! <Var> (<binop> <Triv> <Triv>)
+;;;          |  (set! <Var> (<binop> <Triv> <Triv>))
 ;;;          |  (begin <Effect>+)
-;;;          |  (if <Pred> <Effect> <Effect>)
-;;; Var     --> uvar
-;;;          |  Loc
-;;; Loc     --> register
-;;;          |  frame-var
-;;; Triv    --> Var
-;;;          |  int
-;;;          |  label
+;;;          |  (if <Pred> <Pred> <Pred>)
+;;; Var     --> <uvar>
+;;;          |  <frame-var>
+;;;          |  <register>
+;;; Triv    --> <Var>
+;;;          |  <int>
+;;;          |  <label>
 ;;;
 ;;; Where uvar is symbol.n where (n >= 0)
 ;;;       binop is +, -, *, logand, logor, or sra
-;;;       relop is <, <=, =, >=, or >
+;;;       relop is <, <=, or =
 ;;;       register is rax, rcx, rdx, rbx, rbp, rdi, rsi, r8,
 ;;;                   r9, r10, r11, r12, r13, r14, or r15
 ;;;       label is symbol$n where (n >= 0)
 ;;;       frame-var is fvn where (n >= 0)
 ;;;
 ;;; If the value is a valid program, verify scheme returns the value
-;;; unchanged; otherwise, it signals an error.
+;;; unchanged; otherwise it signals an error.
+;;;
+;;; At this level in the compiler verify-scheme is also responsible for
+;;; ensuring that machine constraints are not violated in generated
+;;; assembler code to the best of its ability.
 
 (define-who verify-scheme
   (define verify-x-list
@@ -59,110 +58,112 @@
               (when (member idx idx*)
                 (error who "non-unique ~s suffix ~s found" what idx))
               (loop x* (cons idx idx*))))))))
+  (define FrameVar
+    (lambda (x)
+      (unless (frame-var? x)
+        (error who "invalid frame-var ~s" x))
+      x))
   (define Var
-    (lambda (env)
+    (lambda (uvar*)
       (lambda (var)
         (unless (or (register? var) (frame-var? var) (uvar? var))
           (error who "invalid variable ~s" var))
         (when (uvar? var)
-          (unless (assq var env)
+          (unless (memq var uvar*)
             (error who "unbound uvar ~s" var)))
         var)))
-  (define Loc
-    (lambda (loc)
-      (unless (or (register? loc) (frame-var? loc))
-        (error who "invalid Loc ~s" loc))
-      loc))
-  (define Var->Loc
-    (lambda (v env)
-      (if (uvar? v) (cdr (assq v env)) v)))
   (define Triv
-    (lambda (label* env)
+    (lambda (label* uvar*)
       (lambda (t)
         (unless (or (register? t) (frame-var? t) (label? t) (uvar? t)
                     (and (integer? t) (exact? t)))
           (error who "invalid Triv ~s" t))
         (when (uvar? t)
-          (unless (assq t env)
+          (unless (memq t uvar*)
             (error who "unbound uvar ~s" t)))
         (when (label? t)
           (unless (memq t label*)
             (error who "unbound label ~s" t)))
         t)))
   (define Pred
-    (lambda (label* env)
+    (lambda (label* uvar*)
       (lambda (pr)
         (match pr
           [(true) (void)]
           [(false) (void)]
-          [(begin ,[(Effect label* env) -> ef*] ... ,[pr]) (void)]
+          [(begin ,[(Effect label* uvar*) -> ef*] ... ,[pr]) (void)]
           [(if ,[test] ,[conseq] ,[altern]) (void)]
-          [(,relop ,[(Triv label* env) -> x] ,[(Triv label* env) -> y])
+          [(,relop ,[(Triv label* uvar*) -> x]
+                    ,[(Triv label* uvar*) -> y])
            (unless (memq relop '(= < <= > >=))
              (error who "invalid predicate operator ~s" relop))
-           (let ([x (Var->Loc x env)] [y (Var->Loc y env)])
-             (unless (or (and (register? x)
-                              (or (register? y)
-                                  (frame-var? y)
-                                  (int32? y)))
-                         (and (frame-var? x)
-                              (or (register? y)
-                                  (int32? y))))
-               (error who "~s violates machine constraints"
-                      `(,relop ,x ,y))))]
+           (unless (or (and (or (register? x) (memq x uvar*))
+                            (or (register? y)
+                                (memq y uvar*)
+                                (frame-var? y)
+                                (int32? y)))
+                       (and (frame-var? x)
+                            (or (register? y)
+                                (memq y uvar*)
+                                (int32? y))))
+             (error who "~s violates machine constraints"
+                    `(,relop ,x ,y)))]
           [,pr (error who "invalid Pred ~s" pr)]))))
   (define Effect
-    (lambda (label* env)
+    (lambda (label* uvar*)
       (lambda (ef)
         (match ef
           [(nop) (void)]
-          [(set! ,[(Var env) -> x]
-             (,binop ,[(Triv label* env) -> y] ,[(Triv label* env) -> z]))
+          [(set! ,[(Var uvar*) -> x]
+             (,binop ,[(Triv label* uvar*) -> y]
+                     ,[(Triv label* uvar*) -> z]))
            (unless (and (eq? y x)
-                        (let ([x (Var->Loc x env)] [z (Var->Loc z env)])
-                          (case binop
-                            [(+ - logand logor)
-                             (or (and (register? x)
-                                      (or (register? z)
-                                          (frame-var? z)
-                                          (int32? z)))
-                                 (and (frame-var? x)
-                                      (or (register? z)
-                                          (int32? z))))]
-                            [(*)
-                             (and (register? x)
-                                  (or (register? z)
-                                      (frame-var? z)
-                                      (int32? z)))]
-                            [(sra)
-                             (and (or (register? x) (frame-var? x))
-                                  (uint6? z))]
-                            [else
-                             (error who "invalid binary operator ~s" binop)])))
+                        (case binop
+                          [(+ - logand logor)
+                           (or (and (or (register? x) (memq x uvar*))
+                                    (or (register? z)
+                                        (memq z uvar*)
+                                        (frame-var? z)
+                                        (int32? z)))
+                               (and (frame-var? x)
+                                    (or (register? z)
+                                        (memq z uvar*)
+                                        (int32? z))))]
+                          [(*)
+                           (and (or (register? x) (memq x uvar*))
+                                (or (register? z)
+                                    (memq z uvar*)
+                                    (frame-var? z)
+                                    (int32? z)))]
+                          [(sra)
+                           (and (or (register? x) (frame-var? x) (memq x uvar*))
+                                (uint6? z))]
+                          [else
+                            (error who "invalid binary operator ~s" binop)]))
              (error who "~s violates machine constraints"
                     `(set! ,x (,binop ,y ,z))))]
-          [(set! ,[(Var env) -> x] ,[(Triv label* env) -> y])
-           (let ([x (Var->Loc x env)] [y (Var->Loc y env)])
-             (unless (or (and (register? x)
-                              (or (register? y)
-                                  (frame-var? y)
-                                  (int64? y)
-                                  (label? y)))
-                         (and (frame-var? x)
-                              (or (register? y)
-                                  (int32? y))))
-               (error who "~s violates machine constraints" `(set! ,x ,y))))]
+          [(set! ,[(Var uvar*) -> x] ,[(Triv label* uvar*) -> y])
+           (unless (or (and (or (register? x) (memq x uvar*))
+                            (or (register? y)
+                                (memq y uvar*)
+                                (frame-var? y)
+                                (int64? y)
+                                (label? y)))
+                       (and (frame-var? x)
+                            (or (register? y)
+                                (memq y uvar*)
+                                (int32? y))))
+               (error who "~s violates machine constraints" `(set! ,x ,y)))]
           [(begin ,[ef] ,[ef*] ...) (void)]
-          [(if ,[(Pred label* env) -> test] ,[conseq] ,[altern]) (void)]
+          [(if ,[(Pred label* uvar*) -> test] ,[conseq] ,[altern]) (void)]
           [,ef (error who "invalid Effect ~s" ef)]))))
   (define Tail
-    (lambda (label* env)
+    (lambda (label* uvar*)
       (lambda (tail)
         (match tail
-          [(begin ,[(Effect label* env) -> ef*] ... ,tail)
-           ((Tail label* env) tail)]
-          [(if ,[(Pred label* env) -> test] ,[conseq] ,[altern]) (void)]
-          [(,[(Triv label* env) -> t])
+          [(begin ,[(Effect label* uvar*) -> ef*] ... ,[tail]) (void)]
+          [(if ,[(Pred label* uvar*) -> test] ,[conseq] ,[altern]) (void)]
+          [(,[(Triv label* uvar*) -> t] ,[(Var uvar*)-> live-out*] ...)
            (when (integer? t)
              (error who "~s violates machine constraints" `(,t)))]
           [,tail (error who "invalid Tail ~s" tail)]))))
@@ -170,9 +171,9 @@
     (lambda (label*)
       (lambda (bd)
         (match bd
-          [(locate ([,uvar* ,[Loc -> loc*]] ...) ,tail)
-           (verify-x-list uvar* uvar? 'uvar)
-           ((Tail label* (map cons uvar* loc*)) tail)]
+          [(locals (,uvar* ...) ,tail)
+           (verify-x-list `(,uvar* ...) uvar? 'uvar)
+           ((Tail label* uvar*) tail)]
           [,bd (error who "invalid Body ~s" bd)]))))
   (lambda (x)
     (match x

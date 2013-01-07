@@ -1,9 +1,8 @@
 (library (Compiler finalize-locations)
   (export finalize-locations)
-  (import
-    (chezscheme)
-    (Framework helpers)
-    (Framework match))
+  (import (chezscheme)
+          (Framework helpers)
+          (Framework match))
 
 (define-who finalize-locations
   (define Var
@@ -57,6 +56,6 @@
     (match x
       [(letrec ([,label* (lambda () ,[Body -> bd*])] ...) ,[Body -> bd])
        `(letrec ([,label* (lambda () ,bd*)] ...) ,bd)]
-      [,x (error who "invalid Program ~s" x)])))  
-
+      [,x (error who "invalid Program ~s" x)])))
+  
 )
