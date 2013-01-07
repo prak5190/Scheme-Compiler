@@ -1,38 +1,6 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; Adapted for P423 Spring 2012 by Claire Alvis
-;;
-;; In order to provide more useful testing information, test suites
-;; are now stored as lists of records. To run a test suite, use the
-;; framework provided in (framework testing).
-;;
-;; (test-ref <suite> <num>) 
-;;    retrieves the source of the test at index num
-;;
-;; (valid-tests)
-;; (invalid-tests)
-;;    two suites of valid and invalid tests (respectively) for
-;;    you to test your compiler against
-;;
-;; To add a test case:
-;; Just put the test source inside the invalid or valid list.
-;; Everything else will happen automatically!
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Don't import this library, import (framework test-suite)!
-(library (framework test-suite aux)
-  (export
-    make-test-case
-    test-case?
-    test-case-valid?
-    test-case-source
-    invalid
-    valid)
-  (import (chezscheme))
-
-(define (invalid)
-  '(3
+(invalid 
+     3
      (begin rax 5)
      (letrec () (set! rax 5))
      (letrec () (set! rax 5) (r15))
@@ -278,10 +246,11 @@
      (letrec ()
        (locals (x.1 y.2)
          (set! x.1 5)
-         (r15 rax)))))
+         (r15 rax)))
+ )
 
-(define (valid)
-  '((letrec () (locals () (begin (set! rax 5) (r15 rax))))
+(valid 
+    (letrec () (locals () (begin (set! rax 5) (r15 rax))))
     (letrec ()
       (locals ()
         (begin (set! rax 5) (set! rax (+ rax 5)) (r15 rax))))
@@ -1138,54 +1107,4 @@
     ;;       (set! a.1 (+ a.1 o.15))
     ;;       (set! rax a.1)
     ;;       (r15 rax r15))))
-
-))
-
-;; Defines the test-case record, along with a writer that prints
-;; whether the test case is a valid test or not, and the test source.
-(define-record test-case (valid? source))
-(record-writer (type-descriptor test-case)
-  (lambda (r p wr)
-    (begin
-      (display "<" p)
-      (if (test-case-valid? r)
-          (display "valid test " p)
-          (display "invalid test " p))
-      (wr (test-case-source r) p)
-      (display ">" p))))
-
 )
-
-(library (framework test-suite)
-  (export
-    valid-tests
-    invalid-tests
-    test-ref
-    test-case?
-    test-case-valid?
-    test-case-source)
-  (import
-    (chezscheme)
-    (framework test-suite aux))
-
-(define (test-ref suite num)
-  (test-case-source (list-ref suite num)))
-
-(define invalid-tests
-  (make-parameter
-    (map (lambda (t) (make-test-case #f t)) (invalid))
-    (lambda (x)
-      (unless (and (list? x) (for-all test-case? x))
-        (errorf 'invalid-tests "~s not a valid test suite" x))
-      x)))
-
-(define valid-tests
-  (make-parameter
-    (map (lambda (t) (make-test-case #t t)) (valid))
-    (lambda (x)
-      (unless (and (list? x) (for-all test-case? x))
-        (errorf 'valid-tests "~s not a valid test suite" x))
-      x)))
-
-)
-
