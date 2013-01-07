@@ -1,10 +1,10 @@
 (library (GrammarCompiler scheme generate-verify)
-         (export generate-verify)
+         (export generate-verify verifier-name)
          (import (chezscheme)
                  (GrammarCompiler common match)
                  (GrammarCompiler common aux))
 
-(define generate-verify
+(trace-define generate-verify
   (lambda (x)
     (match x
       ((,[Name -> name]
@@ -16,7 +16,7 @@
             ,t* ...
             ;,t/p* ...
             (let ((res (,st x)))
-              (if res (errorf ',name res) x))))))))
+              (if res (errorf ',name "~a" res) x))))))))
 
 (define Name
   (lambda (s)
@@ -24,6 +24,8 @@
      (string-append
       "verify-grammar:"
       (symbol->string s)))))
+
+(define verifier-name Name)
 
 (define Terminal
   (lambda (t/p)
