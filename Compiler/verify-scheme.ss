@@ -2,6 +2,7 @@
   (export verify-scheme)
   (import (chezscheme)
 	  (Framework helpers)
+	  (Framework GenGrammars l01-verify-scheme)
 	  (Framework match))
 
 ;;; Andy Keep, Kent Dybvig
@@ -181,6 +182,5 @@
        (for-each (Body label*) bd*)
        ((Body label*) bd)]
       [,x (error who "invalid Program ~s" x)])
-    x))
-
+    (verify-grammar:l01-verify-scheme x)))
 )

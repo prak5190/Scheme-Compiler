@@ -2,6 +2,7 @@
   (export flatten-program)
   (import (chezscheme)
           (Framework helpers)
+	  (Framework GenGrammars l41-flatten-program)
           (Framework match))
 
 (define-who flatten-program
@@ -23,15 +24,15 @@
          `(,ef-code** ... ... ,tail-code* ...)]
         [,tail (error who "invalid Tail ~s" tail)])))
   (lambda (x)
-    (match x
-      [(letrec ([,label* (lambda () ,tail*)] ...) ,tail)
-       `(code
-          ,@(let f ([tail tail] [label* label*] [tail* tail*])
-              (if (null? tail*)
-                  (Tail tail #f)
-                  `(,(Tail tail (car label*)) ...
-                    ,(car label*)
-                    ,(f (car tail*) (cdr label*) (cdr tail*)) ...))))]
-      [,x (error who "invalid Program ~s" x)])))
-
+    (verify-grammar:l41-flatten-program
+     (match x
+       [(letrec ([,label* (lambda () ,tail*)] ...) ,tail)
+	`(code
+	   ,@(let f ([tail tail] [label* label*] [tail* tail*])
+	       (if (null? tail*)
+		   (Tail tail #f)
+		   `(,(Tail tail (car label*)) ...
+		     ,(car label*)
+		     ,(f (car tail*) (cdr label*) (cdr tail*)) ...))))]
+       [,x (errorf who "invalid Program ~s" x)]))))
 )
