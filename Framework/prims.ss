@@ -1,3 +1,11 @@
+
+;; This library exposes two categories of primitives for dealing with
+;; language terminals in grammars (i.e. primitive things like Int and UVar).
+;;
+;;  (1) predicates: isFoo function returns #t if its input is a Foo
+;;  (2) checkers: the Foo function checks that the input is a valid
+;;      Foo, returning #f if everything is ok, and an error string otherwise.
+
 (library (Framework prims)
          (export
           UVar FVar Label Reg Relop Binop Disp Ind Int64 Int32 UInt6 Integer
@@ -7,55 +15,44 @@
                  (Framework match)
                  (Framework helpers))
 
-(define terminal-function
-  (lambda (s)
-    (string->symbol
-     (string-append
-      "is"
-      (symbol->string s)))))
-
-(define split
-  (lambda (c ls)
-    (cond
-      ((null? ls) (values '() '()))
-      ((eq? (car ls) c) (values '() (cdr ls)))
-      (else
-       (let-values (((b a) (split c (cdr ls))))
-         (values (cons (car ls) b) a))))))
-
 ;; Return a string representing an error message:
 (define invalid-expr
   (lambda (t e)
     (format "Invalid ~a: ~a\n" t e)))
 
+;; Check if a list of characters represents a valid positive number:
 (define Index
   (lambda (ls)
     (and (not (null? ls))
          (list? ls)
-         (not (eq? (car ls) #\0))
+         (or (null? (cdr ls)) (not (eq? (car ls) #\0))) ;; No leading zeros.
          (for-all char-numeric? ls))))
 
+;; This is very slow... TODO: operate directly on the strings:
 (define isUVar
   (lambda (x)
-    (let ((ls (string->list
-               (symbol->string x))))
-      (let-values (((b a) (split #\. ls)))
-        (Index a)))))
+    (and (symbol? x)
+      ;; TODO: use substring and string->number:
+      (let ((ls (string->list (symbol->string x))))
+	(let ([suffix (memq #\. ls)])
+	  (and suffix
+	       (Index (cdr suffix))))))))
 
 (define isFVar
   (lambda (x)
-    (let ((ls (string->list
-               (symbol->string x))))
-      (match ls
-        ((#\f #\v . ,ind) (Index ind))
-        (,e #f)))))
+    (and (symbol? x)
+      (let ((ls (string->list (symbol->string x))))
+	(match ls
+	  ((#\f #\v . ,ind) (Index ind))
+	  (,e #f))))))
 
 (define isLabel
   (lambda (x)
-    (let ((ls (string->list
-               (symbol->string x))))
-      (let-values (((b a) (split #\$ ls)))
-        (Index a)))))
+    (and (symbol? x)
+      (let ls ((ls (string->list (symbol->string x))))
+	(let suf ([suffix (memq #\$ ls)])
+	  (and suffix
+	       (Index (cdr suffix))))))))
 
 (define relops '(< <= = >= >))
 (define binops '(* - + logand logor sra))
@@ -72,17 +69,22 @@
   (lambda (x)
     (and (memq x binops) #t)))
 
-(define isDisp
-  (lambda (x)
-    (match x
-      ((disp ,[isReg -> reg] ,[isInt64 -> ind])
-       (and reg ind)))))
+;; It looks like Kyle wanted to switch these to sexps and didn't finish:
+; (define isDisp
+;   (lambda (x)
+;     (match x
+;       [(disp ,[isReg -> reg] ,[isInt64 -> ind])
+;        (and reg ind)]
+;       [,_ #f])))
+
+(define isDisp disp-opnd?)
 
 (define isInd
   (lambda (x)
     (match x
-      ((ind ,[isReg -> reg] ,[isReg -> off])
-       (and reg off)))))
+      [(ind ,[isReg -> reg] ,[isReg -> off])
+       (and reg off)]
+      [,_ #f])))
 
 (define isInt64 int64?)
 
