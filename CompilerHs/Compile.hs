@@ -16,6 +16,10 @@ import FrameworkHs.SExpReader.LispData
 import FrameworkHs.ParseL01
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import CompilerHs.VerifyScheme
+import CompilerHs.FinalizeLocations
+import CompilerHs.ExposeBasicBlocks
+import CompilerHs.ExposeFrameVar
+import CompilerHs.FlattenProgram
 import CompilerHs.GenerateX86_64
 
 assemblyCmd :: String
@@ -29,9 +33,37 @@ vfs = P423Pass { pass = verifyScheme
                , trace = False
                }
 
+fnl = P423Pass { pass = finalizeLocations
+               , passName = "finalizeLocations"
+               , wrapperName = "finalize-locations/wrapper"
+               , trace = False
+               }
+
+efv = P423Pass { pass = exposeFrameVar
+               , passName = "exposeFrameVar"
+               , wrapperName = "expose-frame-var/wrapper"
+               , trace = False
+               }
+
+ebb = P423Pass { pass = exposeBasicBlocks
+               , passName = "exposeBasicBlocks"
+               , wrapperName = "expose-basic-blocks/wrapper"
+               , trace = False
+               }
+
+flp = P423Pass { pass = flattenProgram
+               , passName = "flattenProgram"
+               , wrapperName = "flatten-program/wrapper"
+               , trace = False
+               }
+
 p423Compile :: P423Config -> LispVal -> IO String
 p423Compile c l = do
   p <- runPass vfs c p
+  p <- runPass fnl c p
+  p <- runPass efv c p
+  p <- runPass ebb c p
+  p <- runPass flp c p
   assemble $ generateX86_64 c p
   where p = case (parseProg l) of
               Left e -> throw (ASTParseException e)
@@ -45,6 +77,5 @@ assemble out =
   do withFile "t.s" WriteMode (runOut out)
      (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
      case ec of
-       ExitSuccess   -> do res <- readProcess "./t" [] ""
-                           return (chomp res)
-       ExitFailure i -> throw (AssemblyFailedException e)
+       ExitSuccess -> readProcess "./t" [] ""
+       ExitFailure i -> throw $ AssemblyFailedException e
