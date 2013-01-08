@@ -2,6 +2,7 @@
   (export expose-frame-var)
   (import (chezscheme)
           (Framework helpers)
+	  (Framework GenGrammars l37-expose-frame-var)
           (Framework match))
 
 ;;; expose-frame-var traverses the scheme source in the same grammar
@@ -45,9 +46,10 @@
          `(begin ,ef* ... ,tail)]
         [,tail (errorf who "invalid syntax for Tail ~s" tail)])))
   (lambda (program)
-    (match program
+    (verify-grammar:l37-expose-frame-var
+     (match program
       [(letrec ([,label* (lambda () ,[Tail -> tail*])] ...) ,[Tail -> tail])
        `(letrec ([,label* (lambda () ,tail*)] ...) ,tail)]
-      [,program (errorf who "invalid syntax for Program: ~s" program)])))
+      [,program (errorf who "invalid syntax for Program: ~s" program)]))))
   
 )
