@@ -142,8 +142,8 @@
 ;;;   converted to displacement-mode syntax, and index-opnds converted
 ;;;   to index-mode syntax.  used by emit.
 ;;;
-;;;   (emit-label label) emits label on a line by itself, followed
-;;;   by a colon.
+;;;   (emit-label label) emits label, which is a symbol, on a line by
+;;;   itself, followed by a colon.
 ;;;
 ;;;   (emit opcode opnd ...) emits the instruction described by
 ;;;   opcode and opnd ....  The operands are automatically formatted
