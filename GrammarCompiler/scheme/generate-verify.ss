@@ -39,41 +39,44 @@
     (match x
       ((,name . ,sub*)
        (let-values (((s ns) (partition non-terminal? sub*)))
-         (let ((ns (map Sub ns))
-               (s (map Simple s)))
+         (let* ((grouped (group-by-head ns))
+		(s (map Simple s)))
            `(define ,name
               (lambda (x)
-		,(make-match-chain name 'x (append s ns))
-                ; (match x
-                ;   ,s ...
-                ;   ,ns ...
-                ;   (,(uq 'e) (invalid-expr ',name e)))
+                (match x
+                  ,s ...
+                  ,grouped ...
+                  (,(uq 'e) (invalid-expr ',name e)))
 		))))))))
-       ;(let ((sub* (map (if (for-all non-terminal? sub*) Simple Sub) sub*)))
-       ;  `(define ,name
-       ;     (lambda (x)
-       ;       (match x
-       ;         ,sub* ...
-       ;         (,(uq 'e) (invalid-expr ',name e))))))))))
 
 (define Simple
   (lambda (s)
     `(,(uq 'e) (guard (not (,s e))) #f)))
 
-(define (make-match-chain name obj clauses)
-  (match clauses
-    [() `(invalid-expr ',name ,obj)]
-    [(,last) `(let ((next (lambda () (invalid-expr ',name ,obj))))
-		(match ,obj ,last (,(uq 'e) (next))))]
-    [(,fst . ,rst) 
-     `(let ((next (lambda () ,(make-match-chain name obj rst))))
-	(match ,obj
-	  ,fst
-	  (,(uq 'e) (next))))]
-    ))
+;; Grammars for this course are non-ambiguous.  However, the leading
+;; symbol does not uniquely identify a given construct in the grammar.
+;; 
+;; This function groups non-terminals based on their leading symbol.
+(define (group-by-head ls)
+  (match ls 
+    [() '()]
+    [((,sym ,bod* ...) ,rst ...) (guard (symbol? sym))
+     (let-values ([(sibs others) (partition (lambda (x) (and (pair? x) (eq? sym (car x)))) rst)])
+       (let ([this-clause (if (null? sibs)
+			      (SubMatchClause (car ls))
+			      `[(,sym . ,(uq 'bod)) 
+				(and ,(map (lambda (variant)
+					     `(match (cons ',sym bod)
+						,(SubMatchClause variant)
+						[,(uq 'e) (invalid-expr ',sym e)]))
+					(cons (car ls) sibs))
+				     ...)]
+			      )])
+	 (cons this-clause (group-by-head others))))]
+    [,x (errorf 'group-by-head "expected non-terminal to be a list headed by a symbol: ~a" x)]))
 
 ;; Handle each nontrivial pattern for a nonterminal:
-(define (Sub s)
+(define (SubMatchClause s)
   (let-values
         (((s n seen)
           (let loop ((s s) (n 1) (seen '()))
@@ -100,7 +103,7 @@
                    ((eq? a '*)
                     (let-values (((d n seen) (loop d n seen)))
                       (values `(... . ,d) n seen))))))))))
-      `(,s (and (any . ,seen) (next)))
+    `(,s (any . ,seen))
       ))
 
 (define uq
