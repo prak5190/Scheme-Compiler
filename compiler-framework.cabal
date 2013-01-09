@@ -1,0 +1,26 @@
+name:                compiler-framework
+version:             0.1.0.0
+synopsis:            Framework for P523 Programming Language Implementation
+-- description:         
+license:             BSD3
+license-file:        LICENSE
+author:              Ryan Newton, ..., Edward Amsden -- What's the name of the student author?
+maintainer:          Ryan Newton <rrnewton@indiana.edu>
+copyright:           2013 Ryan Newton
+category:            Language
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  exposed-modules:     FrameworkHs.Prims,
+                       FrameworkHs.Helpers,
+                       FrameworkHs.Driver,
+                       FrameworkHs.SExpReader.Parser,
+                       FrameworkHs.SExpReader.LispData
+  other-modules:
+  build-depends:       base       == 4.5.*,
+                       symbol     == 0.1.*,
+                       containers == 0.4.*,
+                       parsec     == 3.1.*,
+                       process    == 1.1.*,
+                       mtl        == 2.1.*
