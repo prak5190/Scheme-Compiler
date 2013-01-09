@@ -1,5 +1,5 @@
 name:                compiler-framework
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Framework for P523 Programming Language Implementation
 -- description:         
 license:             BSD3
@@ -18,9 +18,11 @@ library
                        FrameworkHs.SExpReader.Parser,
                        FrameworkHs.SExpReader.LispData
   other-modules:
-  build-depends:       base       == 4.5.*,
-                       symbol     == 0.1.*,
-                       containers == 0.4.*,
-                       parsec     == 3.1.*,
-                       process    == 1.1.*,
-                       mtl        == 2.1.*
+  build-depends:       base          == 4.5.*,
+                       blaze-builder == 0.3.*,
+                       bytestring    == 0.9.*,
+                       symbol        == 0.1.*,
+                       containers    == 0.4.*,
+                       parsec        == 3.1.*,
+                       process       == 1.1.*,
+                       mtl           == 2.1.*
