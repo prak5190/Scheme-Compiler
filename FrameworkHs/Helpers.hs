@@ -26,7 +26,7 @@ module FrameworkHs.Helpers
              )
   , Option (..)
     
-  -- * An alternative `Show` class for printing to X86 assembly code:
+  -- * Formatting x86_64 literals
   , X86Print, format
   , OpCode
 
@@ -85,6 +85,7 @@ import System.IO
 import FrameworkHs.Prims
 import FrameworkHs.SExpReader.LispData
 
+-- | Metadata for code generation
 data P423Config =
   P423Config
     { framePointerRegister :: Reg
@@ -94,19 +95,26 @@ data P423Config =
     , parameterRegisters :: [Reg]
     }
 
+-- | A compiler pass with metadata
 data P423Pass a b =
   P423Pass
-    { pass :: P423Config -> a -> (Exc b)
-    , passName :: String
-    , wrapperName :: String
-    , trace :: Bool
+    { pass :: P423Config -> a -> (Exc b) -- ^ The implementation of the pass
+    , passName :: String                 -- ^ The canonical name of the pass
+    , wrapperName :: String              -- ^ The name of the "wrapper" for
+                                         --   interpreting the pass's output
+    , trace :: Bool                      -- ^ Debug this pass?
     }
 
+-- | Simple error monad
 type Exc = Either String
+
+-- An error in the Exc error monad
 failure = Left
 
+-- | Optional information
 data Option a = Default | Option a
 
+-- | String splitting
 split :: Char -> String -> (String,String)
 split s [] = ([],[])
 split s (c:cs)
@@ -117,6 +125,7 @@ split s (c:cs)
 ------------------------------------------------------------
 -- Exceptions ----------------------------------------------
 
+-- | Exception types for the compiler
 data P423Exception = AssemblyFailedException String
                    | ASTParseException String
                    | ParseErrorException ParseError
@@ -150,6 +159,7 @@ shortExcDescrip e = case e of
 ------------------------------------------------------------
 -- Emitting ------------------------------------------------
 
+-- | A free monad on a functor
 data Free f r = Free (f (Free f r)) | Pure r
 
 instance (Functor f) => Monad (Free f) where
@@ -161,15 +171,18 @@ data OutF b next
   = Put b next
   | Done
 
+-- | String-emitting action using the free monad
 type Out = Free (OutF String) ()
 
 instance Functor (OutF b) where
   fmap f (Put x next) = Put x (f next)
   fmap f  Done        = Done
 
+-- Lift a functor value into the free monad
 liftF :: (Functor f) => f r -> Free f r
 liftF cmd = Free (fmap Pure cmd)
 
+-- | Printing for the output free monad
 showOut :: (Show a, Show r) => Free (OutF a) r -> String
 showOut (Free (Put a x)) =
   "put " ++ show a ++ "\n" ++ showOut x
@@ -178,16 +191,21 @@ showOut (Free Done) =
 showOut (Pure r) =
   "return " ++ show r ++ "\n"
 
+-- | Add to the output
 output :: b -> Free (OutF b) ()
 output x = liftF $ Put x ()
+
+-- | Terminate the output
 done :: Free (OutF b) ()
 done     = liftF Done
 
+-- | Get the return and built values from a free monad
 runOut :: Free (OutF String) r -> Handle -> IO ()
 runOut (Free (Put s x)) h = hPutStrLn h s >> runOut x h
 runOut (Free  Done    ) h = return ()
 runOut (Pure r)         h = throwIO (userError "runOut: did not call 'done' at the end.")
 
+-- | Transform a Haskell value to an x86_64 assembler literal
 class X86Print a where
   format :: a -> String
 
@@ -211,24 +229,31 @@ instance X86Print Ind where
 
 type OpCode = String
 
+-- | Emit an opcode with no arguments
 emitOp1 :: OpCode -> Out
 emitOp1 op = output ("    " ++ op)
 
+-- | Emit an opcode with one argument
 emitOp2 :: (X86Print a) => OpCode -> a -> Out
 emitOp2 op a = output ("    " ++ op ++ " " ++ format a)
 
+-- | Emit an opcode with two arguments
 emitOp3 :: (X86Print a, X86Print b) => OpCode -> a -> b -> Out
 emitOp3 op a b = output ("    " ++ op ++ " " ++ format a ++ ", " ++ format b)
 
+-- | Emit a label from a the `Label' type
 emitLabelLabel :: Label -> Out
 emitLabelLabel (L name ind) = output ("L" ++ pp ind ++ ":")
 
+-- | Emit a label from a literal
 emitLabel :: (X86Print a) => a -> Out
 emitLabel a = output (format a ++ ":")
 
+-- | Emit an opcode with a label as its operand
 emitJumpLabel :: OpCode -> Label -> Out
 emitJumpLabel op (L name ind) = emitOp2 op ("L" ++ pp ind)
 
+-- | Emit a jump opcode
 emitJump :: (X86Print a) => OpCode -> a -> Out
 emitJump op a = emitOp2 op ("*" ++ (format a))
 
@@ -250,11 +275,20 @@ emitJump op a = emitOp2 op ("*" ++ (format a))
 --emitJump :: (X86Print a) => Handle -> OpCode -> a -> IO ()
 --emitJump = emitOp2
 
-pushq, popq :: (X86Print a) => a -> Out
-movq, leaq :: (X86Print a, X86Print b) => a -> b -> Out
+-- | Emit the pushq opcode
+pushq :: (X86Print a) => a -> Out
 pushq = emitOp2 "pushq"
+
+-- | Emit the popq opcode
+popq :: (X86Print a) => a -> Out
 popq = emitOp2 "popq"
+
+-- | Emit the movq opcode
+movq :: (X86Print a, X86Print b) => a -> b -> Out
 movq = emitOp3 "movq"
+
+-- | Emit the leaq opcode
+leaq :: (X86Print a, X86Print b) => a -> b -> Out
 leaq = emitOp3 "leaq"
 
 --pushq, popq :: (X86Print a) => Handle -> a -> IO ()
@@ -264,6 +298,7 @@ leaq = emitOp3 "leaq"
 --movq h = emitOp3 h "movq"
 --leaq h = emitOp3 h "leaq"
 
+-- | Emit the boilderplate code for entering the scheme runtime
 emitEntry :: P423Config -> Out
 emitEntry c = do
   emitOp2 ".globl" "_scheme_entry"
@@ -292,6 +327,7 @@ emitEntry c = do
 --     movq  h RSI (allocationPointerRegister c)
 --     leaq  h "_scheme_exit(%rip)" (returnAddressRegister c)
 
+-- | Emit the boilerplate code for exiting the scheme runtime
 emitExit :: P423Config -> Out
 emitExit c = do
   emitLabel "_scheme_exit"
@@ -386,6 +422,7 @@ instance PP Reg where
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 
+-- | Parse a number
 parseSuffix :: String -> Exc Integer
 parseSuffix i@('0':rest) =
   if (null rest)
@@ -498,7 +535,10 @@ inBitRange :: Integer -> Integer -> Bool
 inBitRange r i = (((- (2 ^ (r-1))) <= n) && (n <= ((2 ^ (r-1)) - 1)))
   where n = fromIntegral i
 
+-- | Is this a value for a 32 bit integer?
 isInt32 = inBitRange 32
+
+-- | Is this a value for a 64 bit integer?
 isInt64 = inBitRange 64
 
 isUInt6 :: Integer -> Bool
