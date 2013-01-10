@@ -58,8 +58,7 @@ module FrameworkHs.Helpers
   , parseInt64
 
   -- * A simple homemade failure type
-  , Exc, failure
-  , catchExc
+  , Exc, throwExc, passFailure
     
   -- * Misc numeric and string helpers
   , isInt32
@@ -96,14 +95,18 @@ data P423Config =
 
 data P423Pass a b =
   P423Pass
-    { pass :: P423Config -> a -> (Exc b)
+    { pass :: P423Config -> a -> b
     , passName :: String
     , wrapperName :: String
     , trace :: Bool
     }
 
 type Exc = Either String
-failure = Left
+throwExc :: Exc a -> a
+throwExc (Left str) = error str
+throwExc (Right x)  = x
+
+passFailure = throw . PassFailureException ""
 
 data Option a = Default | Option a
 
@@ -133,7 +136,7 @@ instance Show P423Exception where
   show e@(ASTParseException s)          = shortExcDescrip e ++ ": " ++ s
   show e@(NoValidTestsException)        = shortExcDescrip e
   show e@(NoInvalidTestsException)      = shortExcDescrip e
-  show e@(PassFailureException p e')       = shortExcDescrip e ++ ": " ++ e'
+  show e@(PassFailureException p e')    = shortExcDescrip e ++ ": " ++ e'
   show e@(WrapperFailureException w e') = shortExcDescrip e ++ ": " ++ e'
 
 shortExcDescrip :: P423Exception -> String
@@ -386,19 +389,21 @@ instance PP Reg where
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 
+parseFailure = Left
+
 parseSuffix :: String -> Exc Integer
 parseSuffix i@('0':rest) =
   if (null rest)
      then return 0
-     else failure ("Leading zero in index: " ++ i)
+     else parseFailure ("Leading zero in index: " ++ i)
 parseSuffix i =
   if (and $ map isDigit i)
      then return $ read i
-     else failure ("Not a number: " ++ i)
+     else parseFailure ("Not a number: " ++ i)
 
 parseListWithFinal :: (LispVal -> Exc a) -> (LispVal -> Exc b) ->
                         [LispVal] -> Exc ([a],b)
-parseListWithFinal fa fb [] = failure ("List must have at least one element")
+parseListWithFinal fa fb [] = parseFailure ("List must have at least one element")
 parseListWithFinal fa fb [b] =
   do b <- fb b
      return ([],b)
@@ -409,21 +414,21 @@ parseListWithFinal fa fb (a:asb) =
 
 parseUVar :: LispVal -> Exc UVar
 parseUVar (Symbol s) = case (split '.' s) of
-  (_,"")      -> failure ("No index: " ++ s)
+  (_,"")      -> parseFailure ("No index: " ++ s)
   (name,ind)  -> do ind <- parseSuffix ind; return (UV name ind)
-parseUVar e = failure ("Not a symbol: " ++ show e)
+parseUVar e = parseFailure ("Not a symbol: " ++ show e)
 
 parseFVar :: LispVal -> Exc FVar
 parseFVar (Symbol s) = case s of
   ('f':'v':ind) -> do ind <- parseSuffix ind; return (FV ind)
-  _             -> failure ("Not a framevar: " ++ s)
-parseFVar e = failure ("Not a symbol: " ++ show e)
+  _             -> parseFailure ("Not a framevar: " ++ s)
+parseFVar e = parseFailure ("Not a symbol: " ++ show e)
 
 parseLabel :: LispVal -> Exc Label
 parseLabel (Symbol s) = case (split '$' s) of
-  (_,"")     -> failure ("No index: " ++ s)
+  (_,"")     -> parseFailure ("No index: " ++ s)
   (name,ind) -> do ind <- parseSuffix ind; return (L name ind)
-parseLabel e = failure ("Not a symbol: " ++ show e)
+parseLabel e = parseFailure ("Not a symbol: " ++ show e)
 
 -- parseLabel :: LispVal -> Exc Label
 -- parseLabel (Symbol s) = case (split '$' s) of
@@ -438,8 +443,8 @@ parseRelop (Symbol s) = case s of
   "="  -> return EQ
   ">=" -> return GTE
   ">"  -> return GT
-  e    -> failure ("Not a relop: " ++ e)
-parseRelop e = failure ("Not a symbol: " ++ show e)
+  e    -> parseFailure ("Not a relop: " ++ e)
+parseRelop e = parseFailure ("Not a symbol: " ++ show e)
 
 parseBinop :: LispVal -> Exc Binop
 parseBinop (Symbol s) = case s of
@@ -449,8 +454,8 @@ parseBinop (Symbol s) = case s of
   "*"      -> return MUL
   "+"      -> return ADD
   "-"      -> return SUB
-  e        -> failure ("Not a binop: " ++ e)
-parseBinop e = failure ("Not a symbol: " ++ show e)
+  e        -> parseFailure ("Not a binop: " ++ e)
+parseBinop e = parseFailure ("Not a symbol: " ++ show e)
 
 parseReg :: LispVal -> Exc Reg
 parseReg (Symbol s) = case s of
@@ -469,30 +474,25 @@ parseReg (Symbol s) = case s of
   "r13" -> return R13
   "r14" -> return R14
   "r15" -> return R15
-  e     -> failure ("Not a register: " ++ e)
-parseReg e = failure ("Not a symbol: " ++ show e)
+  e     -> parseFailure ("Not a register: " ++ e)
+parseReg e = parseFailure ("Not a symbol: " ++ show e)
 
 parseInt32 :: LispVal -> Exc Integer
 parseInt32 (IntNumber i) = if isInt32 n
                               then return n
-                              else failure ("Out of range: " ++ show i)
+                              else parseFailure ("Out of range: " ++ show i)
   where n = fromIntegral i
-parseInt32 e = failure ("Not an int: " ++ show e)
+parseInt32 e = parseFailure ("Not an int: " ++ show e)
 
 parseInt64 :: LispVal -> Exc Integer
 parseInt64 (IntNumber i) = if isInt64 n
                               then return (fromIntegral n)
-                              else failure ("Out of range: " ++ show i)
+                              else parseFailure ("Out of range: " ++ show i)
   where n = fromIntegral i
-parseInt64 e = failure ("Not an int: " ++ show e)
+parseInt64 e = parseFailure ("Not an int: " ++ show e)
 
 ------------------------------------------------------------
 -- Parse Helpers -------------------------------------------
-
-catchExc :: Exc a -> Exc a -> Exc a
-catchExc m1 m2 = case m1 of
-  Left e -> m2
-  Right a  -> m1
 
 inBitRange :: Integer -> Integer -> Bool
 inBitRange r i = (((- (2 ^ (r-1))) <= n) && (n <= ((2 ^ (r-1)) - 1)))
