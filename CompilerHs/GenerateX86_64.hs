@@ -4,15 +4,14 @@ import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.Helpers
 import FrameworkHs.Prims
 
-generateX86_64 :: P423Config -> Prog -> Out
-generateX86_64 c (Begin ls s) =
-  do emitEntry c
+generateX86_64 :: Prog -> Gen
+generateX86_64 (Begin ls s) =
+  do emitEntry 
      mapM statement ls
      statement s
-     emitExit c
-     done
+     emitExit 
 
-statement :: Statement -> Out
+statement :: Statement -> Gen
 statement s = case s of
   Set1 (Reg r) i             -> movq i r
   Set2 (Reg r1) (Reg r2)     -> movq r2 r1

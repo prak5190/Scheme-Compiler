@@ -5,13 +5,13 @@ import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
-verifyScheme :: P423Config -> Prog -> Exc Prog
-verifyScheme c p@(Begin ls s) =
+verifyScheme :: P423Config -> Prog -> Prog
+verifyScheme c p@(Begin ls s) = runPassM c $ 
   do mapM statement ls
      statement s
      return p
 
-statement :: Statement -> Exc ()
+statement :: Statement -> PassM ()
 statement s = case s of
   Set1 _v i        -> assert (isInt64 i) ("Out of 64-bit range: " ++ show i)
   Set3 v1 b v2 _i  -> do assert (v1 == v2) (varMatchError v1 v2 s)
@@ -20,10 +20,10 @@ statement s = case s of
                          binop b
   _                -> return ()
 
-binop :: Binop -> Exc ()
+binop :: Binop -> PassM ()
 binop b = assert (elem b [ADD,MUL,SUB]) ("Anachronistic Binop: " ++ show b)
 
-assert :: Bool -> String -> Exc ()
+assert :: Bool -> String -> PassM ()
 assert False msg = failure msg
 assert True _ = return ()
 
