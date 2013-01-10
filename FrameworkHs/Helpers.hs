@@ -32,7 +32,7 @@ module FrameworkHs.Helpers
   , OpCode
 
   -- * Emitting text to a handle
-  , GenM, gen, genLn, genJustLn
+  , GenM, Gen, gen, genLn, genJustLn
   , hPutGenM, runGenM, showGen
   , emitOp1, emitOp2, emitOp3
   , emitLabelLabel
@@ -249,6 +249,7 @@ emitOp3 :: (X86Print a, X86Print b) => OpCode -> a -> b -> Gen
 emitOp3 op a b = do
   gen "    "
   gen op
+  gen " "
   gen a
   gen ", "
   genLn b
