@@ -26,7 +26,7 @@ type WrapperName = String
 
 type PassName = String
 
-runWrapper :: PP a => WrapperName -> a -> IO (Exc LispVal)
+runWrapper :: PP a => WrapperName -> a -> IO LispVal
 runWrapper wrapper code =
   do (i,o,e,pid) <- runInteractiveCommand scheme
      loadFramework i
@@ -38,10 +38,10 @@ runWrapper wrapper code =
                  terminateProcess pid
                  return $
                    (case (readExpr oOut) of
-                     Left e -> Left $ show e
-                     Right code -> Right code))
+                     Left er   -> error $ show er
+                     Right cde -> cde))
         else (do terminateProcess pid
-                 return $ Left eOut)
+                 error eOut)
   where app :: String -> String -> String
         app rator rand = "(" ++ rator ++ " " ++ rand ++ ")"
         quote :: PP a => a -> String
@@ -49,13 +49,10 @@ runWrapper wrapper code =
 
 runPass :: PP b => P423Pass a b -> P423Config -> a -> IO b
 runPass p conf code =
-  case ((pass p) conf code) of
-    Left e      -> throw $ PassFailureException pn e
-    Right code' -> do res <- runWrapper wn code'
-                      when (trace p) (printTrace (passName p) code')
-                      case res of
-                        Left e  -> throw $ WrapperFailureException wn e
-                        Right _ -> return code'
+    do let code' = pass p conf code
+       _res <- runWrapper wn code'
+       when (trace p) (printTrace (passName p) code')
+       return code'
   where pn = passName p
         wn = wrapperName p
         printTrace :: PP a => String -> a -> IO ()
