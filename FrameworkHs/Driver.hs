@@ -7,7 +7,13 @@ module FrameworkHs.Driver
 import System.Process
 import System.IO
 import Control.Monad (when)
+import Control.Monad.Reader (runReaderT)
 import Control.Exception (throw)
+import Blaze.ByteString.Builder
+import Blaze.ByteString.Builder.Char8
+import Data.ByteString (ByteString, hPut)
+import Data.ByteString.Char8 (unpack)
+import Data.Monoid (mconcat)
 import FrameworkHs.SExpReader.Parser
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
@@ -30,7 +36,7 @@ runWrapper :: PP a => WrapperName -> a -> IO LispVal
 runWrapper wrapper code =
   do (i,o,e,pid) <- runInteractiveCommand scheme
      loadFramework i
-     hPutStrLn i $ app wrapper $ quote code
+     hPut i $ toByteString $ app (fromString wrapper) $ quote code
      hClose i
      eOut <- hGetContents e
      if (eOut == "")
@@ -42,10 +48,10 @@ runWrapper wrapper code =
                      Right cde -> cde))
         else (do terminateProcess pid
                  error eOut)
-  where app :: String -> String -> String
-        app rator rand = "(" ++ rator ++ " " ++ rand ++ ")"
-        quote :: PP a => a -> String
-        quote e = app "quote" $ pp e
+  where app :: Builder -> Builder -> Builder
+        app rator rand = mconcat [fromString "(", rator, fromString " ", rand, fromString ")"]
+        quote :: PP a => a -> Builder
+        quote e = app (fromString "quote") $ pp e
 
 runPass :: PP b => P423Pass a b -> P423Config -> a -> IO b
 runPass p conf code =
@@ -53,7 +59,8 @@ runPass p conf code =
        _res <- runWrapper wn code'
        when (trace p) (printTrace (passName p) code')
        return code'
+
   where pn = passName p
         wn = wrapperName p
         printTrace :: PP a => String -> a -> IO ()
-        printTrace name code = putStrLn ("\n" ++ name ++ ": \n" ++ pp code ++ "\n")
+        printTrace name code = putStrLn ("\n" ++ name ++ ": \n" ++ (unpack $ toByteString $ pp code) ++ "\n")
