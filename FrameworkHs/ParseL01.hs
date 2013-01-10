@@ -6,6 +6,8 @@ import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
+failure = Left
+
 parseProg :: LispVal -> Exc Prog
 parseProg (List ((Symbol "begin"): ls)) =
   do (ss,s) <- parseListWithFinal parseStatement parseStatement ls
