@@ -10,7 +10,8 @@
 (define imports
   (lambda ()
     '("FrameworkHs.Prims"
-      "FrameworkHs.Helpers")))
+      "FrameworkHs.Helpers"
+      "Blaze.ByteString.Builder (fromByteString)")))
 
 (define derives
   (lambda ()
@@ -48,6 +49,7 @@
         ((null? ls) (newline))
         (else
           (begin
+            (printf "{-# LANGUAGE OverloadedStrings #-}\n")
             (printf "{-# LANGUAGE ")
             (printf (car ls))
             (let loop ((ls (cdr ls)))
@@ -172,7 +174,7 @@
        (format "(ppSexp ~a)" p))
       ((list . ,[List -> l])
        (format "[~a]" l))
-      ((string ,s) (format "\"~a\"" s))
+      ((string ,s) (format "fromByteString \"~a\"" s))
       ((map ,fn ,v)
        (format "(map ~a ~a)" (Func fn) v))
       ((cons ,[a] ,[d])

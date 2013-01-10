@@ -9,7 +9,7 @@ module FrameworkHs.Helpers
                , returnValueRegister
                , parameterRegisters
                )
-  , PassM, getConfig, failure
+  , PassM, getConfig, failure, runPassM
   , P423Exception ( AssemblyFailedException
                   , ParseErrorException
                   , ASTParseException
