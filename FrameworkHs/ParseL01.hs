@@ -5,8 +5,8 @@ import Control.Applicative ((<$>))
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
-import FrameworkHs.Helpers (parseListWithFinal, parseInt32, parseInt64,
-                            parseBinop, parseReg, parseParseFailureM, PassM, orPassM)
+import FrameworkHs.Helpers (parseListWithFinal, parseLabel, parseFVar, parseInt64,
+                            parseBinop, parseReg, parseFailureM, PassM, orPassM)
 
 parseProg :: LispVal -> PassM Prog
 parseProg (List [(Symbol "letrec"),List bs,t]) =
