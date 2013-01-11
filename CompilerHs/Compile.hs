@@ -13,10 +13,12 @@ import FrameworkHs.Prims
 import FrameworkHs.Helpers
 import FrameworkHs.SExpReader.LispData
 
-import FrameworkHs.ParseL01
+import FrameworkHs.ParseL01                    (parseProg)
 import FrameworkHs.GenGrammars.L01VerifyScheme
-import CompilerHs.VerifyScheme
-import CompilerHs.GenerateX86_64
+import CompilerHs.VerifyScheme                 (verifyScheme)
+import CompilerHs.GenerateX86_64               (generateX86_64)
+
+import qualified Data.ByteString as B
 
 assemblyCmd :: String
 assemblyCmd = "cc"
@@ -31,20 +33,21 @@ vfs = P423Pass { pass = verifyScheme
 
 p423Compile :: P423Config -> LispVal -> IO String
 p423Compile c l = do
-  p <- runPass vfs c p
-  assemble $ generateX86_64 c p
-  where p = case (parseProg l) of
-              Left e -> throw (ASTParseException e)
-              Right x -> x
+  let p1 = runPassM c $ parseProg l
+  p <- runPass vfs c p1
+  assemble c $ generateX86_64 p
 
 ------------------------------------------------------------
 -- Helpers -------------------------------------------------
 
-assemble :: Out -> IO String
-assemble out =
-  do withFile "t.s" WriteMode (runOut out)
-     (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
-     case ec of
-       ExitSuccess   -> do res <- readProcess "./t" [] ""
-                           return (chomp res)
-       ExitFailure i -> throw (AssemblyFailedException e)
+assemble :: P423Config -> Gen -> IO String
+assemble c out =
+  case runGenM c out of
+    Left err -> error err
+    Right (_,bsout) -> do  
+      B.writeFile "t.s" bsout
+      (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
+      case ec of
+        ExitSuccess   -> do res <- readProcess "./t" [] ""
+                            return (chomp res)
+        ExitFailure i -> throw (AssemblyFailedException e)
