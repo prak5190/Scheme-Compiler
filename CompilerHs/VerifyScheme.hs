@@ -24,7 +24,7 @@ binop :: Binop -> PassM ()
 binop b = assert (elem b [ADD,MUL,SUB]) ("Anachronistic Binop: " ++ show b)
 
 assert :: Bool -> String -> PassM ()
-assert False msg = failure msg
+assert False msg = passFailure msg
 assert True _ = return ()
 
 varMatchError :: Var -> Var -> Statement -> String
