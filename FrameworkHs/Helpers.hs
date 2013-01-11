@@ -128,13 +128,13 @@ runPassM conf m =
     Right x  -> x 
 
 -- | Throwing an error inside a compiler pass.
-passFailureM :: String -> PassM a
-passFailureM = lift . Left 
+passFailureM :: String -> String -> PassM a
+passFailureM who e = lift $ Left (who ++ ": " ++ e)
 -- passFailureM = return . Left . PassFailureException ""
 
 -- | Throwing an error, non-monadic version.
-passFailure :: String -> a
-passFailure = throw . PassFailureException ""
+passFailure :: String -> String -> a
+passFailure who e = throw $ PassFailureException who e
 
 
 -- | Optional information
@@ -166,7 +166,8 @@ instance Show P423Exception where
   show e@(ASTParseException s)          = shortExcDescrip e ++ ": " ++ s
   show e@(NoValidTestsException)        = shortExcDescrip e
   show e@(NoInvalidTestsException)      = shortExcDescrip e
-  show e@(PassFailureException p e')    = shortExcDescrip e ++ ": " ++ e'
+--  show e@(PassFailureException p e')    = shortExcDescrip e ++ ": " ++ e'
+  show e@(PassFailureException p e')    = shortExcDescrip e 
   show e@(WrapperFailureException w e') = shortExcDescrip e ++ ": " ++ e'
 
 shortExcDescrip :: P423Exception -> String
@@ -176,7 +177,7 @@ shortExcDescrip e = case e of
   (ASTParseException s)         -> "AST parse failure"
   (NoValidTestsException)       -> "Couldn't find valid tests"
   (NoInvalidTestsException)     -> "Couldn't find invalid tests"
-  (PassFailureException p e)    -> "Pass failure (" ++ e ++ ")"
+  (PassFailureException p e)    -> "Pass failure, " ++ p ++ ": " ++ e
   (WrapperFailureException w e) -> "Wrapper failure (" ++ w ++ ")"
 
 
