@@ -11,7 +11,7 @@ module FrameworkHs.Testing
   , valid, invalid
   ) where
 
-import Control.Exception
+import Control.Exception (SomeException, handle, catchJust, throw)
 import Text.Printf
 
 import FrameworkHs.SExpReader.Parser
@@ -50,8 +50,8 @@ catchTestFailures :: P423Exception -> Maybe P423Exception
 catchTestFailures e = case e of
   (AssemblyFailedException _)   -> yes
   (ASTParseException _)         -> yes
-  (ParseErrorException _)      -> no
-  (NoValidTestsException)       ->  no
+  (ParseErrorException _)       -> no
+  (NoValidTestsException)       -> no
   (NoInvalidTestsException)     -> no
   (PassFailureException _ _)    -> yes
   (WrapperFailureException _ _) -> yes
@@ -111,7 +111,11 @@ runSet name c ts =
                                    as <- mapIndexed (i+1) f ts
                                    return (a:as)
         wrapTest :: (LispVal -> IO String) -> Int -> LispVal -> IO TestResult
-        wrapTest c i l = catchJust catchTestFailures
+        wrapTest c i l =
+            handle (\ e -> do let str = show (e :: SomeException)
+                              printf "%4d    Fail    Error: %s\n" i str
+                              return$ Fail (PassFailureException "" str)) $ 
+                 catchJust catchTestFailures
                            (do res <- c l
                                printf "%4d    Pass\n" i
                                return $ Pass res)

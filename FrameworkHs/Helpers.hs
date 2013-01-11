@@ -9,7 +9,7 @@ module FrameworkHs.Helpers
                , returnValueRegister
                , parameterRegisters
                )
-  , PassM, getConfig, failure, runPassM
+  , PassM, getConfig, runPassM
   , P423Exception ( AssemblyFailedException
                   , ParseErrorException
                   , ASTParseException
@@ -19,6 +19,9 @@ module FrameworkHs.Helpers
                   , WrapperFailureException
                   )
   , shortExcDescrip
+  , passFailure,  passFailureM
+--  , parseFailure
+  , parseFailureM
   , P423Pass ( P423Pass
              , pass
              , passName
@@ -106,10 +109,6 @@ type PassM = ReaderT P423Config (Either String)
 getConfig :: (MonadReader P423Config m) => m P423Config
 getConfig = ask
 
--- | Throwing an error
-failure :: (MonadError String m) => String -> m a
-failure = throwError
-
 -- | A compiler pass with metadata
 data P423Pass a b =
   P423Pass
@@ -128,7 +127,15 @@ runPassM conf m =
     Left str -> error str
     Right x  -> x 
 
+-- | Throwing an error inside a compiler pass.
+passFailureM :: String -> PassM a
+passFailureM = lift . Left 
+-- passFailureM = return . Left . PassFailureException ""
+
+-- | Throwing an error, non-monadic version.
+passFailure :: String -> a
 passFailure = throw . PassFailureException ""
+
 
 -- | Optional information
 data Option a = Default | Option a
@@ -169,7 +176,7 @@ shortExcDescrip e = case e of
   (ASTParseException s)         -> "AST parse failure"
   (NoValidTestsException)       -> "Couldn't find valid tests"
   (NoInvalidTestsException)     -> "Couldn't find invalid tests"
-  (PassFailureException p e)    -> "Pass failure (" ++ p ++ ")"
+  (PassFailureException p e)    -> "Pass failure (" ++ e ++ ")"
   (WrapperFailureException w e) -> "Wrapper failure (" ++ w ++ ")"
 
 
@@ -460,22 +467,30 @@ instance PP Reg where
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 
-parseFailure = passFailure
+-- | Throwing an error inside the "parser".
+parseFailureM :: String -> PassM a
+parseFailureM = lift . Left 
+-- parseFailureM = return . Left . ParseErrorException
+
+-- | Throwing an error inside the parser, non-monadic version.
+-- parseFailure :: String -> a
+-- parseFailure = throw . ParseErrorException
+
 
 -- | Parse a number
 parseSuffix :: String -> PassM Integer
 parseSuffix i@('0':rest) =
   if (null rest)
      then return 0
-     else parseFailure ("Leading zero in index: " ++ i)
+     else parseFailureM ("Leading zero in index: " ++ i)
 parseSuffix i =
   if (and $ map isDigit i)
      then return $ read i
-     else parseFailure ("Not a number: " ++ i)
+     else parseFailureM ("Not a number: " ++ i)
 
 parseListWithFinal :: (LispVal -> PassM a) -> (LispVal -> PassM b) ->
                         [LispVal] -> PassM ([a],b)
-parseListWithFinal fa fb [] = failure ("List must have at least one element")
+parseListWithFinal fa fb [] = parseFailureM ("List must have at least one element")
 parseListWithFinal fa fb [b] =
   do b <- fb b
      return ([],b)
@@ -486,21 +501,21 @@ parseListWithFinal fa fb (a:asb) =
 
 parseUVar :: LispVal -> PassM UVar
 parseUVar (Symbol s) = case (split '.' s) of
-  (_,"")      -> parseFailure ("No index: " ++ s)
+  (_,"")      -> parseFailureM ("No index: " ++ s)
   (name,ind)  -> do ind <- parseSuffix ind; return (UV name ind)
-parseUVar e = parseFailure ("Not a symbol: " ++ show e)
+parseUVar e = parseFailureM ("Not a symbol: " ++ show e)
 
 parseFVar :: LispVal -> PassM FVar
 parseFVar (Symbol s) = case s of
   ('f':'v':ind) -> do ind <- parseSuffix ind; return (FV ind)
-  _             -> parseFailure ("Not a framevar: " ++ s)
-parseFVar e = parseFailure ("Not a symbol: " ++ show e)
+  _             -> parseFailureM ("Not a framevar: " ++ s)
+parseFVar e = parseFailureM ("Not a symbol: " ++ show e)
 
 parseLabel :: LispVal -> PassM Label
 parseLabel (Symbol s) = case (split '$' s) of
-  (_,"")     -> parseFailure ("No index: " ++ s)
+  (_,"")     -> parseFailureM ("No index: " ++ s)
   (name,ind) -> do ind <- parseSuffix ind; return (L name ind)
-parseLabel e = parseFailure ("Not a symbol: " ++ show e)
+parseLabel e = parseFailureM ("Not a symbol: " ++ show e)
 
 -- parseLabel :: LispVal -> Exc Label
 -- parseLabel (Symbol s) = case (split '$' s) of
@@ -515,8 +530,8 @@ parseRelop (Symbol s) = case s of
   "="  -> return EQ
   ">=" -> return GTE
   ">"  -> return GT
-  e    -> parseFailure ("Not a relop: " ++ e)
-parseRelop e = parseFailure ("Not a symbol: " ++ show e)
+  e    -> parseFailureM ("Not a relop: " ++ e)
+parseRelop e = parseFailureM ("Not a symbol: " ++ show e)
 
 parseBinop :: LispVal -> PassM Binop
 parseBinop (Symbol s) = case s of
@@ -526,8 +541,8 @@ parseBinop (Symbol s) = case s of
   "*"      -> return MUL
   "+"      -> return ADD
   "-"      -> return SUB
-  e        -> parseFailure ("Not a binop: " ++ e)
-parseBinop e = parseFailure ("Not a symbol: " ++ show e)
+  e        -> parseFailureM ("Not a binop: " ++ e)
+parseBinop e = parseFailureM ("Not a symbol: " ++ show e)
 
 parseReg :: LispVal -> PassM Reg
 parseReg (Symbol s) = case s of
@@ -546,22 +561,22 @@ parseReg (Symbol s) = case s of
   "r13" -> return R13
   "r14" -> return R14
   "r15" -> return R15
-  e     -> parseFailure ("Not a register: " ++ e)
-parseReg e = parseFailure ("Not a symbol: " ++ show e)
+  e     -> parseFailureM ("Not a register: " ++ e)
+parseReg e = parseFailureM ("Not a symbol: " ++ show e)
 
 parseInt32 :: LispVal -> PassM Integer
 parseInt32 (IntNumber i) = if isInt32 n
                               then return n
-                              else parseFailure ("Out of range: " ++ show i)
+                              else parseFailureM ("Out of range: " ++ show i)
   where n = fromIntegral i
-parseInt32 e = parseFailure ("Not an int: " ++ show e)
+parseInt32 e = parseFailureM ("Not an int: " ++ show e)
 
 parseInt64 :: LispVal -> PassM Integer
 parseInt64 (IntNumber i) = if isInt64 n
                               then return (fromIntegral n)
-                              else parseFailure ("Out of range: " ++ show i)
+                              else parseFailureM ("Out of range: " ++ show i)
   where n = fromIntegral i
-parseInt64 e = parseFailure ("Not an int: " ++ show e)
+parseInt64 e = parseFailureM ("Not an int: " ++ show e)
 
 ------------------------------------------------------------
 -- Parse Helpers -------------------------------------------
