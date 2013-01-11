@@ -17,8 +17,9 @@ import FrameworkHs.ParseL01                    (parseProg)
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import CompilerHs.VerifyScheme                 (verifyScheme)
 import CompilerHs.GenerateX86_64               (generateX86_64)
-import CompilerHs.FlattenProgram
-import CompilerHs.GenerateX86_64
+import CompilerHs.FlattenProgram               (flattenProgram)
+import CompilerHs.ExposeFrameVar               (exposeFrameVar)
+import CompilerHs.GenerateX86_64               (generateX86_64)
 
 import qualified Data.ByteString as B
 

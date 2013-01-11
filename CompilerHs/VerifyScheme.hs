@@ -5,8 +5,8 @@ import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
-verifyScheme :: P423Config -> Prog -> Exc Prog
-verifyScheme c p@(Letrec ls t) =
+verifyScheme :: P423Config -> Prog -> Prog
+verifyScheme c p@(Letrec ls t) = runPassM c $ 
   do labelSuffixesDistinct (map index ll)
      mapM_ (vTail ll) tt
      vTail ll t
@@ -14,17 +14,16 @@ verifyScheme c p@(Letrec ls t) =
   where (ll,tt) = unzip ls
         index (L name ind) = ind
 
-
-vTail :: [Label] -> Tail -> Exc ()
+vTail :: [Label] -> Tail -> PassM ()
 vTail ll (App t) =
   case t of
-    (Integer i) -> failure ("Violates machine constraints: " ++ pp t)
+    (Integer i) -> passFailure "VerifyScheme" ("Violates machine constraints: " ++ show t)
     _       -> vTriv ll t
 vTail ll (Begin es t) =
   do mapM_ (vEffect ll) es
      vTail ll t
 
-vEffect :: [Label] -> Effect -> Exc ()
+vEffect :: [Label] -> Effect -> PassM ()
 vEffect ll e@(Set1 v t) =
   do assert (setConstraints v t) $ setError e
      vTriv ll t
@@ -50,19 +49,19 @@ opSetConstraints v b t = case b of
 setError :: Effect -> String
 setError e = "Expression violates machine constraints: (" ++ show e ++ ")"
 
---labelSuffixesDistinct :: [Label] -> Exc ()
+--labelSuffixesDistinct :: [Label] -> PassM ()
 labelSuffixesDistinct [] = return ()
 labelSuffixesDistinct (i:is) =
   if i `elem` is
-     then failure ("Duplicate label suffix: " ++ show i)
+     then passFailure "VerifyScheme" ("Duplicate label suffix: " ++ show i)
      else labelSuffixesDistinct is
 
-vTriv :: [Label] -> Triv -> Exc ()
+vTriv :: [Label] -> Triv -> PassM ()
 vTriv ll t = case t of
   (Label l) -> assert (l `elem` ll) ("Unbound label: " ++ show l)
   _         -> return ()
 
--- statement :: Statement -> Exc ()
+-- statement :: Statement -> PassM ()
 -- statement s = case s of
 --   Set1 _v i        -> assert (isInt64 i) ("Out of 64-bit range: " ++ show i)
 --   Set3 v1 b v2 _i  -> do assert (v1 == v2) (varMatchError v1 v2 s)
@@ -71,11 +70,11 @@ vTriv ll t = case t of
 --                          binop b
 --   _                -> return ()
 
--- binop :: Binop -> Exc ()
+-- binop :: Binop -> PassM ()
 -- binop b = assert (elem b [ADD,MUL,SUB]) ("Anachronistic Binop: " ++ show b)
 
-assert :: Bool -> String -> Exc ()
-assert False msg = failure msg
+assert :: Bool -> String -> PassM ()
+assert False msg = passFailure "VerifyScheme" msg
 assert True _ = return ()
 
 varMatchError :: Effect -> String

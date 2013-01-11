@@ -5,22 +5,21 @@ import FrameworkHs.GenGrammars.L41FlattenProgram
 import FrameworkHs.Helpers
 import FrameworkHs.Prims
 
-generateX86_64 :: P423Config -> Prog -> Out
-generateX86_64 c (Code ls s) =
-  do emitEntry c
+generateX86_64 :: Prog -> Gen
+generateX86_64 (Code ls s) =
+  do emitEntry
      mapM statement ls
      statement s
-     emitExit c
-     done
+     emitExit 
 
-statement :: Statement -> Out
+statement :: Statement -> Gen
 statement s = case s of
   Set1 v t       -> set v t
   Set2 _ b t1 t2 -> emitOp3 (binop b) (format t2) (format t1)
   Jump t         -> jump t
   LabelS l       -> emitLabelLabel l
 
-set :: Var -> Triv -> Out
+set :: Var -> Triv -> Gen
 set v t = case t of
   Var _v     -> mov
   Integer _i -> mov
@@ -28,7 +27,7 @@ set v t = case t of
   where
     mov = movq (format t) (format v)
 
-jump :: Triv -> Out
+jump :: Triv -> Gen
 jump t = case t of
   Var v     -> jmp (format v)
   Integer i -> jmp (format i)
