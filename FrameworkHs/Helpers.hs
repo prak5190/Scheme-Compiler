@@ -9,7 +9,7 @@ module FrameworkHs.Helpers
                , returnValueRegister
                , parameterRegisters
                )
-  , PassM, getConfig, runPassM
+  , PassM, getConfig, runPassM, orPassM
   , P423Exception ( AssemblyFailedException
                   , ParseErrorException
                   , ASTParseException
@@ -125,8 +125,16 @@ runPassM :: P423Config -> PassM a -> a
 runPassM conf m =
   case runReaderT m conf of
     Left str -> error str
-    Right x  -> x 
+    Right x  -> x
 
+-- | Backtracking.  If the first action throws an exception, try the second.
+orPassM :: PassM a -> PassM a -> PassM a
+orPassM m1 m2 = do
+  cfg <- getConfig
+  case runReaderT m1 cfg of
+    Left _  -> m2
+    Right x -> return x
+  
 -- | Throwing an error inside a compiler pass.
 passFailureM :: String -> String -> PassM a
 passFailureM who e = lift $ Left (who ++ ": " ++ e)
