@@ -11,7 +11,7 @@
 
 #-- Variables --#
 SC=petite
-HS=ghc-7.4.2
+HS=ghc
 
 # HS_FLAGS=-v0
 HS_FLAGS=
