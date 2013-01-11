@@ -4,17 +4,14 @@ module FrameworkHs.ParseL01 where
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
-import FrameworkHs.Helpers (parseListWithFinal, parseInt32, parseInt64, parseBinop, parseReg, failure, PassM)
-
--- TODO: Make this more specific:
-parsefail = failure
+import FrameworkHs.Helpers (parseListWithFinal, parseInt32, parseInt64, parseBinop, parseReg, parseFailureM, PassM)
 
 -- | Convert an unstructure `LispVal` into a proper AST, or return an error string if impossible.
 parseProg :: LispVal -> PassM Prog
 parseProg (List ((Symbol "begin"): ls)) =
   do (ss,s) <- parseListWithFinal parseStatement parseStatement ls
      return (Begin ss s)
-parseProg e = parsefail ("Invalid Prog: " ++ show e)
+parseProg e = parseFailureM ("Invalid Prog: " ++ show e)
 
 parseStatement :: LispVal -> PassM Statement
 parseStatement (List [(Symbol "set!"),v1,rhs]) =
@@ -31,7 +28,7 @@ parseStatement (List [(Symbol "set!"),v1,rhs]) =
                                                return (Set3 v1 b v2 i)
                              Symbol _    -> do v3 <- parseVar x
                                                return (Set4 v1 b v2 v3)
-parseStatement e = parsefail ("Invalid Statement: " ++ show e)
+parseStatement e = parseFailureM ("Invalid Statement: " ++ show e)
 
 parseVar :: LispVal -> PassM Var
 parseVar v =
