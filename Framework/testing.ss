@@ -261,15 +261,15 @@
       (begin
         ;; Process the valid tests
         (test-suite vt)
-        (printf "<test-group name=\"valid-tests\">")
+        (printf "<test-group name=\"valid-tests\">\n")
         (for-each (test-one-xml compiler runner) (test-suite))
-        (printf "</test-group>")
+        (printf "</test-group>\n")
 
         ;; Process the invalid tests
         (test-suite it)
-        (printf "</test-group><test-group name=\"invalid-tests\">")
+        (printf "</test-group><test-group name=\"invalid-tests\">\n")
         (for-each (test-one-xml compiler runner) (test-suite))
-        (printf "</test-group>")
+        (printf "</test-group>\n")
 
         ;; Finish up
         (test-suite (append vt it))
