@@ -273,6 +273,12 @@
 
         ;; Finish up
         (test-suite (append vt it))
+
+        ;; send and ending character so the autograder knows we are done. 
+        ;; this is necessary because the scheme repl continues after the run
+        ;; completes, therefore the subprocess from the autograder will hang
+        ;; waiting for completion
+        (printf "<EOF/>")
         ))))
 
 
