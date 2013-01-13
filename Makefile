@@ -54,7 +54,8 @@ haskell-interactive : grammars
 test: 
 	$(MAKE) clean
 	$(MAKE) grammars
-	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
+	#CSZ: why doesn't this just call the scheme command?
+	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | $(SC)
 	$(MAKE) haskell
 
 clean :
