@@ -337,7 +337,7 @@
 ;;    <test-result name="test-name" result="pass/fail" expected="pass/fail" />
 ;;    
 (define (print-individual-completion-xml pr runner expected)
-  (printf "<test-result name=\"test-~s\" result=~s expected=~s />"
+  (printf "<test-result name=\"test-~s\" result=~s expected=~s />\n"
     (current-test-number runner)
     (result->pass/fail pr)
     expected))
