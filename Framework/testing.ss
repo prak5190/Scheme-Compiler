@@ -71,6 +71,7 @@
     test-valid
     test-invalid
     test-all
+    test-all-xml
     run-tests
 
     ;; to change the parameters
@@ -249,6 +250,31 @@
         (print-finalization runner)
         ))))
 
+(define (test-all-xml)
+  (begin
+    (load "test-suite.ss")
+    (reset-test-runner)
+    (let ((compiler (test-compiler))
+          (runner (current-test-runner))
+          (vt (valid-tests))
+          (it (invalid-tests)))
+      (begin
+        ;; Process the valid tests
+        (test-suite vt)
+        (printf "<test-group name=\"valid-tests\">")
+        (for-each (test-one-xml compiler runner) (test-suite))
+        
+        ;; Process the invalid tests
+        (test-suite it)
+        (printf "</test-group><test-group name=\"invalid-tests\">")
+        (for-each (test-one-xml compiler runner) (test-suite))
+
+        ;; Finish up
+	(test-suite (append vt it))
+        ))))
+
+
+
 ;; Runs the compiler in (test-compiler) over the tests in (test-suite)
 ;; with a fresh test runner. If you've customized anything, use this
 ;; to run your customizations.
@@ -276,6 +302,19 @@
         (print-individual-completion pr runner)
         (record-test-result pr expected-failure runner)))))
 
+;; This prints out the information for a single test.
+;; Don't use test-one to run the compiler on a single program,
+;; just call the current compiler on that program.
+(define (test-one-xml compiler runner)
+  (lambda (input)
+    (let ((pr (guard (x [else x])
+                (compiler (test-case-source input))))
+          (expected-failure
+            (not (test-case-valid? input))))
+      (begin
+        (print-individual-completion-xml pr runner (if expected-failure "fail" "pass"))
+        (record-test-result pr expected-failure runner)))))
+
 (define (print-group-heading)
   (printf "Test~8,8tResult\n")
   (printf "---------------------------~n"))
@@ -291,6 +330,17 @@
   (apply printf "~4d    ~8a~a~n"
     (current-test-number runner)
     (result->string pr)))
+
+;; Prints an individual test completion.
+;; Example output:
+;;    
+;;    <test-result name="test-name" result="pass/fail" expected="pass/fail" />
+;;    
+(define (print-individual-completion-xml pr runner expected)
+  (printf "<test-result name=\"test-~s\" result=~s expected=~s />"
+    (current-test-number runner)
+    (result->pass/fail pr)
+    expected))
 
 (define (result->string pass-result)
   (cond
@@ -308,6 +358,16 @@
            "Runtime error"))]
     [else (list "Pass" "")]))
 
+(define (result->pass/fail pass-result)
+  (cond
+    [(wrapper-violation? pass-result)
+     "fail"]
+    [(pass-verification-violation? pass-result)
+     "fail"]
+    [(or (error? pass-result) (violation? pass-result))
+     "fail"]
+    [else "pass"]))
+
 ;; Prints a final summary for the testing.
 ;; Example output:
 ;;
@@ -317,7 +377,7 @@
 ;; Unexpected Passes:        10
 ;; Expected Failures:        20
 ;; Unexpected Failures:      25
-;; Total:                   200
+;; Total:                   155
 (define (print-finalization runner)
   (let ((pass-expected   (test-runner-pass-expected   runner))
         (pass-unexpected (test-runner-pass-unexpected runner))
