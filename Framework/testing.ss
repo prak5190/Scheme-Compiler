@@ -267,7 +267,7 @@
 
         ;; Process the invalid tests
         (test-suite it)
-        (printf "</test-group><test-group name=\"invalid-tests\">\n")
+        (printf "<test-group name=\"invalid-tests\">\n")
         (for-each (test-one-xml compiler runner) (test-suite))
         (printf "</test-group>\n")
 
