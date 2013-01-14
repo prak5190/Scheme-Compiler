@@ -369,9 +369,11 @@
 (define (result->pass/fail pass-result)
   (cond
     [(wrapper-violation? pass-result)
-     "fail"]
+     "wrapper violation"]
     [(pass-verification-violation? pass-result)
-     "fail"]
+     (format "~a: ~s"
+       "verification error"
+       (pass-verification-violation-pass pass-result))]
     [(or (error? pass-result) (violation? pass-result))
      "fail"]
     [else "pass"]))
