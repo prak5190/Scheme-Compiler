@@ -7,3 +7,5 @@
 t
 t.s
 *_flymake.hs
+.virthualenv
+dist

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances,FlexibleInstances,DeriveDataTypeable #-}
+{-# LANGUAGE TypeSynonymInstances,FlexibleInstances,FlexibleContexts,DeriveDataTypeable #-}
 module FrameworkHs.Helpers
   (
     -- * Types for compiler configuration and construction
@@ -9,6 +9,7 @@ module FrameworkHs.Helpers
                , returnValueRegister
                , parameterRegisters
                )
+  , PassM, getConfig, runPassM, orPassM
   , P423Exception ( AssemblyFailedException
                   , ParseErrorException
                   , ASTParseException
@@ -18,6 +19,9 @@ module FrameworkHs.Helpers
                   , WrapperFailureException
                   )
   , shortExcDescrip
+  , passFailure,  passFailureM
+--  , parseFailure
+  , parseFailureM
   , P423Pass ( P423Pass
              , pass
              , passName
@@ -31,8 +35,8 @@ module FrameworkHs.Helpers
   , OpCode
 
   -- * Emitting text to a handle
-  , Out, OutF (Put, Done)
-  , output, done, runOut, showOut
+  , GenM, Gen, gen, genLn, genJustLn
+  , hPutGenM, runGenM, showGen
   , emitOp1, emitOp2, emitOp3
   , emitLabelLabel
   , emitLabel
@@ -56,10 +60,6 @@ module FrameworkHs.Helpers
   , parseReg
   , parseInt32
   , parseInt64
-
-  -- * A simple homemade failure type
-  , Exc, failure
-  , catchExc
     
   -- * Misc numeric and string helpers
   , isInt32
@@ -71,11 +71,19 @@ module FrameworkHs.Helpers
   ) where
 
 import Prelude hiding (LT, EQ, GT)
-import Data.List (intercalate)
+import Blaze.ByteString.Builder as BBB
+import Blaze.ByteString.Builder.Char8 (fromChar, fromString, fromShow)
+import Data.List (intersperse)
 import Data.Set (size, fromList)
 import Data.Char (isDigit, isSpace)
 import Data.Int
-import Control.Monad (unless)
+import Data.ByteString (ByteString, hPut)
+-- import Data.ByteString (ByteString, hPut)
+-- import Data.ByteString.Char8 () -- IsString instance
+import Control.Monad (unless, mapM_)
+import Control.Monad.Reader
+import Control.Monad.Writer
+import Control.Monad.Error
 import qualified Data.Set as S
 import Text.Parsec.Error (ParseError)
 import Control.Exception
@@ -94,17 +102,50 @@ data P423Config =
     , parameterRegisters :: [Reg]
     }
 
+-- | A monad for implementing passes
+type PassM = ReaderT P423Config (Either String)
+
+-- | Getting the configuration
+getConfig :: (MonadReader P423Config m) => m P423Config
+getConfig = ask
+
+-- | A compiler pass with metadata
 data P423Pass a b =
   P423Pass
-    { pass :: P423Config -> a -> (Exc b)
-    , passName :: String
-    , wrapperName :: String
-    , trace :: Bool
+    { pass :: P423Config -> a -> b       -- ^ The implementation of the pass
+    , passName :: String                 -- ^ The canonical name of the pass
+    , wrapperName :: String              -- ^ The name of the "wrapper" for
+                                         --   interpreting the pass's output
+    , trace :: Bool                      -- ^ Debug this pass?
     }
 
-type Exc = Either String
-failure = Left
+-- | This runs a PassM computation with a given configuration.  Any uncaught failures
+-- becoming true Haskell errors.
+runPassM :: P423Config -> PassM a -> a
+runPassM conf m =
+  case runReaderT m conf of
+    Left str -> error str
+    Right x  -> x
 
+-- | Backtracking.  If the first action throws an exception, try the second.
+orPassM :: PassM a -> PassM a -> PassM a
+orPassM m1 m2 = do
+  cfg <- getConfig
+  case runReaderT m1 cfg of
+    Left _  -> m2
+    Right x -> return x
+  
+-- | Throwing an error inside a compiler pass.
+passFailureM :: String -> String -> PassM a
+passFailureM who e = lift $ Left (who ++ ": " ++ e)
+-- passFailureM = return . Left . PassFailureException ""
+
+-- | Throwing an error, non-monadic version.
+passFailure :: String -> String -> a
+passFailure who e = throw $ PassFailureException who e
+
+
+-- | Optional information
 data Option a = Default | Option a
 
 split :: Char -> String -> (String,String)
@@ -133,7 +174,8 @@ instance Show P423Exception where
   show e@(ASTParseException s)          = shortExcDescrip e ++ ": " ++ s
   show e@(NoValidTestsException)        = shortExcDescrip e
   show e@(NoInvalidTestsException)      = shortExcDescrip e
-  show e@(PassFailureException p e')       = shortExcDescrip e ++ ": " ++ e'
+--  show e@(PassFailureException p e')    = shortExcDescrip e ++ ": " ++ e'
+  show e@(PassFailureException p e')    = shortExcDescrip e 
   show e@(WrapperFailureException w e') = shortExcDescrip e ++ ": " ++ e'
 
 shortExcDescrip :: P423Exception -> String
@@ -143,94 +185,122 @@ shortExcDescrip e = case e of
   (ASTParseException s)         -> "AST parse failure"
   (NoValidTestsException)       -> "Couldn't find valid tests"
   (NoInvalidTestsException)     -> "Couldn't find invalid tests"
-  (PassFailureException p e)    -> "Pass failure (" ++ p ++ ")"
+  (PassFailureException p e)    -> "Pass failure, " ++ p ++ ": " ++ e
   (WrapperFailureException w e) -> "Wrapper failure (" ++ w ++ ")"
 
 
 ------------------------------------------------------------
 -- Emitting ------------------------------------------------
 
-data Free f r = Free (f (Free f r)) | Pure r
+-- | Implementation type for a code generator
+type GenM = WriterT Builder PassM
 
-instance (Functor f) => Monad (Free f) where
-  return = Pure
-  (Free x) >>= f = Free (fmap (>>= f) x)
-  (Pure r) >>= f = f r
+-- | A code generator with only an output and no result
+type Gen = GenM ()
 
-data OutF b next
-  = Put b next
-  | Done
+-- | Add to the output of a generator
+gen :: (X86Print a) => a -> Gen
+gen a = tell $ format a
 
-type Out = Free (OutF String) ()
+-- | Add a newline along with the given output
+genLn :: (X86Print a) => a -> Gen
+genLn a = do
+  gen a
+  genJustLn
+  
+genJustLn :: Gen
+genJustLn = tell $ fromChar '\n'
 
-instance Functor (OutF b) where
-  fmap f (Put x next) = Put x (f next)
-  fmap f  Done        = Done
+-- | Put the output of running a generator action to a handle
+hPutGenM :: P423Config -> GenM a -> Handle -> IO ()
+hPutGenM c g h = case runReaderT (runWriterT g) c of
+  Left s -> throwIO (userError $ "Error during code generation: " ++ s)
+  Right (_, b) -> hPut h $ BBB.toByteString b
 
-liftF :: (Functor f) => f r -> Free f r
-liftF cmd = Free (fmap Pure cmd)
+-- | Get the result and output of a generator action
+runGenM :: P423Config -> GenM a -> Either String (a, ByteString)
+runGenM c g = case runReaderT (runWriterT g) c of
+  Left s -> Left s
+  Right (x, bu) -> Right (x, BBB.toByteString bu)
 
-showOut :: (Show a, Show r) => Free (OutF a) r -> String
-showOut (Free (Put a x)) =
-  "put " ++ show a ++ "\n" ++ showOut x
-showOut (Free Done) =
-  "done\n"
-showOut (Pure r) =
-  "return " ++ show r ++ "\n"
-
-output :: b -> Free (OutF b) ()
-output x = liftF $ Put x ()
-done :: Free (OutF b) ()
-done     = liftF Done
-
-runOut :: Free (OutF String) r -> Handle -> IO ()
-runOut (Free (Put s x)) h = hPutStrLn h s >> runOut x h
-runOut (Free  Done    ) h = return ()
-runOut (Pure r)         h = throwIO (userError "runOut: did not call 'done' at the end.")
+-- | Given a P423Config, show the output of a Gen
+showGen :: P423Config -> Gen -> String
+showGen c g = show $ case runGenM c g of
+  Left s -> "Error: " ++ s
+  Right ((), b) -> show b
 
 class X86Print a where
-  format :: a -> String
+  format :: a -> Builder
+
+instance X86Print Builder where
+  format = id
+
+instance X86Print ByteString where
+  format = pp
 
 instance X86Print String where
   format = pp
 
 instance X86Print Integer where
-  format i = "$" ++ pp i
+  format i = fromString "$" `mappend` pp i
 
 instance X86Print Reg where
-  format r = "%" ++ pp r
+  format r = fromString "%" `mappend` pp r
 
 instance X86Print Label where
-  format (L name ind) = "L" ++ pp ind ++ "(%rip)"
+  format (L name ind) = mconcat [fromString  "L", pp ind, fromString  "(%rip)"]
 
 instance X86Print Disp where
-  format (D reg off) = pp off ++ "(%" ++ pp reg ++ ")"
+  format (D reg off) = mconcat [pp off, fromString "(%", pp reg, fromString ")"]
 
 instance X86Print Ind where
-  format (I bReg iReg) = "(%" ++ pp bReg ++ ", %" ++ pp iReg ++ ")"
+  format (I bReg iReg) = mconcat [fromString "(%", pp bReg, fromString ", %", pp iReg, fromString ")"]
 
 type OpCode = String
 
-emitOp1 :: OpCode -> Out
-emitOp1 op = output ("    " ++ op)
+-- | Emit an opcode with no arguments
+emitOp1 :: OpCode -> Gen
+emitOp1 op = do gen "    "
+                genLn op 
 
-emitOp2 :: (X86Print a) => OpCode -> a -> Out
-emitOp2 op a = output ("    " ++ op ++ " " ++ format a)
+-- | Emit an opcode with one argument
+emitOp2 :: (X86Print a) => OpCode -> a -> Gen
+emitOp2 op a = do
+  gen "    "
+  gen op
+  gen " "
+  genLn a
 
-emitOp3 :: (X86Print a, X86Print b) => OpCode -> a -> b -> Out
-emitOp3 op a b = output ("    " ++ op ++ " " ++ format a ++ ", " ++ format b)
+-- | Emit an opcode with two arguments
+emitOp3 :: (X86Print a, X86Print b) => OpCode -> a -> b -> Gen
+emitOp3 op a b = do
+  gen "    "
+  gen op
+  gen " "
+  gen a
+  gen ", "
+  genLn b
 
-emitLabelLabel :: Label -> Out
-emitLabelLabel (L name ind) = output ("L" ++ pp ind ++ ":")
+-- | Emit a label from a the `Label' type
+emitLabelLabel :: Label -> Gen
+emitLabelLabel (L name ind) = do
+  gen "L"
+  gen $ pp ind
+  genLn ":"
 
-emitLabel :: (X86Print a) => a -> Out
-emitLabel a = output (format a ++ ":")
+-- | Emit a label from a literal
+emitLabel :: (X86Print a) => a -> Gen
+emitLabel a = do
+  gen a
+  genLn ":"
 
-emitJumpLabel :: OpCode -> Label -> Out
-emitJumpLabel op (L name ind) = emitOp2 op ("L" ++ pp ind)
+-- | Emit an opcode with a label as its operand
+emitJumpLabel :: OpCode -> Label -> Gen
+emitJumpLabel op (L name ind) = emitOp2 op (fromString "L" `mappend` pp ind)
 
-emitJump :: (X86Print a) => OpCode -> a -> Out
-emitJump op a = emitOp2 op ("*" ++ (format a))
+-- | Emit a jump opcode
+emitJump :: (X86Print a) => OpCode -> a -> Gen
+emitJump op a = emitOp2 op (fromString "*" `mappend` format a)
 
 --emitOp1 :: Handle -> OpCode -> IO ()
 --emitOp1 h op = hPutStrLn h ("    " ++ op)
@@ -250,11 +320,21 @@ emitJump op a = emitOp2 op ("*" ++ (format a))
 --emitJump :: (X86Print a) => Handle -> OpCode -> a -> IO ()
 --emitJump = emitOp2
 
-pushq, popq :: (X86Print a) => a -> Out
-movq, leaq :: (X86Print a, X86Print b) => a -> b -> Out
+
+-- | Emit the pushq opcode
+pushq :: (X86Print a) => a -> Gen
 pushq = emitOp2 "pushq"
+
+-- | Emit the popq opcode
+popq :: (X86Print a) => a -> Gen
 popq = emitOp2 "popq"
+
+-- | Emit the movq opcode
+movq :: (X86Print a, X86Print b) => a -> b -> Gen
 movq = emitOp3 "movq"
+
+-- | Emit the leaq opcode
+leaq :: (X86Print a, X86Print b) => a -> b -> Gen
 leaq = emitOp3 "leaq"
 
 --pushq, popq :: (X86Print a) => Handle -> a -> IO ()
@@ -264,8 +344,10 @@ leaq = emitOp3 "leaq"
 --movq h = emitOp3 h "movq"
 --leaq h = emitOp3 h "leaq"
 
-emitEntry :: P423Config -> Out
-emitEntry c = do
+-- | Emit the boilderplate code for entering the scheme runtime
+emitEntry :: Gen
+emitEntry = do
+  c <- getConfig
   emitOp2 ".globl" "_scheme_entry"
   emitLabel "_scheme_entry"
   pushq RBX
@@ -292,9 +374,11 @@ emitEntry c = do
 --     movq  h RSI (allocationPointerRegister c)
 --     leaq  h "_scheme_exit(%rip)" (returnAddressRegister c)
 
-emitExit :: P423Config -> Out
-emitExit c = do
+-- | Emit the boilerplate code for exiting the scheme runtime
+emitExit :: Gen
+emitExit = do
   emitLabel "_scheme_exit"
+  c <- getConfig
   unless (returnValueRegister c == RAX)
          (movq (returnValueRegister c) RAX)
   popq R15
@@ -322,83 +406,100 @@ emitExit c = do
 -- Pretty Printing -----------------------------------------
 
 class PP a where
-  pp :: a -> String
+  pp :: a -> Builder
 
-ppSexp :: [String] -> String
-ppSexp ls = "(" ++ intercalate " " ls ++ ")"
+ppSexp :: [Builder] -> Builder
+ppSexp ls = fromString "(" `mappend` mconcat (intersperse (fromString " ") ls) `mappend` fromString ")"
 
-instance PP String where
+instance PP Builder where
   pp = id
+  
+instance PP ByteString where
+  pp = fromByteString
+  
+instance PP String where
+  pp = fromString
 
 instance PP Integer where
-  pp = show
+  pp = fromShow
 
 instance PP UVar where
-  pp (UV name ind) = name ++ "." ++ show ind
+  pp (UV name ind) = mconcat [fromString name, fromString ".",  fromShow ind]
 
 instance PP FVar where
-  pp (FV ind) = "fv" ++ show ind
+  pp (FV ind) = mconcat [fromString "fv", fromShow ind]
 
 instance PP Label where
-  pp (L name ind) = name ++ "$" ++ show ind
+  pp (L name ind) = mconcat [fromString name, fromChar '$', fromShow ind]
 
 instance PP Disp where
-  pp (D r i) = ppSexp ["disp",(pp r),(pp i)]
+  pp (D r i) = ppSexp [fromString "disp", (pp r), (pp i)]
 
 instance PP Ind where
-  pp (I r1 r2) = ppSexp ["index",(pp r1),(pp r2)]
+  pp (I r1 r2) = ppSexp [fromString "index", (pp r1), (pp r2)]
 
 instance PP Relop where
   pp r = case r of
-    LT  -> "<"
-    LTE -> "<="
-    EQ  -> "="
-    GTE -> ">="
-    GT  -> ">"
+    LT  -> fromString "<"
+    LTE -> fromString "<="
+    EQ  -> fromString "="
+    GTE -> fromString ">="
+    GT  -> fromString ">"
 
 instance PP Binop where
   pp b = case b of
-    MUL    -> "*"
-    ADD    -> "+"
-    SUB    -> "-"
-    LOGAND -> "logand"
-    LOGOR  -> "logor"
-    SRA    -> "sra"
+    MUL    -> fromString "*"
+    ADD    -> fromString "+"
+    SUB    -> fromString "-"
+    LOGAND -> fromString "logand"
+    LOGOR  -> fromString "logor"
+    SRA    -> fromString "sra"
 
 instance PP Reg where
   pp r = case r of
-    RAX -> "rax"
-    RCX -> "rcx"
-    RDX -> "rdx"
-    RBX -> "rbx"
-    RBP -> "rbp"
-    RSI -> "rsi"
-    RDI -> "rdi"
-    R8  -> "r8"
-    R9  -> "r9"
-    R10 -> "r10"
-    R11 -> "r11"
-    R12 -> "r12"
-    R13 -> "r13"
-    R14 -> "r14"
-    R15 -> "r15"
+    RAX -> fromString "rax"
+    RCX -> fromString "rcx"
+    RDX -> fromString "rdx"
+    RBX -> fromString "rbx"
+    RBP -> fromString "rbp"
+    RSI -> fromString "rsi"
+    RDI -> fromString "rdi"
+    R8  -> fromString "r8"
+    R9  -> fromString "r9"
+    R10 -> fromString "r10"
+    R11 -> fromString "r11"
+    R12 -> fromString "r12"
+    R13 -> fromString "r13"
+    R14 -> fromString "r14"
+    R15 -> fromString "r15"
 
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 
-parseSuffix :: String -> Exc Integer
+-- | Throwing an error inside the "parser".
+parseFailureM :: String -> PassM a
+parseFailureM = lift . Left 
+-- parseFailureM = return . Left . ParseErrorException
+
+-- | Throwing an error inside the parser, non-monadic version.
+-- parseFailure :: String -> a
+-- parseFailure = throw . ParseErrorException
+
+
+-- | Parse a number
+parseSuffix :: String -> PassM Integer
 parseSuffix i@('0':rest) =
   if (null rest)
      then return 0
-     else failure ("Leading zero in index: " ++ i)
+     else parseFailureM ("Leading zero in index: " ++ i)
 parseSuffix i =
   if (and $ map isDigit i)
      then return $ read i
-     else failure ("Not a number: " ++ i)
+     else parseFailureM ("Not a number: " ++ i)
 
-parseListWithFinal :: (LispVal -> Exc a) -> (LispVal -> Exc b) ->
-                        [LispVal] -> Exc ([a],b)
-parseListWithFinal fa fb [] = failure ("List must have at least one element")
+parseListWithFinal :: (LispVal -> PassM a) -> (LispVal -> PassM b) ->
+                        [LispVal] -> PassM ([a],b)
+parseListWithFinal fa fb [] = parseFailureM ("List must have at least one element")
 parseListWithFinal fa fb [b] =
   do b <- fb b
      return ([],b)
@@ -407,23 +508,23 @@ parseListWithFinal fa fb (a:asb) =
      (as,b) <- parseListWithFinal fa fb asb
      return (a:as,b)
 
-parseUVar :: LispVal -> Exc UVar
+parseUVar :: LispVal -> PassM UVar
 parseUVar (Symbol s) = case (split '.' s) of
-  (_,"")      -> failure ("No index: " ++ s)
+  (_,"")      -> parseFailureM ("No index: " ++ s)
   (name,ind)  -> do ind <- parseSuffix ind; return (UV name ind)
-parseUVar e = failure ("Not a symbol: " ++ show e)
+parseUVar e = parseFailureM ("Not a symbol: " ++ show e)
 
-parseFVar :: LispVal -> Exc FVar
+parseFVar :: LispVal -> PassM FVar
 parseFVar (Symbol s) = case s of
   ('f':'v':ind) -> do ind <- parseSuffix ind; return (FV ind)
-  _             -> failure ("Not a framevar: " ++ s)
-parseFVar e = failure ("Not a symbol: " ++ show e)
+  _             -> parseFailureM ("Not a framevar: " ++ s)
+parseFVar e = parseFailureM ("Not a symbol: " ++ show e)
 
-parseLabel :: LispVal -> Exc Label
+parseLabel :: LispVal -> PassM Label
 parseLabel (Symbol s) = case (split '$' s) of
-  (_,"")     -> failure ("No index: " ++ s)
+  (_,"")     -> parseFailureM ("No index: " ++ s)
   (name,ind) -> do ind <- parseSuffix ind; return (L name ind)
-parseLabel e = failure ("Not a symbol: " ++ show e)
+parseLabel e = parseFailureM ("Not a symbol: " ++ show e)
 
 -- parseLabel :: LispVal -> Exc Label
 -- parseLabel (Symbol s) = case (split '$' s) of
@@ -431,17 +532,17 @@ parseLabel e = failure ("Not a symbol: " ++ show e)
 --   (name,ind) -> do ind <- parseSuffix ind; return (L name ind)
 -- parseLabel e = failure ("Not a symbol: " ++ show e)
 
-parseRelop :: LispVal -> Exc Relop
+parseRelop :: LispVal -> PassM Relop
 parseRelop (Symbol s) = case s of
   "<"  -> return LT
   "<=" -> return LTE
   "="  -> return EQ
   ">=" -> return GTE
   ">"  -> return GT
-  e    -> failure ("Not a relop: " ++ e)
-parseRelop e = failure ("Not a symbol: " ++ show e)
+  e    -> parseFailureM ("Not a relop: " ++ e)
+parseRelop e = parseFailureM ("Not a symbol: " ++ show e)
 
-parseBinop :: LispVal -> Exc Binop
+parseBinop :: LispVal -> PassM Binop
 parseBinop (Symbol s) = case s of
   "logand" -> return LOGAND
   "logor"  -> return LOGOR
@@ -449,10 +550,10 @@ parseBinop (Symbol s) = case s of
   "*"      -> return MUL
   "+"      -> return ADD
   "-"      -> return SUB
-  e        -> failure ("Not a binop: " ++ e)
-parseBinop e = failure ("Not a symbol: " ++ show e)
+  e        -> parseFailureM ("Not a binop: " ++ e)
+parseBinop e = parseFailureM ("Not a symbol: " ++ show e)
 
-parseReg :: LispVal -> Exc Reg
+parseReg :: LispVal -> PassM Reg
 parseReg (Symbol s) = case s of
   "rax" -> return RAX
   "rcx" -> return RCX
@@ -469,30 +570,25 @@ parseReg (Symbol s) = case s of
   "r13" -> return R13
   "r14" -> return R14
   "r15" -> return R15
-  e     -> failure ("Not a register: " ++ e)
-parseReg e = failure ("Not a symbol: " ++ show e)
+  e     -> parseFailureM ("Not a register: " ++ e)
+parseReg e = parseFailureM ("Not a symbol: " ++ show e)
 
-parseInt32 :: LispVal -> Exc Integer
+parseInt32 :: LispVal -> PassM Integer
 parseInt32 (IntNumber i) = if isInt32 n
                               then return n
-                              else failure ("Out of range: " ++ show i)
+                              else parseFailureM ("Out of range: " ++ show i)
   where n = fromIntegral i
-parseInt32 e = failure ("Not an int: " ++ show e)
+parseInt32 e = parseFailureM ("Not an int: " ++ show e)
 
-parseInt64 :: LispVal -> Exc Integer
+parseInt64 :: LispVal -> PassM Integer
 parseInt64 (IntNumber i) = if isInt64 n
                               then return (fromIntegral n)
-                              else failure ("Out of range: " ++ show i)
+                              else parseFailureM ("Out of range: " ++ show i)
   where n = fromIntegral i
-parseInt64 e = failure ("Not an int: " ++ show e)
+parseInt64 e = parseFailureM ("Not an int: " ++ show e)
 
 ------------------------------------------------------------
 -- Parse Helpers -------------------------------------------
-
-catchExc :: Exc a -> Exc a -> Exc a
-catchExc m1 m2 = case m1 of
-  Left e -> m2
-  Right a  -> m1
 
 inBitRange :: Integer -> Integer -> Bool
 inBitRange r i = (((- (2 ^ (r-1))) <= n) && (n <= ((2 ^ (r-1)) - 1)))
