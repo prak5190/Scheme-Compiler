@@ -16,7 +16,7 @@ import FrameworkHs.SExpReader.LispData
 import FrameworkHs.ParseL01                    (parseProg)
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import CompilerHs.VerifyScheme                 (verifyScheme)
-import CompilerHs.FinalizeLocations            (generateX86_64)
+import CompilerHs.FinalizeLocations            (finalizeLocations)
 import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
 import CompilerHs.ExposeFrameVar               (exposeFrameVar)
 import CompilerHs.FlattenProgram               (flattenProgram)
@@ -72,15 +72,6 @@ p423Compile c l = do
 ------------------------------------------------------------
 -- Helpers -------------------------------------------------
 
-<<<<<<< HEAD
-assemble :: Out -> IO String
-assemble out =
-  do withFile "t.s" WriteMode (runOut out)
-     (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
-     case ec of
-       ExitSuccess -> readProcess "./t" [] ""
-       ExitFailure i -> throw $ AssemblyFailedException e
-=======
 assemble :: P423Config -> Gen -> IO String
 assemble c out =
   case runGenM c out of
@@ -92,4 +83,3 @@ assemble c out =
         ExitSuccess   -> do res <- readProcess "./t" [] ""
                             return (chomp res)
         ExitFailure i -> throw (AssemblyFailedException e)
->>>>>>> a2

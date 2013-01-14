@@ -9,8 +9,8 @@ import qualified FrameworkHs.GenGrammars.L37ExposeFrameVar as L2
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
-exposeFrameVar :: P423Config -> Prog -> Exc L2.Prog
-exposeFrameVar c (Letrec ls t) = return $
+exposeFrameVar :: P423Config -> Prog -> L2.Prog
+exposeFrameVar c (Letrec ls t) = 
   L2.Letrec (zip las $ map (eTail fpr) ts) $ eTail fpr t
   where
     (las,ts) = unzip ls

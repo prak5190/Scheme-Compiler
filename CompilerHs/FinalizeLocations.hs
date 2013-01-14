@@ -11,18 +11,18 @@ import Data.Maybe (fromJust)
 
 type Env = [(UVar,Loc)]
 
-finalizeLocations :: P423Config -> Prog -> Exc L2.Prog
-finalizeLocations c (Letrec ls b) = do
+finalizeLocations :: P423Config -> Prog -> L2.Prog
+finalizeLocations cfg (Letrec ls b) = runPassM cfg $ do
   bodies <- mapM fBody bodies
   b <- fBody b
   return (L2.Letrec (zip labels bodies) b)
   where
     (labels,bodies) = unzip ls
 
-fBody :: Body -> Exc L2.Tail
+fBody :: Body -> PassM L2.Tail
 fBody (Locate ls t) = fTail ls t
 
-fVar :: Env -> Var -> Exc L2.Loc
+fVar :: Env -> Var -> PassM L2.Loc
 fVar env v = case v of
   UVar uv -> fLoc $ fromJust $ lookup uv env
   --UVar uv -> case (lookup uv env) of
@@ -32,7 +32,7 @@ fVar env v = case v of
 
 ------------------------------------------------------------
 
-fTail :: Env -> Tail -> Exc L2.Tail
+fTail :: Env -> Tail -> PassM L2.Tail
 fTail env ta = case ta of
   AppT tr     -> do tr <- fTriv env tr
                     return (L2.AppT tr)
@@ -44,7 +44,7 @@ fTail env ta = case ta of
                     t <- fTail env t
                     return (L2.BeginT es t)
 
-fPred :: Env -> Pred -> Exc L2.Pred
+fPred :: Env -> Pred -> PassM L2.Pred
 fPred env pr = case pr of
   TrueP           -> return (L2.TrueP)
   FalseP          -> return (L2.FalseP)
@@ -59,7 +59,7 @@ fPred env pr = case pr of
                         p <- fPred env p
                         return (L2.BeginP es p)
 
-fEffect :: Env -> Effect -> Exc L2.Effect
+fEffect :: Env -> Effect -> PassM L2.Effect
 fEffect env ef = case ef of
   Nop              -> return (L2.Nop)
   Set1 v tr        -> do v <- fVar env v
@@ -77,14 +77,14 @@ fEffect env ef = case ef of
                          e <- fEffect env e
                          return (L2.BeginE es e)
 
-fTriv :: Env -> Triv -> Exc L2.Triv
+fTriv :: Env -> Triv -> PassM L2.Triv
 fTriv env tr = case tr of
   Var v     -> do l <- fVar env v
                   return (L2.Loc l)
   Integer i -> return (L2.Integer i)
   Label l   -> return (L2.Label l)
 
-fLoc :: Loc -> Exc L2.Loc
+fLoc :: Loc -> PassM L2.Loc
 fLoc l = case l of
   Reg r   -> return (L2.Reg r)
   FVar fv -> return (L2.FVar fv)

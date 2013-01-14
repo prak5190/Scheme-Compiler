@@ -7,8 +7,8 @@ import FrameworkHs.Helpers
 
 type Env = [(UVar,Loc)]
 
-verifyScheme :: P423Config -> Prog -> Exc Prog
-verifyScheme c p@(Letrec ls b) = do
+verifyScheme :: P423Config -> Prog -> Prog
+verifyScheme c p@(Letrec ls b) = runPassM c $ do
   allDistinct "label" labels
   mapM_ (vBody labels) bodies
   vBody labels b
@@ -16,14 +16,14 @@ verifyScheme c p@(Letrec ls b) = do
   where
     (labels,bodies) = unzip ls
 
-vBody :: [Label] -> Body -> Exc ()
+vBody :: [Label] -> Body -> PassM ()
 vBody labels bo@(Locate ls t) = do
   allDistinct "uvar" uvars
   vTail labels ls t
   where
     (uvars,_) = unzip ls
 
-vTail :: [Label] -> Env -> Tail -> Exc ()
+vTail :: [Label] -> Env -> Tail -> PassM ()
 vTail labels env ta = case ta of
   AppT tr     -> vTriv labels env tr
   IfT p t1 t2 -> do vPred labels env p
@@ -32,7 +32,7 @@ vTail labels env ta = case ta of
   BeginT es t -> do mapM_ (vEffect labels env) es
                     vTail labels env t
 
-vPred :: [Label] -> Env -> Pred -> Exc ()
+vPred :: [Label] -> Env -> Pred -> PassM ()
 vPred labels env pr = case pr of
   TrueP        -> return ()
   FalseP       -> return ()
@@ -55,7 +55,7 @@ relopConstraints env t1 t2 =
                    , (trivIsInt32 t2)
                    ])])])
 
-vEffect :: [Label] -> Env -> Effect -> Exc ()
+vEffect :: [Label] -> Env -> Effect -> PassM ()
 vEffect labels env ef = case ef of
   Nop              -> return ()
   Set1 v tr        -> do vVar env v
@@ -112,13 +112,13 @@ set2Constraints env b t1 t2 = case b of
                     ])
              ])
 
-vTriv :: [Label] -> Env -> Triv -> Exc ()
+vTriv :: [Label] -> Env -> Triv -> PassM ()
 vTriv labels env tr = case tr of
   Var v     -> vVar env v
   Integer i -> return ()
   Label l   -> assert (l `elem` labels) ("unbound label: " ++ show l)
 
-vVar :: Env -> Var -> Exc ()
+vVar :: Env -> Var -> PassM ()
 vVar env v = case v of
   UVar uv -> assert (isJust $ lookup uv env) ("unbound uvar: " ++ show uv)
   Loc l   -> return ()
@@ -134,15 +134,15 @@ isJust x = case x of
   Just _  -> True
   Nothing -> False
 
-assert :: Bool -> String -> Exc ()
-assert False msg = failure msg
+assert :: Bool -> String -> PassM ()
+assert False msg = passFailure "VerifyScheme" msg
 assert True _ = return ()
 
-allDistinct :: (Eq a, Show a) => String -> [a] -> Exc ()
+allDistinct :: (Eq a, Show a) => String -> [a] -> PassM ()
 allDistinct name xs = case xs of
   []                     -> return ()
   [x]                    -> return ()
-  (x:xs') | x `elem` xs' -> failure ("duplicate " ++ name ++ ": " ++ show x)
+  (x:xs') | x `elem` xs' -> passFailure "VerifyScheme" ("duplicate " ++ name ++ ": " ++ show x)
           | otherwise    -> allDistinct name xs'
 
 varIsReg :: Var -> Env -> Bool

@@ -13,8 +13,8 @@ import Data.Int
 
 type IndexState = State Integer
 
-exposeBasicBlocks :: P423Config -> Prog -> Exc L2.Prog
-exposeBasicBlocks c (Letrec ls t) = return $ flip evalState 100000 $ do
+exposeBasicBlocks :: P423Config -> Prog -> L2.Prog
+exposeBasicBlocks c (Letrec ls t) = flip evalState 100000 $ do
   ts <- mapM eTail tails
   let (tails,binds) = unzip ts
   (t,bind) <- eTail t
