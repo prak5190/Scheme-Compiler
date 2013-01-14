@@ -39,6 +39,9 @@ Framework/GenGrammars: $(SRC_GRAMMAR) GrammarCompiler
 scheme : grammars
 	$(SC) $(SCRIPT_DIR)/$(SC_FILE)
 
+scheme-xml:
+	@echo '(begin (import (Framework testing)) (exit (if (test-all-xml) 0 1)))' | $(SC)
+
 # Run the tests straight away:
 haskell: grammars build-haskell
 	./$(HS_EXE)
