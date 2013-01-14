@@ -15,17 +15,12 @@ import FrameworkHs.SExpReader.LispData
 
 import FrameworkHs.ParseL01                    (parseProg)
 import FrameworkHs.GenGrammars.L01VerifyScheme
-<<<<<<< HEAD
-import CompilerHs.VerifyScheme
-import CompilerHs.FinalizeLocations
-import CompilerHs.ExposeBasicBlocks
-import CompilerHs.ExposeFrameVar
-=======
 import CompilerHs.VerifyScheme                 (verifyScheme)
+import CompilerHs.FinalizeLocations            (generateX86_64)
+import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
+import CompilerHs.ExposeFrameVar               (exposeFrameVar)
+import CompilerHs.FlattenProgram               (flattenProgram)
 import CompilerHs.GenerateX86_64               (generateX86_64)
->>>>>>> a2
-import CompilerHs.FlattenProgram
-import CompilerHs.GenerateX86_64
 
 import qualified Data.ByteString as B
 
