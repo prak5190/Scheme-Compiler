@@ -1,38 +1,42 @@
 
 module FrameworkHs.ParseL01 where
 
+import Control.Applicative ((<$>))
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
-import FrameworkHs.Helpers
+import FrameworkHs.Helpers (parseListWithFinal, parseInt32, parseInt64, parseLabel, parseUVar,
+                            parseFVar, parseRelop, parseBinop, parseReg, parseFailureM, PassM, orPassM)
 
-parseProg :: LispVal -> Exc Prog
+parseProg :: LispVal -> PassM Prog
 parseProg (List [(Symbol "letrec"),List bs,b]) =
   do bs <- mapM parseTuple bs
-     b <- parseBody b
+     b  <- parseBody b
      return (Letrec bs b)
-  where parseTuple :: LispVal -> Exc (Label,Body)
+  where parseTuple :: LispVal -> PassM (Label,Body)
         parseTuple (List [l,List[(Symbol "lambda"),List [],b]]) =
           do l <- parseLabel l
              b <- parseBody b
              return (l,b)
-        parseTuple e = failure ("Invalid tuple: " ++ show e)
-parseProg e = failure ("Invalid Prog: " ++ show e)
+        parseTuple e = parseFailureM ("Invalid tuple: " ++ show e)
+parseProg e = parseFailureM ("Invalid Prog: " ++ show e)
 
-parseBody :: LispVal -> Exc Body
+
+parseBody :: LispVal -> PassM Body
 parseBody (List [(Symbol "locate"),List bs,t]) =
   do bs <- mapM parseTuple bs
-     t <- parseTail t
+     t  <- parseTail t
      return (Locate bs t)
-  where parseTuple :: LispVal -> Exc (UVar,Loc)
+  where parseTuple :: LispVal -> PassM (UVar,Loc)
         parseTuple (List [u,l]) =
           do u <- parseUVar u
              l <- parseLoc l
              return (u,l)
-        parseTuple e = failure ("Invalid tuple: " ++ show e)
-parseBody e = failure ("Invalid Body: " ++ show e)
+        parseTuple e = parseFailureM ("Invalid tuple: " ++ show e)
+parseBody e = parseFailureM ("Invalid Body: " ++ show e)
 
-parseTail :: LispVal -> Exc Tail
+
+parseTail :: LispVal -> PassM Tail
 parseTail (List [t]) =
   do t <- parseTriv t
      return (AppT t)
@@ -44,16 +48,17 @@ parseTail (List [(Symbol "if"),p,t1,t2]) =
 parseTail (List ((Symbol "begin"):ls)) =
   do (es,t) <- parseListWithFinal parseEffect parseTail ls
      return (BeginT es t)
-parseTail e = failure ("Invalid Tail: " ++ show e)
+parseTail e = parseFailureM ("Invalid Tail: " ++ show e)
 
-parsePred :: LispVal -> Exc Pred
+
+parsePred :: LispVal -> PassM Pred
 parsePred (List [(Symbol "true")]) = return (TrueP)
 parsePred (List [(Symbol "false")]) = return (FalseP)
 parsePred (List ((Symbol "begin"):ls)) =
   do (es,p) <- parseListWithFinal parseEffect parsePred ls
      return (BeginP es p)
 parsePred (List [r,t1,t2]) =
-  do r <- parseRelop r
+  do r  <- parseRelop r
      t1 <- parseTriv t1
      t2 <- parseTriv t2
      return (AppP r t1 t2)
@@ -62,10 +67,12 @@ parsePred (List [(Symbol "if"),p1,p2,p3]) =
      p2 <- parsePred p2
      p3 <- parsePred p3
      return (IfP p1 p2 p3)
-parsePred e = failure ("Invalid Pred: " ++ show e)
+parsePred e = parseFailureM ("Invalid Pred: " ++ show e)
 
-parseEffect :: LispVal -> Exc Effect
+
+parseEffect :: LispVal -> PassM Effect
 parseEffect (List [(Symbol "nop")]) = return (Nop)
+
 parseEffect (List [(Symbol "set!"),v,List[b,t1,t2]]) =
   do v <- parseVar v
      b <- parseBinop b
@@ -84,62 +91,25 @@ parseEffect (List [(Symbol "if"),p,e1,e2]) =
 parseEffect (List ((Symbol "begin"):ls)) =
   do (es,e) <- parseListWithFinal parseEffect parseEffect ls
      return (BeginE es e)
-parseEffect e = failure ("Invalid Effect: " ++ show e)
+parseEffect e = parseFailureM ("Invalid Effect: " ++ show e)
 
-parseTriv :: LispVal -> Exc Triv
+
+parseTriv :: LispVal -> PassM Triv
 parseTriv i@(IntNumber _) =
   do i <- parseInt64 i
      return (Integer i)
 parseTriv s@(Symbol _) =
-  catchExc (do v <- parseVar s
-               return (Var v))
-           (do l <- parseLabel s
-               return (Label l))
-parseTriv e = failure ("Invalid Triv: " ++ show e)
+  orPassM (Var   <$> parseVar s)
+          (Label <$> parseLabel s)
+parseTriv e = parseFailureM ("Invalid Triv: " ++ show e)
 
-parseVar :: LispVal -> Exc Var
+parseVar :: LispVal -> PassM Var
 parseVar x =
-  catchExc (do u <- parseUVar x
-               return (UVar u))
-           (do l <- parseLoc x
-               return (Loc l))
+  orPassM (UVar <$> parseUVar x)
+          (Loc  <$> parseLoc  x)
 
-parseLoc :: LispVal -> Exc Loc
+parseLoc :: LispVal -> PassM Loc
 parseLoc x =
-  catchExc (do r <- parseReg x
-               return (Reg r))
-           (do f <- parseFVar x
-               return (FVar f))
+  orPassM (Reg  <$> parseReg x)
+          (FVar <$> parseFVar x)
 
--- (l-01
---   (start Prog)
---   (Prog
---    (letrec ((Label (lambda () Body)) *) Body))
---   (Body
---    (locate ((UVar Loc) *) Tail))
---   (Tail
---    (Triv)
---    (if Pred Tail Tail)
---    (begin Effect * Tail))
---   (Pred
---    (true)
---    (false)
---    (Relop Triv Triv)
---    (if Pred Pred Pred)
---    (begin Effect * Pred))
---   (Effect
---    (nop)
---    (set! Var Triv)
---    (op-set! Var (Binop Triv Triv))
---    (if Pred Effect Effect)
---    (begin Effect * Effect))
---   (Triv
---    Var
---    Int
---    Label)
---   (Var
---    UVar
---    Loc)
---   (Loc
---    Reg
---    FVar))
