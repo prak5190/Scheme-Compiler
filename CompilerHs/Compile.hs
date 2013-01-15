@@ -19,7 +19,6 @@ import CompilerHs.VerifyScheme                 (verifyScheme)
 import CompilerHs.GenerateX86_64               (generateX86_64)
 import CompilerHs.FlattenProgram               (flattenProgram)
 import CompilerHs.ExposeFrameVar               (exposeFrameVar)
-import CompilerHs.GenerateX86_64               (generateX86_64)
 
 import qualified Data.ByteString as B
 
