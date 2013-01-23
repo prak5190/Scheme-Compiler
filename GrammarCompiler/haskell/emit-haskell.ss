@@ -11,6 +11,7 @@
   (lambda ()
     '("FrameworkHs.Prims"
       "FrameworkHs.Helpers"
+      "Text.PrettyPrint.HughesPJ (text)"
       "Blaze.ByteString.Builder (fromByteString)")))
 
 (define derives
@@ -151,8 +152,15 @@
           (let loop ((form* form*) (f* f*))
             (unless (null? form*)
               (begin
-                (printf "  pp ~a = ~a\n" (car form*) (format-pp (car f*)))
-                (loop (cdr form*) (cdr f*))))))))
+                (printf "  pp ~a = ~a\n" (car form*)  (format-pp (car f*)))
+                (loop (cdr form*) (cdr f*)))))
+	  ;; Ditto, except ppp:
+	  (let loop ((form* form*) (f* f*))
+            (unless (null? form*)
+              (begin
+                (printf "  ppp ~a = ~a\n" (car form*) (format-ppp (car f*)))
+                (loop (cdr form*) (cdr f*)))))
+	  )))
      prints)))
 
 (define format-pp
@@ -183,6 +191,37 @@
        (format "(~a ++ ~a)" l1 l2))
       ((pp ,s) (format "(pp ~a)" s))
       (,e (format "~a" e)))))
+
+;; This alternative version uses Text.PrettyPrint.HughesPJ rather than BlazeBuilder:
+(trace-define format-ppp
+  (lambda (f)
+    (define List
+      (lambda (l)
+        (cond
+          ((null? l) "")
+          ((null? (cdr l)) (format-ppp (car l)))
+          (else (format "~a,~a" (format-ppp (car l)) (List (cdr l)))))))
+    (define Func
+      (lambda (f)
+        (match f
+          ((lambda ,fml* ,body)
+           (format "(\\(~a) -> ~a)" (List fml*) (format-ppp body)))
+          (pp 'ppp))))
+    (match f
+      ((ppSexp ,[p])
+       (format "(pppSexp ~a)" p))
+      ((list . ,[List -> l])
+       (format "[~a]" l))
+      ((string ,s) (format "text \"~a\"" s))
+      ((map ,fn ,v)
+       (format "(map ~a ~a)" (Func fn) v))
+      ((cons ,[a] ,[d])
+       (format "(~a : ~a)" a d))
+      ((append ,[l1] ,[l2])
+       (format "(~a ++ ~a)" l1 l2))
+      ((pp ,s) (format "(ppp ~a)" s))
+      (,e (format "~a" e)))))
+
 
 (define Deriving
   (lambda (types)
