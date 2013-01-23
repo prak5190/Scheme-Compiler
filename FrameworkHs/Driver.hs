@@ -15,7 +15,7 @@ import Control.Exception               (throw, catch, SomeException)
 import Control.Monad.State.Strict      (StateT, evalStateT, get, put, lift)
 
 import Data.ByteString                 (ByteString, hPut, hGetNonBlocking, hGetLine, concat, writeFile)
-import Data.ByteString.Char8           (unpack)
+import Data.ByteString.Char8           (unpack,pack)
 import Data.Monoid                     (mconcat, (<>))
 import Data.String                     (IsString(..))
 import Prelude as P                    hiding (concat, writeFile)
@@ -54,9 +54,18 @@ runCompiler cfg m = do
 -- | Run an individiual pass, converting an input language to an output language.
 runPass :: PP b => P423Pass a b -> a -> CompileM b
 runPass p code =
-    do CompileState {cfg} <- get 
+    do st@CompileState {runner,lastresult,cfg} <- get 
        let code' = pass p cfg code
-       _res <- lift$ runWrapper wn code'
+       res <- lift$ runWrapper runner wn code'
+       let res' = pack$ show res
+       case lastresult of
+         Nothing -> return ()
+         Just old | old == res' -> return ()
+                  | otherwise   -> error$"Output of pass "++pn++" did not match previous pass:\nGot: "
+                                   ++unpack res'++"\nExpected: "++unpack old
+                                   
+       -- Update the last result by side effect:
+       put $ st{ lastresult= Just res' }
        when (trace p) (lift$ printTrace (passName p) code')
        return code'
 
@@ -65,6 +74,7 @@ runPass p code =
         printTrace :: PP a => String -> a -> IO ()
         printTrace name code = putStrLn ("\n" ++ name ++ ": \n" ++ (unpack $ toByteString $ pp code) ++ "\n")
 
+-- | Lift a pass computation into a compiler computation.
 liftPassM :: PassM a -> CompileM a
 liftPassM m = do
   CompileState {cfg} <- get 
@@ -75,7 +85,7 @@ liftPassM m = do
 --   Compile and run the assembly and return the result.
 assemble :: Gen -> CompileM String
 assemble out = do
-  CompileState {cfg} <- get 
+  CompileState {cfg,lastresult} <- get 
   lift$ 
    case runGenM cfg out of
     Left err -> error err
@@ -84,11 +94,19 @@ assemble out = do
       (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
       case ec of
         ExitSuccess   -> do res <- readProcess "./t" [] ""
-                            return (chomp res)
+                            let res' = chomp res
+                            case lastresult of
+                              Nothing -> return res'
+                              Just old ->
+                                if pack res' == old then
+                                  return res'
+                                else error$ error$"Output of compiled executable did not match previous pass:\nGot: "
+                                     ++res'++"\nExpected: "++unpack old
         ExitFailure i -> throw (AssemblyFailedException e)
 
 assemblyCmd :: String
 assemblyCmd = "cc"
+
 assemblyArgs :: [String]
 assemblyArgs = ["-m64","-o","t","t.s","Framework/runtime.c"]
 
@@ -126,7 +144,7 @@ makeSchemeEvaluator = do
   let shutdown = terminateProcess pid
       -- Shutdown the child process if anything goes wrong:
       wrap io = catch io $ \e -> do
-                  hPutStrLn stderr " [Exception!  Shutting down child scheme proccess ]"
+--                  hPutStrLn stderr " [Exception!  Shutting down child scheme proccess ]"
                   shutdown
                   throw (e::SomeException)
       eval bstr = wrap$ do
@@ -152,25 +170,10 @@ makeSchemeEvaluator = do
   return$ SchemeProc { eval, shutdown } 
 
 
-
-runWrapper :: PP a => WrapperName -> a -> IO LispVal
-runWrapper wrapper code =
-  do (i,o,e,pid) <- runInteractiveCommand scheme
-     loadFramework i
-     hPut i $ toByteString $ app (fromString wrapper) [quote code]
-     hClose i
-     eOut <- hGetContents e
-     if (eOut == "")
-        then (do oOut <- hGetContents o
-                 terminateProcess pid
-                 return $
-                   (case (readExpr oOut) of
-                     Left er   -> error $ show er
-                     Right cde -> cde))
-        else (do terminateProcess pid
-                 error eOut)
-
-
+runWrapper :: PP a => SchemeProc -> WrapperName -> a -> IO LispVal
+runWrapper SchemeProc{eval} wrapper code =
+  eval $ toByteString $
+    app (fromString wrapper) [quote code]
 
 --------------------------------------------------------------------------------
 -- SExp construction helpers
