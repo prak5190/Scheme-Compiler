@@ -10,7 +10,7 @@
 #----------------------------------------------------------------------
 
 #-- Variables --#
-SC=petite
+SC=petite -q
 HS=ghc
 
 # HS_FLAGS=-v0
@@ -39,6 +39,9 @@ Framework/GenGrammars: $(SRC_GRAMMAR) GrammarCompiler
 scheme : grammars
 	$(SC) $(SCRIPT_DIR)/$(SC_FILE)
 
+scheme-xml:
+	@echo '(begin (import (Framework testing)) (exit (if (test-all-xml) 0 1)))' | $(SC)
+
 # Run the tests straight away:
 haskell: grammars build-haskell
 	./$(HS_EXE)
@@ -54,7 +57,8 @@ haskell-interactive : grammars
 test: 
 	$(MAKE) clean
 	$(MAKE) grammars
-	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
+	#CSZ: why doesn't this just call the scheme command?
+	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | $(SC)
 	$(MAKE) haskell
 
 clean :

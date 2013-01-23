@@ -7,7 +7,7 @@ import FrameworkHs.Prims as My
 
 generateX86_64 :: Prog -> Gen
 generateX86_64 (Code ls s) =
-  do emitEntry 
+  do emitEntry
      mapM statement ls
      statement s
      emitExit 
