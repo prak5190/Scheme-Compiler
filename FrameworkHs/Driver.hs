@@ -69,6 +69,7 @@ runPass :: PP b => P423Pass a b -> a -> CompileM b
 runPass p code =
     do st@CompileState {runner,lastresult,cfg} <- get 
        let code' = pass p cfg code
+       when (trace p) (lift$ printTrace (passName p) code')
        res <- lift$ runWrapper runner wn code'
        let res' = pack$ show res
        case lastresult of
@@ -79,7 +80,6 @@ runPass p code =
                                    
        -- Update the last result by side effect:
        put $ st{ lastresult= Just res' }
-       when (trace p) (lift$ printTrace (passName p) code')
        return code'
 
   where pn = passName p
