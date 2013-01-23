@@ -193,7 +193,7 @@
       (,e (format "~a" e)))))
 
 ;; This alternative version uses Text.PrettyPrint.HughesPJ rather than BlazeBuilder:
-(trace-define format-ppp
+(define format-ppp
   (lambda (f)
     (define List
       (lambda (l)
