@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings, NamedFieldPuns #-}
 module FrameworkHs.Driver
-  -- ( runWrapper
-  -- , runPass
-  -- )
+  ( runCompiler, runPass, assemble, getConfig, CompileM,
+    lift, liftPassM, FrameworkHs.Driver.catch, resetLastResult
+  )
   where
 
 import System.Process                  (runInteractiveCommand, terminateProcess, readProcess, readProcessWithExitCode)
@@ -10,9 +10,8 @@ import System.IO                       (stderr, hGetContents, hPutStrLn, hClose,
                                         Handle, BufferMode(..), hSetBuffering, hIsClosed, hIsReadable)
 import System.Exit                     (ExitCode(..))
 import Control.Monad                   (when)
-import Control.Exception               (throw, catch, SomeException)
-
-import Control.Monad.State.Strict      (StateT, evalStateT, get, put, lift)
+import Control.Exception as E          (throw, catch, SomeException, Exception)
+import Control.Monad.State.Strict      (StateT, runStateT, evalStateT, get, put, lift)
 
 import Data.ByteString                 (ByteString, hPut, hGetNonBlocking, hGetLine, concat, writeFile)
 import Data.ByteString.Char8           (unpack,pack)
@@ -26,7 +25,7 @@ import qualified Blaze.ByteString.Builder.Char8  as BBB
 import FrameworkHs.SExpReader.Parser   (readExpr)
 import FrameworkHs.SExpReader.LispData (LispVal)
 import FrameworkHs.Prims               ()
-import FrameworkHs.Helpers             
+import FrameworkHs.Helpers             hiding (getConfig)
 
 --------------------------------------------------------------------------------
 -- Building and running compilers
@@ -50,6 +49,20 @@ runCompiler cfg m = do
   -- return$ runPassM cfg $
   --   evalStateT m (CompileState Nothing sp)
   evalStateT m (CompileState Nothing sp cfg)
+
+-- | When starting a new benchmark, it's necessary to do this.
+resetLastResult :: CompileM ()
+resetLastResult = do
+  st <- get 
+  put st{ lastresult= Nothing }
+
+-- | Catching exceptions in the compile monad.
+catch :: Exception e => CompileM a -> (e -> IO a) -> CompileM a
+catch m hnd = do
+  st <- get
+  (a,st2) <- lift$ E.catch (runStateT m st) (\e -> do x <- hnd e; return (x,st))
+  put st2
+  return a
 
 -- | Run an individiual pass, converting an input language to an output language.
 runPass :: PP b => P423Pass a b -> a -> CompileM b
@@ -110,8 +123,12 @@ assemblyCmd = "cc"
 assemblyArgs :: [String]
 assemblyArgs = ["-m64","-o","t","t.s","Framework/runtime.c"]
 
+getConfig :: CompileM P423Config
+getConfig = fmap cfg get 
+
 --------------------------------------------------------------------------------
 -- Child Scheme processes
+--------------------------------------------------------------------------------
 
 -- | Which Chez Scheme should we use?
 scheme :: String
@@ -143,7 +160,7 @@ makeSchemeEvaluator = do
   loadFramework ip
   let shutdown = terminateProcess pid
       -- Shutdown the child process if anything goes wrong:
-      wrap io = catch io $ \e -> do
+      wrap m = E.catch m $ \e -> do
 --                  hPutStrLn stderr " [Exception!  Shutting down child scheme proccess ]"
                   shutdown
                   throw (e::SomeException)
@@ -231,7 +248,7 @@ t1 = do SchemeProc{eval,shutdown} <- makeSchemeEvaluator
 t2 :: IO String
 t2 = catchit
  where
-   catchit = catch io $ \e -> return$ show (e::SomeException)
+   catchit = E.catch io $ \e -> return$ show (e::SomeException)
    io = 
     do SchemeProc{eval,shutdown} <- makeSchemeEvaluator
        a <- eval "(make-vector 1 2 3)"
