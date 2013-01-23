@@ -48,7 +48,7 @@ module FrameworkHs.Helpers
   , movq, leaq
 
   -- * Pretty printing:
-  , PP, pp, ppSexp
+  , PP(..), ppSexp, pppSexp
 
   -- * Parsing
   , parseListWithFinal
@@ -79,13 +79,14 @@ import Data.Char (isDigit, isSpace)
 import Data.Int
 import Data.ByteString (ByteString, hPut)
 -- import Data.ByteString (ByteString, hPut)
--- import Data.ByteString.Char8 () -- IsString instance
+import Data.ByteString.Char8 (unpack)
 import Control.Monad (unless, mapM_)
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.Error
 import qualified Data.Set as S
 import Text.Parsec.Error (ParseError)
+import qualified Text.PrettyPrint.HughesPJ as P
 import Control.Exception
 import Data.Typeable
 import System.IO
@@ -406,10 +407,26 @@ emitExit = do
 -- Pretty Printing -----------------------------------------
 
 class PP a where
+  -- | Print to a Scheme SExp representation.
   pp :: a -> Builder
 
+  -- | Pretty print the same Scheme SExp representation:
+  ppp :: a -> P.Doc
+  ppp = P.text . unpack . BBB.toByteString . pp
+
+-- | Build a list SExp 
 ppSexp :: [Builder] -> Builder
 ppSexp ls = fromString "(" `mappend` mconcat (intersperse (fromString " ") ls) `mappend` fromString ")"
+
+-- | Build a multi-line pretty-printed SExp
+pppSexp :: [P.Doc] -> P.Doc
+pppSexp ls = P.parens$ P.sep ls
+
+-- Getting a hang for keywords is a bit hard:
+-- pppSexp [] = P.parens P.empty
+-- pppSexp [a,b] = P.parens$ P.sep [a,b]
+-- pppSexp (hd:ls) = P.parens$ P.hang hd 2 (P.sep ls)
+
 
 instance PP Builder where
   pp = id
@@ -419,9 +436,11 @@ instance PP ByteString where
   
 instance PP String where
   pp = fromString
+  ppp = P.text 
 
 instance PP Integer where
   pp = fromShow
+  ppp = P.text . show
 
 instance PP UVar where
   pp (UV name ind) = mconcat [fromString name, fromString ".",  fromShow ind]

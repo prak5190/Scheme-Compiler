@@ -21,6 +21,7 @@ import Prelude as P                    hiding (concat, writeFile)
 
 import Blaze.ByteString.Builder        (Builder, toByteString)
 import qualified Blaze.ByteString.Builder.Char8  as BBB
+import qualified Text.PrettyPrint.HughesPJ as P
 
 import FrameworkHs.SExpReader.Parser   (readExpr)
 import FrameworkHs.SExpReader.LispData (LispVal)
@@ -85,7 +86,7 @@ runPass p code =
   where pn = passName p
         wn = wrapperName p
         printTrace :: PP a => String -> a -> IO ()
-        printTrace name code = putStrLn ("\n" ++ name ++ ": \n" ++ (unpack $ toByteString $ pp code) ++ "\n")
+        printTrace name code = putStrLn ("\n" ++ name ++ ": \n" ++ (P.render $ ppp code) ++ "\n")
 
 -- | Lift a pass computation into a compiler computation.
 liftPassM :: PassM a -> CompileM a
