@@ -10,7 +10,7 @@
 #----------------------------------------------------------------------
 
 #-- Variables --#
-SC=petite -q
+SC=scheme
 HS=ghc
 
 # HS_FLAGS=-v0
@@ -40,7 +40,7 @@ scheme : grammars
 	$(SC) $(SCRIPT_DIR)/$(SC_FILE)
 
 scheme-xml:
-	@echo '(begin (import (Framework testing)) (exit (if (test-all-xml) 0 1)))' | $(SC)
+	@echo '(begin (import (Framework testing)) (exit (if (test-all-xml) 0 1)))' | $(SC) -q
 
 # Run the tests straight away:
 haskell: grammars build-haskell
