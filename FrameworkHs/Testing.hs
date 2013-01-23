@@ -70,9 +70,13 @@ runValid ixs = runTestsInternal (SelI []$ SelV ixs defaultTestFile) defaultP423C
 showResults :: [TestResult] -> IO ()
 showResults = mapM_ print
 
--- | Returns the test results for (valid,invalid) tests respectively.
-runTests :: RunTests -> P423Config -> IO ([TestResult],[TestResult])
-runTests tests conf = runCompiler conf $ do
+-- | Run all test cases contained in a file.  Returns the test results
+-- for (valid,invalid) tests respectively.
+runTestFile :: String -> P423Config -> IO ([TestResult],[TestResult])
+runTestFile file conf = runTestsInternal (AllFrom file) conf
+
+runTestsInternal :: RunTests -> P423Config -> IO ([TestResult],[TestResult])
+runTestsInternal tests conf = runCompiler conf $ do
   ts <- lift$ getTests tests
   vs <- runSet "Valid"   p423Compile (valid ts)
   is <- runSet "Invalid" p423Compile (invalid ts)
@@ -104,10 +108,11 @@ filterInd xs as =
       | (x >= 0) && (x < length as) -> (as !! x) : filterInd xs' as
       | otherwise                   -> filterInd xs' as
 
+-- | Run a list of tests with a particular compiler.
 runSet :: String -> (LispVal -> CompileM String) -> [LispVal] -> CompileM [TestResult]
-runSet name c [] = return []
-runSet name comp ts = 
-  do lift$ putStrLn ("\nTesting " ++ name)
+runSet _ _ [] = return []
+runSet setname compiler ts =
+  do lift$ putStrLn ("\nTesting " ++ setname)
      lift$ putStrLn "Test    Result"
      lift$ putStrLn "---------------------------"
      mapIndexed 0 ts
@@ -118,7 +123,7 @@ runSet name comp ts =
         wrapTest :: Int -> LispVal -> CompileM TestResult
         wrapTest i l = D.catch 
                   (D.catch (do resetLastResult
-                               res <- comp l
+                               res <- compiler l
                                lift$ printf "%4d    Pass\n" i
                                return $ Pass res)
                            (\e ->case catchTestFailures e of
@@ -129,7 +134,7 @@ runSet name comp ts =
                   (\ e -> do let str = show (e :: SomeException)
                              printf "%4d    Fail    Error: %s\n" i str
                              return$ Fail (PassFailureException "" str))
-
+        
 testResults :: [TestResult] -> [TestResult] -> IO ()
 testResults vs is =
   do putStrLn "\nTesting Summary"
