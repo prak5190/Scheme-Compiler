@@ -11,12 +11,13 @@ module FrameworkHs.Testing
   , valid, invalid
   ) where
 
-import Control.Exception (SomeException, handle, catchJust, throw)
+import Control.Exception (SomeException, handle, throw)
 import Text.Printf
 
 import FrameworkHs.SExpReader.Parser
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Helpers
+import FrameworkHs.Driver as D
 import FrameworkHs.Prims
 import CompilerHs.Compile
 
@@ -68,11 +69,11 @@ showResults = mapM_ print
 
 -- | Returns the test results for (valid,invalid) tests respectively.
 runTests :: RunTests -> P423Config -> IO ([TestResult],[TestResult])
-runTests tests conf = do
-  ts <- getTests tests
-  vs <- runSet "Valid" (p423Compile conf) (valid ts)
-  is <- runSet "Invalid" (p423Compile conf) (invalid ts)
-  testResults vs is
+runTests tests conf = runCompiler conf $ do
+  ts <- lift$ getTests tests
+  vs <- runSet "Valid"   p423Compile (valid ts)
+  is <- runSet "Invalid" p423Compile (invalid ts)
+  lift$ testResults vs is
   return (vs,is)
 
 getTests :: RunTests -> IO Tests
@@ -99,29 +100,31 @@ filterInd xs as =
       | (x >= 0) && (x < length as) -> (as !! x) : filterInd xs' as
       | otherwise                   -> filterInd xs' as
 
-runSet :: String -> (LispVal -> IO String) -> [LispVal] -> IO [TestResult]
+runSet :: String -> (LispVal -> CompileM String) -> [LispVal] -> CompileM [TestResult]
 runSet name c [] = return []
-runSet name c ts =
-  do putStrLn ("\nTesting " ++ name)
-     putStrLn "Test    Result"
-     putStrLn "---------------------------"
-     mapIndexed 0 (wrapTest c) ts
-  where mapIndexed i f [] = return []
-        mapIndexed i f (t:ts) = do a <- f i t
-                                   as <- mapIndexed (i+1) f ts
-                                   return (a:as)
-        wrapTest :: (LispVal -> IO String) -> Int -> LispVal -> IO TestResult
-        wrapTest c i l =
-            handle (\ e -> do let str = show (e :: SomeException)
-                              printf "%4d    Fail    Error: %s\n" i str
-                              return$ Fail (PassFailureException "" str)) $ 
-                 catchJust catchTestFailures
-                           (do res <- c l
-                               printf "%4d    Pass\n" i
+runSet name comp ts = 
+  do lift$ putStrLn ("\nTesting " ++ name)
+     lift$ putStrLn "Test    Result"
+     lift$ putStrLn "---------------------------"
+     mapIndexed 0 ts
+  where mapIndexed i []     = return []
+        mapIndexed i (t:ts) = do a <- wrapTest i t
+                                 as <- mapIndexed (i+1) ts
+                                 return (a:as)
+        wrapTest :: Int -> LispVal -> CompileM TestResult
+        wrapTest i l = D.catch 
+                  (D.catch (do resetLastResult
+                               res <- comp l
+                               lift$ printf "%4d    Pass\n" i
                                return $ Pass res)
-                           (\e ->
-                             (do printf "%4d    Fail    %s\n" i (shortExcDescrip e)
-                                 return $ Fail e))
+                           (\e ->case catchTestFailures e of
+                                  Nothing -> throw e 
+                                  Just _ -> do
+                                    printf "%4d    Fail    %s\n" i (shortExcDescrip e)
+                                    return $ Fail e))
+                  (\ e -> do let str = show (e :: SomeException)
+                             printf "%4d    Fail    Error: %s\n" i str
+                             return$ Fail (PassFailureException "" str))
 
 testResults :: [TestResult] -> [TestResult] -> IO ()
 testResults vs is =

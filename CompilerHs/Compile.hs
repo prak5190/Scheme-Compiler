@@ -26,8 +26,8 @@ vfs = P423Pass { pass = verifyScheme
                , trace = False
                }
 
-p423Compile :: P423Config -> LispVal -> IO String
-p423Compile cfg l = runCompiler cfg $ do
+p423Compile :: LispVal -> CompileM String
+p423Compile l = do
   p  <- liftPassM$ parseProg l
   p  <- runPass vfs p
   assemble$ generateX86_64 p
