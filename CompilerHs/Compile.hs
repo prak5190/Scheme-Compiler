@@ -21,11 +21,6 @@ import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
 import CompilerHs.ExposeFrameVar               (exposeFrameVar)
 import CompilerHs.FlattenProgram               (flattenProgram)
 import CompilerHs.GenerateX86_64               (generateX86_64)
-<<<<<<< HEAD
-=======
-import CompilerHs.FlattenProgram               (flattenProgram)
-import CompilerHs.ExposeFrameVar               (exposeFrameVar)
->>>>>>> a2
 
 import qualified Data.ByteString as B
 
