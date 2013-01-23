@@ -5,17 +5,20 @@ module FrameworkHs.Driver
   -- )
   where
 
-import System.Process                  (runInteractiveCommand, terminateProcess)
-import System.IO                       (stderr, hGetContents, hPutStrLn, hClose, hFlush, hIsClosed, hIsReadable,
-                                        Handle, BufferMode(..), hSetBuffering)
+import System.Process                  (runInteractiveCommand, terminateProcess, readProcess, readProcessWithExitCode)
+import System.IO                       (stderr, hGetContents, hPutStrLn, hClose, hFlush, hReady, 
+                                        Handle, BufferMode(..), hSetBuffering, hIsClosed, hIsReadable)
+import System.Exit                     (ExitCode(..))
 import Control.Monad                   (when)
-import Control.Monad.Reader            (runReaderT)
 import Control.Exception               (throw, catch, SomeException)
-import Data.ByteString                 (ByteString, hPut, hGetNonBlocking, hGetLine, concat)
+
+import Control.Monad.State.Strict      (StateT, evalStateT, get, put, lift)
+
+import Data.ByteString                 (ByteString, hPut, hGetNonBlocking, hGetLine, concat, writeFile)
 import Data.ByteString.Char8           (unpack)
 import Data.Monoid                     (mconcat, (<>))
 import Data.String                     (IsString(..))
-import Prelude as P                    hiding (concat)
+import Prelude as P                    hiding (concat, writeFile)
 
 import Blaze.ByteString.Builder        (Builder, toByteString)
 import qualified Blaze.ByteString.Builder.Char8  as BBB
@@ -25,6 +28,72 @@ import FrameworkHs.SExpReader.LispData (LispVal)
 import FrameworkHs.Prims               ()
 import FrameworkHs.Helpers             
 
+--------------------------------------------------------------------------------
+-- Building and running compilers
+
+-- The compiler monad:
+-- type CompileM = StateT CompileState PassM
+type CompileM = StateT CompileState IO
+
+-- | The compiler tracks extra state.  
+data CompileState =
+  CompileState { -- | The result of the previous wrapper, if any.
+                 lastresult :: Maybe ByteString,
+                 -- | The persistent scheme process for running wrappers
+                 runner :: SchemeProc,
+                 cfg :: P423Config }
+
+-- | Run a P423 compiler.
+runCompiler :: P423Config -> CompileM a -> IO a
+runCompiler cfg m = do 
+  sp <- makeSchemeEvaluator
+  -- return$ runPassM cfg $
+  --   evalStateT m (CompileState Nothing sp)
+  evalStateT m (CompileState Nothing sp cfg)
+
+-- | Run an individiual pass, converting an input language to an output language.
+runPass :: PP b => P423Pass a b -> a -> CompileM b
+runPass p code =
+    do CompileState {cfg} <- get 
+       let code' = pass p cfg code
+       _res <- lift$ runWrapper wn code'
+       when (trace p) (lift$ printTrace (passName p) code')
+       return code'
+
+  where pn = passName p
+        wn = wrapperName p
+        printTrace :: PP a => String -> a -> IO ()
+        printTrace name code = putStrLn ("\n" ++ name ++ ": \n" ++ (unpack $ toByteString $ pp code) ++ "\n")
+
+liftPassM :: PassM a -> CompileM a
+liftPassM m = do
+  CompileState {cfg} <- get 
+  return (runPassM cfg m)
+
+-- | The last step in a compiler (after a series of `runPass`s).
+--   Take a bundle of emitted output text representing assembly code.
+--   Compile and run the assembly and return the result.
+assemble :: Gen -> CompileM String
+assemble out = do
+  CompileState {cfg} <- get 
+  lift$ 
+   case runGenM cfg out of
+    Left err -> error err
+    Right (_,bsout) -> do  
+      writeFile "t.s" bsout
+      (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
+      case ec of
+        ExitSuccess   -> do res <- readProcess "./t" [] ""
+                            return (chomp res)
+        ExitFailure i -> throw (AssemblyFailedException e)
+
+assemblyCmd :: String
+assemblyCmd = "cc"
+assemblyArgs :: [String]
+assemblyArgs = ["-m64","-o","t","t.s","Framework/runtime.c"]
+
+--------------------------------------------------------------------------------
+-- Child Scheme processes
 
 -- | Which Chez Scheme should we use?
 scheme :: String
@@ -74,7 +143,7 @@ makeSchemeEvaluator = do
         if err == "" then
           do lns <- readUntilBlank op
              -- There's a race when an error occurs:
-             if lns == "" then getRespose               
+             if lns == "" then waitFor 10000 ep >> getRespose
               else case readExpr (unpack lns) of
                     Left er   -> error $ show er
                     Right lsp -> return lsp
@@ -82,11 +151,6 @@ makeSchemeEvaluator = do
          do error$ "Error from child scheme process:\n"++unpack err
   return$ SchemeProc { eval, shutdown } 
 
-
-
--- The compiler monad:
--- type CompileM = StateT CompileState PassM 
--- type CompileState = CompileState { lastresult :: Maybe ByteString, runner :: SchemeProc }
 
 
 runWrapper :: PP a => WrapperName -> a -> IO LispVal
@@ -107,17 +171,6 @@ runWrapper wrapper code =
                  error eOut)
 
 
-runPass :: PP b => P423Pass a b -> P423Config -> a -> IO b
-runPass p conf code =
-    do let code' = pass p conf code
-       _res <- runWrapper wn code'
-       when (trace p) (printTrace (passName p) code')
-       return code'
-
-  where pn = passName p
-        wn = wrapperName p
-        printTrace :: PP a => String -> a -> IO ()
-        printTrace name code = putStrLn ("\n" ++ name ++ ": \n" ++ (unpack $ toByteString $ pp code) ++ "\n")
 
 --------------------------------------------------------------------------------
 -- SExp construction helpers
@@ -144,6 +197,13 @@ readUntilBlank hnd = loop []
      case l of
        "" -> return (concat (reverse acc))       
        ll -> loop (ll:acc)
+
+-- This is a hack for waiting through races between different handles.
+waitFor 0 h = error$"Expected output on handle "++show h++" but after waiting a while saw nothing."
+waitFor tries hnd = do
+  b <- hReady hnd
+  if b then return ()
+       else waitFor (tries-1) hnd
 
 --------------------------------------------------------------------------------
 -- Unit tests
