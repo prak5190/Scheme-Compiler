@@ -1,14 +1,10 @@
 module FrameworkHs.Testing
   ( TestResult(..)
   , runDefault
-  , runTests
-  , getTests
-  , filterInd
-  , showResults
+  , runTestFile
   , defaultTestFile
-  , defaultConfig
-  , RunTests (AllFrom, SelV, SelI)
-  , valid, invalid
+  , defaultP423Config
+  , runValid, runInvalid
   ) where
 
 import Control.Exception (SomeException, handle, throw)
@@ -30,16 +26,17 @@ instance Show TestResult where
   show (Pass s) = s
   show (Fail e) = show e
 
+-- | Select a set of tests to run:
 data RunTests
   = AllFrom String
-  | SelV [Int] RunTests
-  | SelI [Int] RunTests
+  | SelV [Int] RunTests  -- ^ A list of indices into valid tests
+  | SelI [Int] RunTests  -- ^ A list of indices into invalid tests
 
 defaultTestFile :: RunTests
 defaultTestFile = AllFrom "test-suite.ss"
 
-defaultConfig :: P423Config
-defaultConfig = P423Config
+defaultP423Config :: P423Config
+defaultP423Config = P423Config
          { framePointerRegister      = RBP
          , allocationPointerRegister = RDX
          , returnAddressRegister     = R15
@@ -62,20 +59,31 @@ catchTestFailures e = case e of
 -- | Run the default set of tests (all found in the file).
 --   Returns the test results for (valid,invalid) tests respectively.
 runDefault :: IO ([TestResult],[TestResult])
-runDefault = runTests defaultTestFile defaultConfig
+runDefault = runTestsInternal defaultTestFile defaultP423Config
+
+runInvalid :: [Int] -> IO ([TestResult],[TestResult])
+runInvalid ixs = runTestsInternal (SelI ixs$ SelV [] defaultTestFile) defaultP423Config
+
+runValid :: [Int] -> IO ([TestResult],[TestResult])
+runValid ixs = runTestsInternal (SelI []$ SelV ixs defaultTestFile) defaultP423Config
 
 showResults :: [TestResult] -> IO ()
 showResults = mapM_ print
 
--- | Returns the test results for (valid,invalid) tests respectively.
-runTests :: RunTests -> P423Config -> IO ([TestResult],[TestResult])
-runTests tests conf = runCompiler conf $ do
+-- | Run all test cases contained in a file.  Returns the test results
+-- for (valid,invalid) tests respectively.
+runTestFile :: String -> P423Config -> IO ([TestResult],[TestResult])
+runTestFile file conf = runTestsInternal (AllFrom file) conf
+
+runTestsInternal :: RunTests -> P423Config -> IO ([TestResult],[TestResult])
+runTestsInternal tests conf = runCompiler conf $ do
   ts <- lift$ getTests tests
   vs <- runSet "Valid"   p423Compile (valid ts)
   is <- runSet "Invalid" p423Compile (invalid ts)
   lift$ testResults vs is
   return (vs,is)
 
+-- | Read tests from a test file.
 getTests :: RunTests -> IO Tests
 getTests t =
   case t of
@@ -100,10 +108,11 @@ filterInd xs as =
       | (x >= 0) && (x < length as) -> (as !! x) : filterInd xs' as
       | otherwise                   -> filterInd xs' as
 
+-- | Run a list of tests with a particular compiler.
 runSet :: String -> (LispVal -> CompileM String) -> [LispVal] -> CompileM [TestResult]
-runSet name c [] = return []
-runSet name comp ts = 
-  do lift$ putStrLn ("\nTesting " ++ name)
+runSet _ _ [] = return []
+runSet setname compiler ts =
+  do lift$ putStrLn ("\nTesting " ++ setname)
      lift$ putStrLn "Test    Result"
      lift$ putStrLn "---------------------------"
      mapIndexed 0 ts
@@ -114,7 +123,7 @@ runSet name comp ts =
         wrapTest :: Int -> LispVal -> CompileM TestResult
         wrapTest i l = D.catch 
                   (D.catch (do resetLastResult
-                               res <- comp l
+                               res <- compiler l
                                lift$ printf "%4d    Pass\n" i
                                return $ Pass res)
                            (\e ->case catchTestFailures e of
@@ -125,7 +134,7 @@ runSet name comp ts =
                   (\ e -> do let str = show (e :: SomeException)
                              printf "%4d    Fail    Error: %s\n" i str
                              return$ Fail (PassFailureException "" str))
-
+        
 testResults :: [TestResult] -> [TestResult] -> IO ()
 testResults vs is =
   do putStrLn "\nTesting Summary"
