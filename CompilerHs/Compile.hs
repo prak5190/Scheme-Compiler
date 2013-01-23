@@ -44,6 +44,6 @@ p423Compile :: LispVal -> CompileM String
 p423Compile l = do
   p <- liftPassM$ parseProg l
   p <- runPass vfs p
-  p <- runPass efv c p
-  p <- runPass flp c p  
+  p <- runPass efv p
+  p <- runPass flp p  
   assemble$ generateX86_64 p
