@@ -2,7 +2,6 @@
   (export flatten-program)
   (import (chezscheme)
           (Framework helpers)
-	  (Framework GenGrammars l41-flatten-program)
           (Framework match))
 
 (define-who flatten-program
@@ -19,11 +18,10 @@
          `(,code** ... ... ,code* ...)]
         [,tail (error who "invalid syntax for Tail ~s" tail)])))
   (lambda (program)
-    (verify-grammar:l41-flatten-program 
-     (match program
+    (match program
        [(letrec ([,label* (lambda () ,[Tail -> code**])] ...) ,[Tail -> code*])
 	(let ([code** (map cons label* code**)])
 	  `(code ,code* ... ,code** ... ...))]
-       [,program (error who "invalid syntax for Program: ~s" program)]))))
+       [,program (error who "invalid syntax for Program: ~s" program)])))
 
 )

@@ -2,7 +2,6 @@
   (export verify-scheme)
   (import (chezscheme)
 	  (Framework helpers)
-	  (Framework GenGrammars l01-verify-scheme)
 	  (Framework match))
 
 (define-who verify-scheme
@@ -85,5 +84,5 @@
        (for-each (Tail label*) tail*)
        ((Tail label*) tail)]
       [,x (error who "invalid Program ~s" x)])
-    (verify-grammar:l01-verify-scheme x)))
+    x))
 )
