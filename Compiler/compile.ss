@@ -1,6 +1,6 @@
 
 (library (Compiler compile)
-  (export p423-compile)
+  (export p423-compile p423-step)
   (import 
     ;; Load Chez Scheme primitives:
     (chezscheme)
@@ -28,7 +28,7 @@
   ;; By convention, return the command which will run the code:
   "./t")
 
-(define-compiler (p423-compile p423-compile-passes pass->wrapper)
+(define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
   (finalize-locations)
   (expose-frame-var)
