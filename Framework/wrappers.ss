@@ -94,6 +94,8 @@
     (chezscheme)
     (Framework match)
     (Framework GenGrammars l01-verify-scheme)
+    (Framework GenGrammars l37-expose-frame-var)
+    (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux) rewrite-opnds))
@@ -119,7 +121,8 @@
   (x)
   (environment env)
   (import (only (Framework wrappers aux) set! handle-overflow))
-  (call/cc (lambda (k) (set! ,return-address-register k) ,x))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
   ,return-value-register)
 
 (define-language-wrapper expose-frame-var/wrapper
@@ -129,7 +132,8 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds x)))
+      ,(rewrite-opnds 
+	(if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
   ,return-value-register)
 
 (define-language-wrapper flatten-program/wrapper
@@ -139,7 +143,8 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds x)))
+      ,(rewrite-opnds 
+	(if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)
