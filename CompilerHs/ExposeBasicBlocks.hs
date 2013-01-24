@@ -71,7 +71,7 @@ eEffect xs x es t = case x of
                          (p,pbs)      <- ePred p cl al
                          (x,xbs)      <- eEffects xs [] p
                          return (x,xbs++pbs++[(cl,conseq)]++cbs++[(al,altern)]++abs++[(jl,makeBegin es t)])
-  BeginE es' e      -> eEffects (xs++es') es t
+  BeginE xs2 x      -> eEffects (xs++xs2++[x]) es t
 
 ------------------------------------------------------------
 -- Monadic
@@ -108,3 +108,4 @@ makeBegin es t = case es of
   _  -> case t of
           L2.Begin es' t' -> makeBegin (es++es') t'
           _               -> L2.Begin es t
+

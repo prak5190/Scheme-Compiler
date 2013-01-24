@@ -51,7 +51,7 @@ ebb = P423Pass { pass = exposeBasicBlocks
 flp = P423Pass { pass = flattenProgram
                , passName = "flattenProgram"
                , wrapperName = "flatten-program/wrapper"
-               , trace = False
+               , trace = False 
                }
 
 p423Compile :: LispVal -> CompileM String
