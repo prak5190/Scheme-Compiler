@@ -192,6 +192,10 @@
 ;;;
 ;;;   (fixnum-range n) returns #t iff n is within the fixnum range
 ;;;   based on fixnum-bits.
+;;;
+;;;   (grammar-verification) is a boolean parameter that controls
+;;;   whether grammar verification is performed inside each wrapper.
+
 
 (library (Framework helpers aux)
   (export
@@ -247,6 +251,7 @@
     return-value-register return-address-register 
     allocation-pointer-register
     define-who trace-define-who
+    grammar-verification
     )
   (import
     (chezscheme)
@@ -358,6 +363,8 @@
         (unless (fx= n (vector-length the-stack))
           (set! the-stack (make-vector n)))
         n)))
+
+  (define grammar-verification (make-parameter #t))
 
   (define $check-heap-overflow
     (lambda (ap)
