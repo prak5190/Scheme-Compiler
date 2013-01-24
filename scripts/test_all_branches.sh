@@ -26,11 +26,11 @@ function test_branch() {
   make clean
   make grammars
 
-  # We don't use "load_and_test.ss" because we want to exit immediately with an error code:
-  echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
-
   if [ $SCHEMEONLY == 0 ]; then 
-     make haskell
+     make test
+  else
+     # We don't use "load_and_test.ss" because we want to exit immediately with an error code:
+     echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
   fi
 }
 
