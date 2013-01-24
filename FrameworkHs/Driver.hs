@@ -137,7 +137,9 @@ scheme = "petite -q --eedisable"
 
 -- | Tell a scheme process to load the necessary libraries.
 loadFramework :: Handle -> IO ()
-loadFramework = flip hPutStrLn "(import (Framework driver) (Framework wrappers))"
+loadFramework h = do
+  hPutStrLn h "(import (Framework driver) (Framework wrappers) (Framework helpers))"
+  hPutStrLn h "(grammar-verification #f)"
 
 -- | A `Wrapper` is the name of the language-wrapper (a
 -- Scheme-identifier).  That is, the thing that makes the Scheme
