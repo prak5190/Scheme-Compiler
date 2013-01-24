@@ -93,6 +93,7 @@
   (import
     (chezscheme)
     (Framework match)
+    (Framework GenGrammars l01-verify-scheme)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux) rewrite-opnds))
