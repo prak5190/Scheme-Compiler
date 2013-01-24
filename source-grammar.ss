@@ -3,11 +3,11 @@
 ;;
 ;; Passes:
 ;;   verify-scheme       l-01 -> l-01
-;; * finalize-locations  l-01 -> l-35
-;;   expose-frame-var    l-35 -> l-36
-;; * expose-basic-blocks l-36 -> l-38
-;;   flatten-program     l-38 -> l-40
-;;   generate-x86-64     l-40 -> ()
+;; * finalize-locations  l-01 -> l-36
+;;   expose-frame-var    l-36 -> l-37
+;; * expose-basic-blocks l-37 -> l-39
+;;   flatten-program     l-39 -> l-41
+;;   generate-x86-64     l-41 -> ()
 
 (p423-grammars
   (l01-verify-scheme
