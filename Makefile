@@ -57,8 +57,10 @@ haskell-interactive : grammars
 test: 
 	$(MAKE) clean
 	$(MAKE) grammars
+	#CSZ: why doesn't this just call the scheme command?
 	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
-	$(MAKE) haskell
+	# RRN: It can be faster to run interpreted rather than compile:
+	runghc $(SCRIPT_DIR)/$(HS_FILE)
 
 clean :
 	rm -f t.s t $(HS_EXE)
