@@ -13,11 +13,12 @@ import Control.Monad                   (when)
 import Control.Exception as E          (throw, catch, SomeException, Exception)
 import Control.Monad.State.Strict      (StateT, runStateT, evalStateT, get, put, lift)
 
-import Data.ByteString                 (ByteString, hPut, hGetNonBlocking, hGetLine, concat, writeFile)
+import Data.IORef                      (newIORef, writeIORef, readIORef)
+import Data.ByteString                 (ByteString, hPut, hGetNonBlocking, hGetLine, concat, writeFile, length)
 import Data.ByteString.Char8           (unpack,pack)
 import Data.Monoid                     (mconcat, (<>))
 import Data.String                     (IsString(..))
-import Prelude as P                    hiding (concat, writeFile)
+import Prelude as P                    hiding (concat, writeFile, length)
 
 import Blaze.ByteString.Builder        (Builder, toByteString)
 import qualified Blaze.ByteString.Builder.Char8  as BBB
@@ -152,42 +153,54 @@ type PassName = String
 -- number of expressions before being shut down (NOT threadsafe).
 data SchemeProc = SchemeProc {
   eval :: ByteString -> IO LispVal,
+  reinitialize :: IO (), -- Can be called again after shutdown
   shutdown :: IO () }
 
 -- TODO: Implement a timeout:
 makeSchemeEvaluator :: IO SchemeProc
 makeSchemeEvaluator = do
-  (ip,op,ep,pid) <- runInteractiveCommand scheme
-  hSetBuffering ep NoBuffering
-  hSetBuffering ip LineBuffering
-  loadFramework ip
-  let shutdown = terminateProcess pid
+  ref <- newIORef (error "makeSchemeEvaluator: uninitialized scheme child process")
+  let shutdown = do
+        (_,_,_,pid) <- readIORef ref
+        terminateProcess pid
+
+      reinitialize = do
+        (ip,op,ep,pid) <- runInteractiveCommand scheme
+        hSetBuffering ep NoBuffering
+        hSetBuffering ip LineBuffering
+        loadFramework ip
+        writeIORef ref (ip,op,ep,pid)
+              
       -- Shutdown the child process if anything goes wrong:
       wrap m = E.catch m $ \e -> do
---                  hPutStrLn stderr " [Exception!  Shutting down child scheme proccess ]"
+                  hPutStrLn stderr " [Exception!  Restarting child scheme proccess ]"
                   shutdown
+                  reinitialize
                   throw (e::SomeException)
-      eval bstr = wrap$ do
+      -- We force the input first, to avoid restarting the scheme process unnecessarily.
+      eval bstr = length bstr `seq` (wrap $ do 
+        (ip,op,ep,_) <- readIORef ref
         -- Interaction protocol:  Write expressions, read results delimited by blank lines.
         hPut ip bstr
         hPut ip $ toByteString $ app "newline" []
         hPut ip "\n"
         hFlush ip
         ----------------------------------------
-        getRespose
-      getRespose = do  
-        err <- hGetNonBlocking ep 4096
-        -- let err = ""
-        if err == "" then
-          do lns <- readUntilBlank op
-             -- There's a race when an error occurs:
-             if lns == "" then waitFor 10000 ep >> getRespose
-              else case readExpr (unpack lns) of
-                    Left er   -> error $ show er
-                    Right lsp -> return lsp
-        else
-         do error$ "Error from child scheme process:\n"++unpack err
-  return$ SchemeProc { eval, shutdown } 
+        let getRespose = do  
+             err <- hGetNonBlocking ep 4096
+             -- let err = ""
+             if err == "" then
+               do lns <- readUntilBlank op
+                  -- There's a race when an error occurs:
+                  if lns == "" then waitFor 10000 ep >> getRespose
+                   else case readExpr (unpack lns) of
+                         Left er   -> error $ show er
+                         Right lsp -> return lsp
+             else
+              do error$ "from child scheme process:\n"++unpack err
+        getRespose)
+  reinitialize -- Call once to initialize.
+  return$ SchemeProc { eval, reinitialize, shutdown } 
 
 
 runWrapper :: PP a => SchemeProc -> WrapperName -> a -> IO LispVal
