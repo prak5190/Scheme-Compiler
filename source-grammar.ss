@@ -17,15 +17,15 @@
     (Body
       (locate ((UVar Loc) *) Tail))
     (Tail
-      (Triv)
       (if Pred Tail Tail)
-      (begin Effect * Tail))
+      (begin Effect * Tail)
+      (Triv))
     (Pred
       (true)
-      (false)
-      (Relop Triv Triv)
+      (false)      
       (if Pred Pred Pred)
-      (begin Effect * Pred))
+      (begin Effect * Pred)
+      (Relop Triv Triv))
     (Effect
       (nop)
       (set! Var Triv)
