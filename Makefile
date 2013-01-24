@@ -47,7 +47,7 @@ haskell: grammars build-haskell
 	./$(HS_EXE)
 
 build-haskell: 
-	$(HS) -O2 --make -o $(HS_EXE) $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
+	$(HS) --make -o $(HS_EXE) $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
 
 # Load up the compiler interactively so as to run the tests:
 haskell-interactive : grammars
@@ -57,9 +57,10 @@ haskell-interactive : grammars
 test: 
 	$(MAKE) clean
 	$(MAKE) grammars
-	#CSZ: why doesn't this just call the scheme command?
-	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | $(SC)
-	$(MAKE) haskell
+# RRN: This cannot be interactive and needs to get the exit code right:
+	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
+# RRN: It can be faster to run interpreted rather than compile:
+	runghc $(SCRIPT_DIR)/$(HS_FILE)
 
 clean :
 	rm -f t.s t $(HS_EXE)
