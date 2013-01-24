@@ -47,7 +47,7 @@ haskell: grammars build-haskell
 	./$(HS_EXE)
 
 build-haskell: 
-	$(HS) -O2 --make -o $(HS_EXE) $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
+	$(HS) --make -o $(HS_EXE) $(HS_FLAGS) $(SCRIPT_DIR)/$(HS_FILE)
 
 # Load up the compiler interactively so as to run the tests:
 haskell-interactive : grammars
