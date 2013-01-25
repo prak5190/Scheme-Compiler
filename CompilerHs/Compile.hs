@@ -13,19 +13,16 @@ import FrameworkHs.Prims
 import FrameworkHs.Helpers
 import FrameworkHs.SExpReader.LispData
 
-import FrameworkHs.ParseL01
+import FrameworkHs.ParseL01                    (parseProg)
 import FrameworkHs.GenGrammars.L01VerifyScheme
-import CompilerHs.VerifyScheme
-import CompilerHs.FinalizeLocations
-import CompilerHs.ExposeBasicBlocks
-import CompilerHs.ExposeFrameVar
-import CompilerHs.FlattenProgram
-import CompilerHs.GenerateX86_64
+import CompilerHs.VerifyScheme                 (verifyScheme)
+import CompilerHs.FinalizeLocations            (generateX86_64)
+import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
+import CompilerHs.ExposeFrameVar               (exposeFrameVar)
+import CompilerHs.FlattenProgram               (flattenProgram)
+import CompilerHs.GenerateX86_64               (generateX86_64)
 
-assemblyCmd :: String
-assemblyCmd = "cc"
-assemblyArgs :: [String]
-assemblyArgs = ["-m64","-o","t","t.s","Framework/runtime.c"]
+import qualified Data.ByteString as B
 
 vfs = P423Pass { pass = verifyScheme
                , passName = "verifyScheme"
@@ -57,25 +54,12 @@ flp = P423Pass { pass = flattenProgram
                , trace = False
                }
 
-p423Compile :: P423Config -> LispVal -> IO String
-p423Compile c l = do
-  p <- runPass vfs c p
-  p <- runPass fnl c p
-  p <- runPass efv c p
-  p <- runPass ebb c p
-  p <- runPass flp c p
-  assemble $ generateX86_64 c p
-  where p = case (parseProg l) of
-              Left e -> throw (ASTParseException e)
-              Right x -> x
-
-------------------------------------------------------------
--- Helpers -------------------------------------------------
-
-assemble :: Out -> IO String
-assemble out =
-  do withFile "t.s" WriteMode (runOut out)
-     (ec,_,e) <- readProcessWithExitCode assemblyCmd assemblyArgs ""
-     case ec of
-       ExitSuccess -> readProcess "./t" [] ""
-       ExitFailure i -> throw $ AssemblyFailedException e
+p423Compile :: LispVal -> CompileM String
+p423Compile l = do
+  p <- liftPassM$ parseProg l
+  p <- runPass vfs p
+  p <- runPass fnl p
+  p <- runPass efv p
+  p <- runPass ebb p
+  p <- runPass flp p
+  assemble$ generateX86_64 p

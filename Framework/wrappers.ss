@@ -131,6 +131,11 @@
   (import
     (chezscheme)
     (Framework match)
+    (Framework GenGrammars l01-verify-scheme)
+    (Framework GenGrammars l36-finalize-locations)
+    (Framework GenGrammars l37-expose-frame-var)
+    (Framework GenGrammars l39-expose-basic-blocks)
+    (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux) rewrite-opnds))
@@ -168,7 +173,8 @@
             set! handle-overflow  locals
             lambda true false nop))
   (reset-machine-state!)
-  (call/cc (lambda (k) (set! ,return-address-register k) ,x))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -214,7 +220,8 @@
     (only (Framework wrappers aux)
       handle-overflow set! true false nop)
     (only (chezscheme) lambda))
-  (call/cc (lambda (k) (set! ,return-address-register k) ,x))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -229,7 +236,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds x)))
+      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -244,7 +251,7 @@
   (call/cc
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds x)))
+      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l39-expose-basic-blocks x) x))))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -259,7 +266,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds x)))
+      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
   ,return-value-register)
 
 ;;-----------------------------------

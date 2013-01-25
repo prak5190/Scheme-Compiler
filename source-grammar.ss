@@ -5,12 +5,12 @@
 ;;   verify-scheme              l-01 -> l-01
 ;; * uncover-register-conflict  l-01 -> l-32
 ;; * assign-registers           l-32 -> l-33
-;; * discard-call-live          l-33 -> l-34
-;;   finalize-locations         l-34 -> l-35
-;;   expose-frame-var           l-35 -> l-36
-;;   expose-basic-blocks        l-36 -> l-38
-;;   flatten-program            l-38 -> l-40
-;;   generate-x86-64            l-40 -> ()
+;; * discard-call-live          l-33 -> l-35
+;;   finalize-locations         l-35 -> l-36
+;;   expose-frame-var           l-36 -> l-37
+;;   expose-basic-blocks        l-37 -> l-39
+;;   flatten-program            l-39 -> l-41
+;;   generate-x86-64            l-41 -> ()
 
 (p423-grammars
   (l01-verify-scheme
@@ -63,14 +63,14 @@
       (locate ((UVar Reg) *)
         Tail))))
 
-(l34-discard-call-live
+(l35-discard-call-live
   (%remove
     (Tail app))
   (%add
     (Tail
       (Triv))))
 
- (l35-finalize-locations
+ (l36-finalize-locations
    (%remove
      (Body locate)
      UVar

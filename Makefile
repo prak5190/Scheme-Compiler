@@ -10,8 +10,11 @@
 #----------------------------------------------------------------------
 
 #-- Variables --#
-SC=petite
-HS=ghc-7.4.2
+SC=$(shell which scheme 2> /dev/null)
+ifeq ($(SC),)
+  SC=petite
+endif
+HS=ghc
 
 # HS_FLAGS=-v0
 HS_FLAGS=
@@ -31,15 +34,23 @@ HS_EXE=$(HS_FILE:.hs=.exe)
 # The main point of this file is to run the tests
 all : grammars
 
-grammars : $(SRC_GRAMMAR) GrammarCompiler
+grammars : Framework/GenGrammars
+Framework/GenGrammars: $(SRC_GRAMMAR) GrammarCompiler
 	@mkdir -p Framework{,Hs}/GenGrammars
 	$(SC) --script $(SCRIPT_DIR)/$(CG_FILE) "$(SRC_GRAMMAR)"
 
 scheme : grammars
 	$(SC) $(SCRIPT_DIR)/$(SC_FILE)
 
+scheme-test:
+	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
+
+scheme-xml:
+	@echo '(begin (import (Framework testing)) (exit (if (test-all-xml) 0 1)))' | $(SC) -q
+
 # Run the tests straight away:
-haskell: grammars build-haskell
+haskell: haskell-test
+haskell-test: grammars build-haskell
 	./$(HS_EXE)
 
 build-haskell: 
@@ -53,7 +64,11 @@ haskell-interactive : grammars
 test: 
 	$(MAKE) clean
 	$(MAKE) grammars
-	echo '(import (Framework testing)) (exit (if (test-all) 0 1))' | scheme
+# RRN: This cannot be interactive and needs to get the exit code right:
+	$(MAKE) scheme-test
+# RRN: It can be faster to run interpreted rather than compile:
+#      (But I'm having problems with that on SOIC machines.)
+#	runghc $(SCRIPT_DIR)/$(HS_FILE)
 	$(MAKE) haskell
 
 clean :

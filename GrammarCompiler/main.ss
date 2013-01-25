@@ -36,9 +36,14 @@
 (define main
   (lambda (source-file scheme-path haskell-path)
     (let ((grammars (read-file source-file)))
+      (printf "========================================\n")
+      (printf " Desugared grammars: \n")
+      (printf "========================================\n")
       (match (desugar-directives grammars)
         ((p423-grammars (,name* . ,g*) ...)
+         (printf "========================================\n")
          (map (lambda (name g)
+                (printf " * Codegen for grammar: ~s\n" name)
                 (let ((g `(,name . ,g)))
                   (begin
                     (write-haskell haskell-path name g)
@@ -76,7 +81,7 @@
     (write-code scheme-passes
                 scheme->filename/string
                 ".ss"
-                emit-scheme
+                (emit-scheme name (verifier-name name))
                 path
                 name
                 code)))
