@@ -8,7 +8,7 @@ import qualified FrameworkHs.GenGrammars.L39ExposeBasicBlocks as L2
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
-import Control.Monad.Trans.State
+import Control.Monad.State
 import Data.Int
 
 type IndexState = State Integer
