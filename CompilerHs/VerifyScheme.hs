@@ -17,15 +17,13 @@ verifyScheme c p@(Letrec ls b) = runPassM c $ do
     (labels,bodies) = unzip ls
 
 vBody :: [Label] -> Body -> PassM ()
-vBody labels bo@(Locate ls t) = do
+vBody labels bo@(Locals uvars t) = do
   allDistinct "uvar" uvars
-  vTail labels ls t
-  where
-    (uvars,_) = unzip ls
+  vTail labels [] t
 
 vTail :: [Label] -> Env -> Tail -> PassM ()
 vTail labels env ta = case ta of
-  AppT tr     -> vTriv labels env tr
+  AppT tr _live -> vTriv labels env tr
   IfT p t1 t2 -> do vPred labels env p
                     vTail labels env t1
                     vTail labels env t2

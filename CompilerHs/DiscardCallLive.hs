@@ -9,4 +9,5 @@ import qualified FrameworkHs.GenGrammars.L35DiscardCallLive as T
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
+discardCallLive :: P423Config -> Prog -> T.Prog
 discardCallLive = undefined

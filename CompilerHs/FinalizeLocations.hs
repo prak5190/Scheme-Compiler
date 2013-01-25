@@ -2,14 +2,14 @@ module CompilerHs.FinalizeLocations
   ( finalizeLocations
   ) where
 
-import FrameworkHs.GenGrammars.L01VerifyScheme
+import FrameworkHs.GenGrammars.L35DiscardCallLive
 import qualified FrameworkHs.GenGrammars.L36FinalizeLocations as L2
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 import Data.Maybe (fromJust)
 
-type Env = [(UVar,Loc)]
+type Env = [(UVar,Reg)]
 
 finalizeLocations :: P423Config -> Prog -> L2.Prog
 finalizeLocations cfg (Letrec ls b) = runPassM cfg $ do
@@ -24,7 +24,7 @@ fBody (Locate ls t) = fTail ls t
 
 fVar :: Env -> Var -> PassM L2.Loc
 fVar env v = case v of
-  UVar uv -> fLoc $ fromJust $ lookup uv env
+  UVar uv -> return$ L2.Reg$ fromJust $ lookup uv env
   --UVar uv -> case (lookup uv env) of
   --  Just l -> fLoc l
   --  Nothing -> failure ("unbound uvar (should have been handled in VerifyScheme): " ++ show uv)
@@ -88,3 +88,4 @@ fLoc :: Loc -> PassM L2.Loc
 fLoc l = case l of
   Reg r   -> return (L2.Reg r)
   FVar fv -> return (L2.FVar fv)
+

@@ -10,4 +10,5 @@ import qualified FrameworkHs.GenGrammars.L32UncoverRegisterConflict as T
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
+uncoverRegisterConflict :: P423Config -> Prog -> T.Prog
 uncoverRegisterConflict = undefined
