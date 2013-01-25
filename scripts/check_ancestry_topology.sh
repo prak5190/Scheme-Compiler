@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$NUMASSIGNS" == "" ]; then 
-  NUMASSIGNS=3
+  NUMASSIGNS=4
 fi
 
 cat <<EOF
