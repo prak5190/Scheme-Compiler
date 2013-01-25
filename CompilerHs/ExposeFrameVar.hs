@@ -18,7 +18,7 @@ exposeFrameVar c (Letrec ls t) =
 
 eLoc :: Reg -> Loc -> L2.Loc
 eLoc fpr lo = case lo of
-  Reg r       -> L2.Reg r
+  RegL r       -> L2.RegL r
   FVar (FV n) -> L2.Disp $ D fpr $ ash wordShift n
 
 ------------------------------------------------------------

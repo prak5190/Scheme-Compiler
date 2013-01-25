@@ -50,9 +50,12 @@
   (%remove
     (Body locals))
   (%add
+    ;; Ignore conflicts with frame vars:
+    (Conflict Reg UVar)
     (Body
       (locals (UVar *)
-        (register-conflict ((UVar UVar * Reg *) *)
+;        (register-conflict ((UVar UVar * Reg *) *)
+        (register-conflict ((UVar Conflict *) *)
           Tail)))))
 
 (l33-assign-registers

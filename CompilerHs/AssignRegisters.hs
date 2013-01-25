@@ -11,4 +11,4 @@ import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
 assignRegisters :: P423Config -> Prog -> T.Prog
-assignRegisters = undefined
+assignRegisters = error "finish assignRegisters"

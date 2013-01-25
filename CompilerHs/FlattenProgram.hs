@@ -64,5 +64,5 @@ fTriv tr = case tr of
 
 fLoc :: Loc -> L2.Loc
 fLoc l = case l of
-  Reg r  -> L2.Reg r
+  RegL r  -> L2.RegL r
   Disp d -> L2.Disp d

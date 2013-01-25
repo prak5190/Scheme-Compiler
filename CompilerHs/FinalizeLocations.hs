@@ -24,7 +24,7 @@ fBody (Locate ls t) = fTail ls t
 
 fVar :: Env -> Var -> PassM L2.Loc
 fVar env v = case v of
-  UVar uv -> return$ L2.Reg$ fromJust $ lookup uv env
+  UVarV uv -> return$ L2.RegL$ fromJust $ lookup uv env
   --UVar uv -> case (lookup uv env) of
   --  Just l -> fLoc l
   --  Nothing -> failure ("unbound uvar (should have been handled in VerifyScheme): " ++ show uv)
@@ -86,6 +86,6 @@ fTriv env tr = case tr of
 
 fLoc :: Loc -> PassM L2.Loc
 fLoc l = case l of
-  Reg r   -> return (L2.Reg r)
+  RegL r   -> return (L2.RegL r)
   FVar fv -> return (L2.FVar fv)
 

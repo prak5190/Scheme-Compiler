@@ -40,7 +40,7 @@ instance X86Print Triv where
 
 instance X86Print Loc where
   format l = case l of
-    Reg r  -> format r
+    RegL r  -> format r
     Disp d -> format d
 
 ------------------------------------------------------------

@@ -10,4 +10,4 @@ import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
 discardCallLive :: P423Config -> Prog -> T.Prog
-discardCallLive = undefined
+discardCallLive = error "finish discardCallLive"

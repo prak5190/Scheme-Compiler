@@ -5,7 +5,7 @@ import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
-type Env = [(UVar,Loc)]
+type Env = [UVar]
 
 verifyScheme :: P423Config -> Prog -> Prog
 verifyScheme c p@(Letrec ls b) = runPassM c $ do
@@ -19,7 +19,7 @@ verifyScheme c p@(Letrec ls b) = runPassM c $ do
 vBody :: [Label] -> Body -> PassM ()
 vBody labels bo@(Locals uvars t) = do
   allDistinct "uvar" uvars
-  vTail labels [] t
+  vTail labels uvars t
 
 vTail :: [Label] -> Env -> Tail -> PassM ()
 vTail labels env ta = case ta of
@@ -118,7 +118,7 @@ vTriv labels env tr = case tr of
 
 vVar :: Env -> Var -> PassM ()
 vVar env v = case v of
-  UVar uv -> assert (isJust $ lookup uv env) ("unbound uvar: " ++ show uv)
+  UVar uv -> assert (elem uv env) ("unbound uvar: " ++ show uv)
   Loc l   -> return ()
 
 identicalError :: Var -> Triv -> Effect -> String
@@ -145,17 +145,13 @@ allDistinct name xs = case xs of
 
 varIsReg :: Var -> Env -> Bool
 varIsReg v env = case v of
-  UVar uv     -> case (lookup uv env) of
-    Just (Reg _) -> True
-    _            -> False
+  UVar uv     -> elem uv env
   Loc (Reg _) -> True
   _           -> False
 
 varIsFVar :: Var -> Env -> Bool
 varIsFVar v env = case v of
-  UVar uv      -> case (lookup uv env) of
-    Just (FVar _) -> True
-    _             -> False
+  UVar uv      -> elem uv env
   Loc (FVar _) -> True
   _            -> False
 
