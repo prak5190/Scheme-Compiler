@@ -16,6 +16,9 @@ import FrameworkHs.SExpReader.LispData
 import FrameworkHs.ParseL01                    (parseProg)
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import CompilerHs.VerifyScheme                 (verifyScheme)
+import CompilerHs.UncoverRegisterConflict      (uncoverRegisterConflict)
+import CompilerHs.AssignRegisters              (assignRegisters)
+import CompilerHs.DiscardCallLive              (discardCallLive)
 import CompilerHs.FinalizeLocations            (generateX86_64)
 import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
 import CompilerHs.ExposeFrameVar               (exposeFrameVar)
