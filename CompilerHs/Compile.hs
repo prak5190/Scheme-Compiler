@@ -19,7 +19,7 @@ import CompilerHs.VerifyScheme                 (verifyScheme)
 import CompilerHs.UncoverRegisterConflict      (uncoverRegisterConflict)
 import CompilerHs.AssignRegisters              (assignRegisters)
 import CompilerHs.DiscardCallLive              (discardCallLive)
-import CompilerHs.FinalizeLocations            (generateX86_64)
+import CompilerHs.FinalizeLocations            (finalizeLocations)
 import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
 import CompilerHs.ExposeFrameVar               (exposeFrameVar)
 import CompilerHs.FlattenProgram               (flattenProgram)
@@ -54,7 +54,7 @@ ebb = P423Pass { pass = exposeBasicBlocks
 flp = P423Pass { pass = flattenProgram
                , passName = "flattenProgram"
                , wrapperName = "flatten-program/wrapper"
-               , trace = False
+               , trace = False 
                }
 
 p423Compile :: LispVal -> CompileM String

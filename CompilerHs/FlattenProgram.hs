@@ -8,8 +8,8 @@ import qualified FrameworkHs.GenGrammars.L41FlattenProgram as L2
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
-flattenProgram :: P423Config -> Prog -> Exc L2.Prog
-flattenProgram  c (Letrec ls t) = return $ L2.Code ss s
+flattenProgram :: P423Config -> Prog -> L2.Prog
+flattenProgram  c (Letrec ls t) = L2.Code ss s
   where
     (labels,tails) = unzip ls
     ss             = init statements

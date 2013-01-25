@@ -8,13 +8,13 @@ import qualified FrameworkHs.GenGrammars.L39ExposeBasicBlocks as L2
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
-import Control.Monad.Trans.State
+import Control.Monad.State
 import Data.Int
 
 type IndexState = State Integer
 
-exposeBasicBlocks :: P423Config -> Prog -> Exc L2.Prog
-exposeBasicBlocks c (Letrec ls t) = return $ flip evalState 100000 $ do
+exposeBasicBlocks :: P423Config -> Prog -> L2.Prog
+exposeBasicBlocks c (Letrec ls t) = flip evalState 100000 $ do
   ts <- mapM eTail tails
   let (tails,binds) = unzip ts
   (t,bind) <- eTail t
@@ -71,7 +71,7 @@ eEffect xs x es t = case x of
                          (p,pbs)      <- ePred p cl al
                          (x,xbs)      <- eEffects xs [] p
                          return (x,xbs++pbs++[(cl,conseq)]++cbs++[(al,altern)]++abs++[(jl,makeBegin es t)])
-  BeginE es' e      -> eEffects (xs++es') es t
+  BeginE xs2 x      -> eEffects (xs++xs2++[x]) es t
 
 ------------------------------------------------------------
 -- Monadic
@@ -108,3 +108,4 @@ makeBegin es t = case es of
   _  -> case t of
           L2.Begin es' t' -> makeBegin (es++es') t'
           _               -> L2.Begin es t
+
