@@ -1,5 +1,5 @@
 (library (GrammarCompiler scheme generate-verify)
-         (export generate-verify)
+         (export generate-verify verifier-name)
          (import (chezscheme)
                  (GrammarCompiler common match)
                  (GrammarCompiler common aux))
@@ -16,7 +16,7 @@
             ,t* ...
             ;,t/p* ...
             (let ((res (,st x)))
-              (if res (errorf ',name res) x))))))))
+              (if res (errorf ',name "~a" res) x))))))))
 
 (define Name
   (lambda (s)
@@ -24,6 +24,8 @@
      (string-append
       "verify-grammar:"
       (symbol->string s)))))
+
+(define verifier-name Name)
 
 (define Terminal
   (lambda (t/p)
@@ -37,30 +39,48 @@
     (match x
       ((,name . ,sub*)
        (let-values (((s ns) (partition non-terminal? sub*)))
-         (let ((ns (map Sub ns))
-               (s (map Simple s)))
+         (let* ((grouped (group-by-head ns))
+		(s (map Simple s)))
            `(define ,name
               (lambda (x)
                 (match x
                   ,s ...
-                  ,ns ...
-                  (,(uq 'e) (invalid-expr ',name e)))))))))))
-       ;(let ((sub* (map (if (for-all non-terminal? sub*) Simple Sub) sub*)))
-       ;  `(define ,name
-       ;     (lambda (x)
-       ;       (match x
-       ;         ,sub* ...
-       ;         (,(uq 'e) (invalid-expr ',name e))))))))))
+                  ,grouped ...
+                  (,(uq 'e) (invalid-expr ',name e)))
+		))))))))
 
 (define Simple
   (lambda (s)
     `(,(uq 'e) (guard (not (,s e))) #f)))
 
-(define Sub
-  (lambda (s)
-    (let-values
+;; Grammars for this course are non-ambiguous.  However, the leading
+;; symbol does not uniquely identify a given construct in the grammar.
+;; 
+;; This function groups non-terminals based on their leading symbol.
+(define (group-by-head ls)
+  (match ls 
+    [() '()]
+    [((,sym ,bod* ...) ,rst ...) (guard (symbol? sym))
+     (let-values ([(sibs others) (partition (lambda (x) (and (pair? x) (eq? sym (car x)))) rst)])
+       (let ([this-clause (if (null? sibs)
+			      (SubMatchClause (car ls))
+			      `[(,sym . ,(uq 'bod)) 
+				(and ,(map (lambda (variant)
+					     `(match (cons ',sym bod)
+						,(SubMatchClause variant)
+						[,(uq 'e) (invalid-expr ',sym e)]))
+					(cons (car ls) sibs))
+				     ...)]
+			      )])
+	 (cons this-clause (group-by-head others))))]
+    [,x (errorf 'group-by-head "expected non-terminal to be a list headed by a symbol: ~a" x)]))
+
+;; Handle each nontrivial pattern for a nonterminal:
+(define (SubMatchClause s)
+  (let-values
         (((s n seen)
           (let loop ((s s) (n 1) (seen '()))
+            ;; seen - accumulate nonterminals encountered
             (cond
               ((null? s) (values '() n seen))
               (else
@@ -75,7 +95,7 @@
                       (values `(,a . ,d) n seen)))
                    ((non-terminal? a)
                     (let ((name (number-symbol "x" n)))
-                      (let-values (((d n seen) (loop d (add1 n) `(,name . ,seen))))
+                      (let-values (((d n seen) (loop d (add1 n) (cons name seen))))
                         (values
                          (cons (uq `(,a -> ,name)) d)
                          n
@@ -83,7 +103,8 @@
                    ((eq? a '*)
                     (let-values (((d n seen) (loop d n seen)))
                       (values `(... . ,d) n seen))))))))))
-      `(,s (any . ,seen)))))
+    `(,s (any . ,seen))
+      ))
 
 (define uq
   (lambda (s)
