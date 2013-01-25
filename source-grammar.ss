@@ -65,10 +65,9 @@
 
 (l35-discard-call-live
   (%remove
-    (Tail app))
+    (Tail Triv))
   (%add
-    (Tail
-      (Triv))))
+    (Tail (Triv))))
 
  (l36-finalize-locations
    (%remove
