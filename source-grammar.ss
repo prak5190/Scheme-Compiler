@@ -19,16 +19,16 @@
       (letrec ((Label (lambda () Body)) *) Body))
     (Body
       (locals (UVar *) Tail))
-    (Tail
-      (Triv Loc *)
+    (Tail      
       (if Pred Tail Tail)
-      (begin Effect * Tail))
+      (begin Effect * Tail)
+      (Triv Loc *))
     (Pred
       (true)
-      (false)
-      (Relop Triv Triv)
+      (false)      
       (if Pred Pred Pred)
-      (begin Effect * Pred))
+      (begin Effect * Pred)
+      (Relop Triv Triv))
     (Effect
       (nop)
       (set! Var Triv)
