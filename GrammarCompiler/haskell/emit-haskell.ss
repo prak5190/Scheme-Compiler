@@ -18,7 +18,8 @@
   (lambda ()
     '("Eq"
       "Read"
-      "Show")))
+      "Show"
+      "Ord")))
 
 (define-syntax spaces
   (syntax-rules ()

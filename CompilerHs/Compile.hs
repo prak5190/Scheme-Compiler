@@ -36,7 +36,7 @@ vfs = P423Pass { pass = verifyScheme
 urc = P423Pass { pass = uncoverRegisterConflict
                , passName = "uncoverRegisterConflict"
                , wrapperName = "uncover-register-conflict/wrapper"
-               , trace = False
+               , trace = True
                }
 
 asr = P423Pass { pass = assignRegisters

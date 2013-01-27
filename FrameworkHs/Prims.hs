@@ -18,12 +18,12 @@ import Data.Symbol
 --------------------------------------------------------------------------------
 -- Terminal Type Definitions ---------------------------------------------------
 
-data UVar = UV String Integer deriving (Read, Show, Eq)
-data FVar = FV Integer        deriving (Read, Show, Eq)
-data Label = L String Integer deriving (Read, Show, Eq)
+data UVar = UV String Integer deriving (Read, Show, Eq, Ord)
+data FVar = FV Integer        deriving (Read, Show, Eq, Ord)
+data Label = L String Integer deriving (Read, Show, Eq, Ord)
 
-data UVar' = UV' Symbol Integer deriving (Show, Eq)
-data Label' = L' Symbol Integer deriving (Show, Eq)
+data UVar' = UV' Symbol Integer deriving (Show, Eq, Ord)
+data Label' = L' Symbol Integer deriving (Show, Eq, Ord)
 
 data Reg = RAX | RCX | RDX | RBX | RBP | RSI | RDI | R8 | R9
          | R10 | R11 | R12 | R13 | R14 | R15
@@ -32,5 +32,5 @@ data Reg = RAX | RCX | RDX | RBX | RBP | RSI | RDI | R8 | R9
 data Relop = LT | LTE | EQ | GT | GTE               deriving (Read,Show,Eq,Ord)
 data Binop = MUL | ADD | SUB | LOGAND | LOGOR | SRA deriving (Read,Show,Eq,Ord)
 
-data Disp = D Reg Integer deriving (Read,Show,Eq)
-data Ind = I Reg Reg deriving (Read,Show,Eq)
+data Disp = D Reg Integer deriving (Read,Show,Eq, Ord)
+data Ind = I Reg Reg deriving (Read,Show,Eq, Ord)

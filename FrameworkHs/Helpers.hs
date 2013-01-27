@@ -75,7 +75,7 @@ import Blaze.ByteString.Builder as BBB
 import Blaze.ByteString.Builder.Char8 (fromChar, fromString, fromShow)
 import Data.List (intersperse)
 import Data.Set (size, fromList)
-import Data.Char (isDigit, isSpace)
+import Data.Char (isDigit, isSpace, isAlpha)
 import Data.Int
 import Data.ByteString (ByteString, hPut)
 -- import Data.ByteString (ByteString, hPut)
@@ -419,13 +419,20 @@ ppSexp :: [Builder] -> Builder
 ppSexp ls = fromString "(" `mappend` mconcat (intersperse (fromString " ") ls) `mappend` fromString ")"
 
 -- | Build a multi-line pretty-printed SExp
-pppSexp :: [P.Doc] -> P.Doc
-pppSexp ls = P.parens$ P.sep ls
+-- pppSexp :: [P.Doc] -> P.Doc
+-- pppSexp ls = P.parens$ P.sep ls
 
 -- Getting a hang for keywords is a bit hard:
+pppSexp :: [P.Doc] -> P.Doc
 -- pppSexp [] = P.parens P.empty
 -- pppSexp [a,b] = P.parens$ P.sep [a,b]
--- pppSexp (hd:ls) = P.parens$ P.hang hd 2 (P.sep ls)
+pppSexp (h1:h2:ls) | isSchemeKwd (P.render h1) = P.parens$ P.sep$ (h1 P.<+> h2):ls
+--  | otherwise =
+pppSexp ls = P.parens$ P.sep ls
+
+isSchemeKwd :: String -> Bool
+-- isSchemeKwd = all (\c -> isAlpha c || c=='-')
+isSchemeKwd = flip elem ["locals","letrec","lambda","register-conflict"]
 
 
 instance PP Builder where
