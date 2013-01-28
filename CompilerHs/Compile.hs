@@ -36,13 +36,13 @@ vfs = P423Pass { pass = verifyScheme
 urc = P423Pass { pass = uncoverRegisterConflict
                , passName = "uncoverRegisterConflict"
                , wrapperName = "uncover-register-conflict/wrapper"
-               , trace = True
+               , trace = False
                }
 
 asr = P423Pass { pass = assignRegisters
                , passName = "assignRegisters"
                , wrapperName = "assign-registers/wrapper"
-               , trace = True
+               , trace = False
                }
 
 dcl = P423Pass { pass = discardCallLive
