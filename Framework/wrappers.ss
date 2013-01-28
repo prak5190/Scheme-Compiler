@@ -178,16 +178,17 @@
 (define-language-wrapper (source/wrapper verify-scheme/wrapper)
   (x)
   (environment env)
-  (import
-    (only (Framework wrappers aux)
-      handle-overflow set! locate true false nop))
+  (import (only (Framework wrappers aux)
+            set! handle-overflow  locals
+            lambda true false nop))
+  (reset-machine-state!)
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
   ,return-value-register)
 
 (define-language-wrapper uncover-register-conflict/wrapper (x) 
   (environment env)
-  (import (only (framework wrappers aux)
+  (import (only (Framework wrappers aux)
              handle-overflow set! locals
             lambda register-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
@@ -196,7 +197,7 @@
 
 (define-language-wrapper assign-registers/wrapper (x)
   (environment env)
-  (import (only (framework wrappers aux)
+  (import (only (Framework wrappers aux)
              handle-overflow set! locate
             lambda true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
@@ -205,7 +206,7 @@
 
 (define-language-wrapper discard-call-live/wrapper (x)
   (environment env)
-  (import (only (framework wrappers aux)
+  (import (only (Framework wrappers aux)
              handle-overflow set! locate
             true false nop)
     (only (chezscheme) lambda))
