@@ -130,6 +130,9 @@
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
+    uncover-register-conflict/wrapper
+    assign-registers/wrapper
+    discard-call-live/wrapper
     finalize-locations/wrapper
     expose-frame-var/wrapper
     expose-basic-blocks/wrapper
@@ -139,6 +142,9 @@
     (chezscheme)
     (Framework match)
     (Framework GenGrammars l01-verify-scheme)
+    (Framework GenGrammars l32-uncover-register-conflict)
+    (Framework GenGrammars l33-assign-registers)
+    (Framework GenGrammars l35-discard-call-live)
     (Framework GenGrammars l36-finalize-locations)
     (Framework GenGrammars l37-expose-frame-var)
     (Framework GenGrammars l39-expose-basic-blocks)
@@ -158,6 +164,9 @@
     (case pass
       ((source) source/wrapper)
       ((verify-scheme) verify-scheme/wrapper)
+      ((uncover-register-conflict) uncover-register-conflict/wrapper)
+      ((assign-registers) assign-registers/wrapper)
+      ((discard-call-live) discard-call-live/wrapper)
       ((finalize-locations) finalize-locations/wrapper)
       ((expose-frame-var) expose-frame-var/wrapper)
       ((expose-basic-blocks) expose-basic-blocks/wrapper)
@@ -174,6 +183,34 @@
       handle-overflow set! locate true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
+  ,return-value-register)
+
+(define-language-wrapper uncover-register-conflict/wrapper (x) 
+  (environment env)
+  (import (only (framework wrappers aux)
+             handle-overflow set! locals
+            lambda register-conflict true false nop))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
+  ,return-value-register)
+
+(define-language-wrapper assign-registers/wrapper (x)
+  (environment env)
+  (import (only (framework wrappers aux)
+             handle-overflow set! locate
+            lambda true false nop))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
+  ,return-value-register)
+
+(define-language-wrapper discard-call-live/wrapper (x)
+  (environment env)
+  (import (only (framework wrappers aux)
+             handle-overflow set! locate
+            true false nop)
+    (only (chezscheme) lambda))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
   ,return-value-register)
 
 (define-language-wrapper finalize-locations/wrapper
