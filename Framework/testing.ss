@@ -71,6 +71,7 @@
     test-valid
     test-invalid
     test-all
+    test-all-xml
     run-tests
 
     ;; to change the parameters
@@ -249,6 +250,39 @@
         (print-finalization runner)
         ))))
 
+(define (test-all-xml)
+  (begin
+    (load "test-suite.ss")
+    (reset-test-runner)
+    (let ((compiler (test-compiler))
+          (runner (current-test-runner))
+          (vt (valid-tests))
+          (it (invalid-tests)))
+      (begin
+        ;; Process the valid tests
+        (test-suite vt)
+        (printf "<test-group name=\"valid-tests\">\n")
+        (for-each (test-one-xml compiler runner) (test-suite))
+        (printf "</test-group>\n")
+
+        ;; Process the invalid tests
+        (test-suite it)
+        (printf "<test-group name=\"invalid-tests\">\n")
+        (for-each (test-one-xml compiler runner) (test-suite))
+        (printf "</test-group>\n")
+
+        ;; Finish up
+        (test-suite (append vt it))
+
+        ;; send and ending character so the autograder knows we are done. 
+        ;; this is necessary because the scheme repl continues after the run
+        ;; completes, therefore the subprocess from the autograder will hang
+        ;; waiting for completion
+        (printf "<EOF/>")
+        ))))
+
+
+
 ;; Runs the compiler in (test-compiler) over the tests in (test-suite)
 ;; with a fresh test runner. If you've customized anything, use this
 ;; to run your customizations.
@@ -269,11 +303,24 @@
 (define (test-one compiler runner)
   (lambda (input)
     (let ((pr (guard (x [else x])
-                (compiler (test-case-source input))))
+                     (compiler (test-case-source input))))
           (expected-failure
             (not (test-case-valid? input))))
       (begin
         (print-individual-completion pr runner)
+        (record-test-result pr expected-failure runner)))))
+
+;; This prints out the information for a single test.
+;; Don't use test-one to run the compiler on a single program,
+;; just call the current compiler on that program.
+(define (test-one-xml compiler runner)
+  (lambda (input)
+    (let ((pr (guard (x [else x])
+                     (compiler (test-case-source input))))
+          (expected-failure
+            (not (test-case-valid? input))))
+      (begin
+        (print-individual-completion-xml pr runner (if expected-failure "fail" "pass"))
         (record-test-result pr expected-failure runner)))))
 
 (define (print-group-heading)
@@ -289,8 +336,19 @@
 ;; ...
 (define (print-individual-completion pr runner)
   (apply printf "~4d    ~8a~a~n"
-    (current-test-number runner)
-    (result->string pr)))
+         (current-test-number runner)
+         (result->string pr)))
+
+;; Prints an individual test completion.
+;; Example output:
+;;    
+;;    <test-result name="test-name" result="pass/fail" expected="pass/fail" />
+;;    
+(define (print-individual-completion-xml pr runner expected)
+  (printf "<test-result name=\"test-~s\" result=~s expected=~s />\n"
+          (current-test-number runner)
+          (result->pass/fail pr)
+          expected))
 
 (define (result->string pass-result)
   (cond
@@ -298,15 +356,27 @@
      (list "Fail" "Wrapper violation")]
     [(pass-verification-violation? pass-result)
      (list "Fail"
-       (format "~a: ~s"
-         "Verification error"
-         (pass-verification-violation-pass pass-result)))]
+           (format "~a: ~s"
+                   "Verification error"
+                   (pass-verification-violation-pass pass-result)))]
     [(or (error? pass-result) (violation? pass-result))
      (list "Fail" 
-       (if (who-condition? pass-result)
-           (format "Runtime error in ~s" (condition-who pass-result))
-           "Runtime error"))]
+           (if (who-condition? pass-result)
+             (format "Runtime error in ~s" (condition-who pass-result))
+             "Runtime error"))]
     [else (list "Pass" "")]))
+
+(define (result->pass/fail pass-result)
+  (cond
+    [(wrapper-violation? pass-result)
+     "wrapper violation"]
+    [(pass-verification-violation? pass-result)
+     (format "~a: ~s"
+       "verification error"
+       (pass-verification-violation-pass pass-result))]
+    [(or (error? pass-result) (violation? pass-result))
+     "fail"]
+    [else "pass"]))
 
 ;; Prints a final summary for the testing.
 ;; Example output:
@@ -317,7 +387,7 @@
 ;; Unexpected Passes:        10
 ;; Expected Failures:        20
 ;; Unexpected Failures:      25
-;; Total:                   200
+;; Total:                   155
 (define (print-finalization runner)
   (let ((pass-expected   (test-runner-pass-expected   runner))
         (pass-unexpected (test-runner-pass-unexpected runner))
@@ -330,10 +400,10 @@
     (printf "Expected Failures:~24,8t~4d~n"    fail-expected)
     (printf "Unexpected Failures: ~24,8t~4d~n" fail-unexpected)
     (printf "Total:~24,8t~4d~n"
-      (+ pass-expected pass-unexpected
-         fail-expected fail-unexpected))
+            (+ pass-expected pass-unexpected
+               fail-expected fail-unexpected))
     (zero? (+ fail-unexpected pass-unexpected))))
-	
+
 
 ;; Calculates the current test number
 (define (current-test-number runner)
@@ -354,25 +424,25 @@
          (violation? pass-result))
      (begin
        (add-to-history runner
-         (cons (current-test-number runner)
-           ;; If the failure was expected, store #f. otherwise #t
-           (cons (not expected-fail) pass-result)))
+                       (cons (current-test-number runner)
+                             ;; If the failure was expected, store #f. otherwise #t
+                             (cons (not expected-fail) pass-result)))
        (if expected-fail
-           ;; An expected failure
-           (incr-fail-expected runner)
-           ;; An unexpected failure
-           (incr-fail-unexpected runner))))
+         ;; An expected failure
+         (incr-fail-expected runner)
+         ;; An unexpected failure
+         (incr-fail-unexpected runner))))
     (else
       (if expected-fail
-          ;; An unexpected pass
-          ;; Since this is an unexpected result, store #t.
-          (begin
-            (add-to-history runner
-              (cons (current-test-number runner)
-                (cons #t (void))))
-            (incr-pass-unexpected runner))
-          ;; An expected pass
-          (incr-pass-expected runner)))))
+        ;; An unexpected pass
+        ;; Since this is an unexpected result, store #t.
+        (begin
+          (add-to-history runner
+                          (cons (current-test-number runner)
+                                (cons #t (void))))
+          (incr-pass-unexpected runner))
+        ;; An expected pass
+        (incr-pass-expected runner)))))
 
 (define (display-test-failure test-num)
   (let ([result (test-failure-condition test-num)])
@@ -382,7 +452,7 @@
          (display-pass-verification-violation result)]
         [(wrapper-violation? result)
          (printf "Error in wrapper ~a:~n"
-           (wrapper-violation-name result))
+                 (wrapper-violation-name result))
          (display-condition result)]
         [else (display-condition result)])
       (newline))))
