@@ -41,8 +41,8 @@ urc = P423Pass { pass = uncoverRegisterConflict
 
 asr = P423Pass { pass = assignRegisters
                , passName = "assignRegisters"
-               , wrapperName = "assign-register/wrapper"
-               , trace = False
+               , wrapperName = "assign-registers/wrapper"
+               , trace = True
                }
 
 dcl = P423Pass { pass = discardCallLive
