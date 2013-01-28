@@ -233,6 +233,9 @@ showGen c g = show $ case runGenM c g of
 class X86Print a where
   format :: a -> Builder
 
+instance Show Builder where
+  show = show . toByteString 
+
 instance X86Print Builder where
   format = id
 
