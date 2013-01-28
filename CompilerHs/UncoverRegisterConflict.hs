@@ -149,8 +149,13 @@ eVar (Loc l)  = T.Loc (eLoc l)
 
 -- | Register a conflict in the conflict table (as a side effect).
 addConflict :: Var -> LiveSet -> M ()
--- We don't track conflicts for registers or frame vars:
-addConflict (Loc _)  _   = return ()
+addConflict (Loc (FVar _)) _  = return ()
+addConflict (Loc (Reg r)) set = mapM_ fn (S.toList set)
+  where
+    fn :: T.Conflict -> M ()
+    -- Register/register conflicts don't matter
+    fn (T.RegC _)   = return ()
+    fn (T.UVarC uv) = modify (M.adjust (S.insert (T.RegC r)) uv)
 addConflict (UVar v) set = mapM_ add (S.toList set)
   where
     add :: T.Conflict -> M ()
