@@ -11,36 +11,31 @@ import FrameworkHs.Helpers (parseListWithFinal, parseInt32, parseInt64, parseLab
 
 parseProg :: LispVal -> PassM Prog
 parseProg (List [(Symbol "letrec"),List bs,b]) =
-  do bs <- mapM parseTuple bs
+  do
+     bs <- mapM parseTuple bs
      b  <- parseBody b
      return (Letrec bs b)
   where parseTuple :: LispVal -> PassM (Label,Body)
         parseTuple (List [l,List[(Symbol "lambda"),List [],b]]) =
-          do l <- parseLabel l
+          do 
+             l <- parseLabel l
              b <- parseBody b
              return (l,b)
-        parseTuple e = parseFailureM ("Invalid tuple: " ++ show e)
-parseProg e = parseFailureM ("Invalid Prog: " ++ show e)
+        parseTuple e = parseFailureM ("parseProg: Invalid tuple: " ++ show e)
+parseProg e = parseFailureM ("parseProg: Invalid Prog: " ++ show e)
+
 
 
 parseBody :: LispVal -> PassM Body
-parseBody (List [(Symbol "locate"),List bs,t]) =
-  do bs <- mapM parseTuple bs
+parseBody (List [(Symbol "locals"),List bs,t]) =
+  do
+     us <- mapM parseUVar bs
      t  <- parseTail t
-     return (Locate bs t)
-  where parseTuple :: LispVal -> PassM (UVar,Loc)
-        parseTuple (List [u,l]) =
-          do u <- parseUVar u
-             l <- parseLoc l
-             return (u,l)
-        parseTuple e = parseFailureM ("Invalid tuple: " ++ show e)
+     return (Locals us t)
 parseBody e = parseFailureM ("Invalid Body: " ++ show e)
 
 
 parseTail :: LispVal -> PassM Tail
-parseTail (List [t]) =
-  do t <- parseTriv t
-     return (AppT t)
 parseTail (List [(Symbol "if"),p,t1,t2]) =
   do p <- parsePred p
      t1 <- parseTail t1
@@ -49,6 +44,10 @@ parseTail (List [(Symbol "if"),p,t1,t2]) =
 parseTail (List ((Symbol "begin"):ls)) =
   do (es,t) <- parseListWithFinal parseEffect parseTail ls
      return (BeginT es t)
+parseTail (List (t:ls)) =
+  do t  <- parseTriv t
+     ls <- mapM parseLoc ls
+     return (AppT t ls)     
 parseTail e = parseFailureM ("Invalid Tail: " ++ show e)
 
 
