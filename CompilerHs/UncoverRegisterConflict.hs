@@ -153,13 +153,18 @@ addConflict (Loc (FVar _)) _  = return ()
 addConflict (Loc (Reg r)) set = mapM_ fn (S.toList set)
   where
     fn :: T.Conflict -> M ()
-    -- Register/register conflicts don't matter
-    fn (T.RegC _)   = return ()
+    fn (T.RegC _)   = return () -- Register/register conflicts don't matter
     fn (T.UVarC uv) = modify (M.adjust (S.insert (T.RegC r)) uv)
-addConflict (UVar v) set = mapM_ add (S.toList set)
+addConflict (UVar v) set = do
+    let ls = S.toList set
+    mapM_ (add v) ls
+    let uvconf = mapMaybe fn ls
+    mapM_ (`add` (T.UVarC v)) uvconf
   where
-    add :: T.Conflict -> M ()
-    add x = modify (M.adjust (S.insert x) v)
+    fn (T.UVarC u) = Just u
+    fn _           = Nothing
+    add :: UVar -> T.Conflict -> M ()
+    add vr x = modify (M.adjust (S.insert x) vr)
 
 -- | Get a conflict from a Loc:
 fromLoc :: Loc -> Maybe T.Conflict
