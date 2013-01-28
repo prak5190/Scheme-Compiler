@@ -9,7 +9,7 @@ import qualified FrameworkHs.GenGrammars.L32UncoverRegisterConflict as T
 
 import FrameworkHs.Prims   (UVar)
 import FrameworkHs.Helpers
-import Control.Monad.State
+import Control.Monad.State.Strict
 -- import Control.Monad
 -- import Control.Applicative ((<$>), (<*>))
 
@@ -17,6 +17,10 @@ import Data.Set as S
 import Data.Map as M hiding (mapMaybe) 
 import Prelude as P
 import Data.Maybe (mapMaybe)
+import Debug.Trace as D
+
+-- dtrace = D.trace
+dtrace _ b = b
 
 --------------------------------------------------------------------------------
 -- Types for local use:
@@ -61,10 +65,12 @@ liveTail tl =
 
 liveEffects :: [Effect] -> LiveSet -> M LiveSet
 liveEffects els live =
+  dtrace ("EFFECTS "++show (length els)++" live "++show live)$
   case els of
     [] -> return live
-    ls -> do live2 <- liveEffect (last ls) live
-             liveEffects (init ls) live2 
+    ls -> dtrace ("  splitting last: "++(show$pp$last ls))$
+          liveEffects (init ls) =<<
+          liveEffect (last ls) live
 
 liveEffect :: Effect -> LiveSet -> M LiveSet
 liveEffect e live =
@@ -72,7 +78,8 @@ liveEffect e live =
     Nop              -> return live
     IfE p e1 e2      -> ap2 (livePred p) (liveEffect e1 live)
                                          (liveEffect e2 live)
-    BeginE es el     -> liveEffects es =<< liveEffect el live
+    BeginE es el     -> dtrace ("  beginE last: "++(show$pp el))$
+                        liveEffects es =<< liveEffect el live
 --    Set1 v tr | -> -- todo: give a warning for unused vars
     Set1 v tr -> do
       let live' = maybdel (fromVar v) live
@@ -81,8 +88,9 @@ liveEffect e live =
     Set2 v _ t1 t2 -> do
       let live' = maybdel (fromVar v) live
       addConflict v live'
-      return (S.union (maybToSet (fromTriv t1))
-                      (maybToSet (fromTriv t2)))
+      return$ S.union live' $ 
+              S.union (maybToSet (fromTriv t1))
+                      (maybToSet (fromTriv t2))
 
 livePred :: Pred -> LiveSet -> LiveSet -> M LiveSet 
 livePred pr tlive flive =
@@ -98,7 +106,6 @@ livePred pr tlive flive =
                       S.union flive $
                       S.union (maybToSet (fromTriv t1))
                               (maybToSet (fromTriv t2))
-
 
 --------------------------------------------------------------------------------
 -- The helpers in this section are ONE HUNDRED PERCENT boilerplate.
@@ -150,12 +157,16 @@ eVar (Loc l)  = T.Loc (eLoc l)
 -- | Register a conflict in the conflict table (as a side effect).
 addConflict :: Var -> LiveSet -> M ()
 addConflict (Loc (FVar _)) _  = return ()
-addConflict (Loc (Reg r)) set = mapM_ fn (S.toList set)
+addConflict (Loc (Reg r)) set =
+    dtrace ("R add conflict, reg assignment "++show (r,set))$
+    mapM_ fn (S.toList set)
   where
     fn :: T.Conflict -> M ()
     fn (T.RegC _)   = return () -- Register/register conflicts don't matter
     fn (T.UVarC uv) = modify (M.adjust (S.insert (T.RegC r)) uv)
-addConflict (UVar v) set = do
+addConflict (UVar v) set =
+  dtrace ("U add conflict, uvar assignment "++show (v,set))$ 
+    do
     let ls = S.toList set
     mapM_ (add v) ls
     let uvconf = mapMaybe fn ls
