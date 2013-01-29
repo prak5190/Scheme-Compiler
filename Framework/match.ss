@@ -120,7 +120,10 @@
   (lambda (x)
     (syntax-case x ()
       ((_ Template Cata Obj ThreadedIds)
-       #'(errorf 'match "Unmatched datum: ~s" Obj))
+       ;; RRN: Adding source locations:
+       #'(begin 
+	   ;(inspect #'Template)
+	   (errorf 'match "Unmatched datum.\n  Datum: ~s\n  Source Location: ~s\n" Obj #'Template)))
       ((_ Template Cata Obj ThreadedIds (Pat B0 B ...) Rest ...)
        #'(convert-pat Pat
            (match-help1 Template Cata Obj ThreadedIds 
@@ -524,7 +527,8 @@
                           (lambda (x)
                             (syntax-case x ()
                               ((_ Foo) #'(my-backquote Foo))))])
-             Exp ...))])))
+	     ;; RRN: Adding a new scope here for internal defines:
+	     (let () Exp ...)))])))
 
 (define-syntax with-ellipsis-aware-quasiquote
   (lambda (x)
@@ -545,7 +549,8 @@
 
 (define-syntax letcc
   (syntax-rules ()
-    ((_ V B0 B ...) (call/cc (lambda (V) B0 B ...)))))
+    ;; RRN: changing this to a one-shot continuation:
+    ((_ V B0 B ...) (call/1cc (lambda (V) B0 B ...)))))
 
 (define classify-list
   (lambda (ls)
@@ -788,6 +793,10 @@
 ;;; (parse '(program (set! x 3) (+ x 4)))) => (begin (set! x 3) (+ x 4))
 
 ;; CHANGELOG
+
+;; [January 2013] 
+;; RRN backported some changes from his WaveScope version of iu-match.
+;; See "RRN" tagged comments above.
 
 ;; [31 January 2010]
 ;; rkd replaced _ with k in the syntax-case patterns for match, match+,
