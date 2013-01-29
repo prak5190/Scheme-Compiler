@@ -27,7 +27,7 @@ assignRegisters _ (Letrec binds bod) = T.Letrec binds' bod'
    bod' = eBody bod
    binds' = map (\(l,b) -> (l, eBody b)) binds
 
-
+-- | Invoke register allocation for each Body (separately).
 eBody :: Body -> T.Body
 eBody (Locals uvs ct tl) =
   let ct' = M.map S.fromList $ M.fromList ct
@@ -39,8 +39,9 @@ eBody (Locals uvs ct tl) =
      else error$"assignRegisters: unable to assign registers to every var, left over: "
                 ++show (S.toList spills)
 
--- findHomes :: Ord t => [t] -> M.Map k (S.Set t) -> [(t, t1)]
--- findHomes :: [UVar] -> M.Map UVar (S.Set UVar) -> [(UVar, Reg)]
+-- | The recursive heart of the algorithm.  Iteratively pick and
+-- remove variables, simplifying the problem and then making
+-- assignments on the way back out.
 findHomes :: [UVar] -> ConflictTable -> [(UVar, Reg)]
 findHomes vrs ct0 = lp vrs ct0
   where
@@ -56,15 +57,18 @@ findHomes vrs ct0 = lp vrs ct0
            Nothing -> home
            Just r  -> (pick,r) : home
     
-
--- selectRegister :: t1 -> t2 -> Maybe Reg
+-- | Select a single register that is not already assigned to a
+-- variable that conflicts with the current variable under
+-- consideration.
 selectRegister :: S.Set Conflict -> [(UVar,Reg)] -> Maybe Reg
 selectRegister conflicts home =
    find (not . (`S.member` used)) allRegisters 
   where
    used = findUsed (M.fromList home) (S.toList conflicts) 
 
--- findUsed :: [(UVar,Reg)] -> [Conflict] -> S.Set Reg
+-- | Create a list of already used registers based on previous
+-- assignments (home) and on the list of conflicts with the current
+-- variable under consideration.
 findUsed :: M.Map UVar Reg -> [Conflict] -> S.Set Reg   
 findUsed home conflicts = 
   case conflicts of
