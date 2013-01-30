@@ -8,6 +8,8 @@ import qualified FrameworkHs.GenGrammars.L41FlattenProgram as L2
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
+-- | This pass flattens programs by moving `Letrec`-bound code blocks
+-- into a single, flat `Code` listing.
 flattenProgram :: P423Config -> Prog -> L2.Prog
 flattenProgram  c (Letrec ls t) = L2.Code ss s
   where

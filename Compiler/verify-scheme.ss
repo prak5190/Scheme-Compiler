@@ -4,10 +4,6 @@
 	  (Framework helpers)
 	  (Framework match))
 
-;;; Andy Keep, Kent Dybvig
-;;; P423/P523
-;;; Spring 2010
-
 ;;; verify-scheme accept a single value and verifies that the value
 ;;; is a valid program in the current source language.
 ;;;
@@ -46,6 +42,9 @@
 ;;;
 ;;; If the value is a valid program, verify scheme returns the value
 ;;; unchanged; otherwise, it signals an error.
+;;;
+;;; We try to catch as many errors as possible in this pass, so that we
+;;; do not encounter errors from the middle of the compiler.
 
 (define-who verify-scheme
   (define verify-x-list
