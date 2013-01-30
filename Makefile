@@ -36,7 +36,8 @@ all : grammars
 
 grammars : Framework/GenGrammars
 Framework/GenGrammars: $(SRC_GRAMMAR) GrammarCompiler
-	@mkdir -p Framework{,Hs}/GenGrammars
+	@mkdir -p Framework/GenGrammars
+	@mkdir -p FrameworkHs/GenGrammars
 	$(SC) --script $(SCRIPT_DIR)/$(CG_FILE) "$(SRC_GRAMMAR)"
 
 scheme : grammars
