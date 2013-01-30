@@ -5,6 +5,9 @@
 	  (Framework helpers)
 	  (Framework match))
 
+;; Like the name says, emit x86 assembly code to stdout that
+;; implements the semantics of our Scheme-like intermediate
+;; representation.
 (define-who generate-x86-64
   (define prim->opcode
     (lambda (prim)

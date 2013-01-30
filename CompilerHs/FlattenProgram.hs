@@ -9,6 +9,8 @@ import Prelude hiding (tail)
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
+-- | This pass flattens programs by moving `Letrec`-bound code blocks
+-- into a single, flat `Code` listing.
 flattenProgram :: P423Config -> L1.Prog -> L2.Prog
 flattenProgram  c (L1.Letrec ls t) = runPassM c $ 
   do ss1 <- mapM ltTuple ls

@@ -1,4 +1,4 @@
-module CompilerHs.ExposeFrameVar where
+module CompilerHs.ExposeFrameVar (exposeFrameVar) where
 
 import qualified FrameworkHs.GenGrammars.L01VerifyScheme as L1
 import qualified FrameworkHs.GenGrammars.L37ExposeFrameVar as L2
@@ -7,11 +7,21 @@ import Prelude hiding (tail)
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
+-- | This pass replaces FVars with displacement operands (`Disp` type).
 exposeFrameVar :: P423Config -> L1.Prog -> L2.Prog
 exposeFrameVar c (L1.Letrec ls t) = runPassM c $ 
   do ls <- mapM (ltTuple c) ls
      t  <- tail c t
      return (L2.Letrec ls t)
+
+-- | Here is where the real work occurs.
+var :: P423Config -> L1.Var -> PassM L2.Var
+var c v = case v of
+  L1.Reg  r      -> return (L2.Reg r)
+  L1.FVar (FV i) -> return (L2.Disp (D (framePointerRegister c) (ash wordShift i)))
+
+--------------------------------------------------------------------------------
+-- Boilerplate:
 
 ltTuple :: P423Config -> (Label,L1.Tail) -> PassM (Label,L2.Tail)
 ltTuple c (l,t) =
@@ -43,7 +53,3 @@ triv c tr = case tr of
   L1.Integer i -> return (L2.Integer i)
   L1.Label l   -> return (L2.Label l)
 
-var :: P423Config -> L1.Var -> PassM L2.Var
-var c v = case v of
-  L1.Reg  r      -> return (L2.Reg r)
-  L1.FVar (FV i) -> return (L2.Disp (D (framePointerRegister c) (ash wordShift i)))

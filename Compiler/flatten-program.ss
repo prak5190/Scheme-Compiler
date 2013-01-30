@@ -4,6 +4,8 @@
           (Framework helpers)
           (Framework match))
 
+;; This pass flattens programs by moving letrec-bound code blocks
+;  into a single, flat code listing.
 (define-who flatten-program
   (define Effect
     (lambda (ef)

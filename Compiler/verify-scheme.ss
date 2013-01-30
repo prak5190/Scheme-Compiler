@@ -4,6 +4,9 @@
 	  (Framework helpers)
 	  (Framework match))
 
+;; Verify that the program is valid.  We try to catch as many errors
+;; as possible in this pass, so that we do not encounter errors from
+;; the middle of the compiler.
 (define-who verify-scheme
   (define verify-label-list
     (lambda (label*)

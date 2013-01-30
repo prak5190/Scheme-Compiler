@@ -26,6 +26,7 @@
   ;; By convention, return the command which will run the code:
   "./t")
 
+;; Compose the complete compiler as a pipeline of passes.
 (define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
   (expose-frame-var)
