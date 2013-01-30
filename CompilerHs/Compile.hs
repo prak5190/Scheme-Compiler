@@ -26,6 +26,8 @@ vfs = P423Pass { pass = verifyScheme
                , trace = False
                }
 
+
+-- | Compose the complete compiler as a pipeline of passes.
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
   p  <- liftPassM$ parseProg l
