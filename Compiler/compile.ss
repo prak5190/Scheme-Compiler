@@ -1,5 +1,5 @@
 (library (Compiler compile)
-  (export p423-compile p423-compile-passes)
+  (export p423-compile p423-step)
   (import
     (chezscheme)
     (Framework driver)
@@ -24,7 +24,8 @@
     (error 'assemble "assembly failed"))
   "./t")
 
-(define-compiler (p423-compile p423-compile-passes pass->wrapper)
+;; Compose the complete compiler as a pipeline of passes.
+(define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
   (uncover-register-conflict)
   (assign-registers)

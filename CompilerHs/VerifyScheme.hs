@@ -1,4 +1,4 @@
-module CompilerHs.VerifyScheme where
+module CompilerHs.VerifyScheme (verifyScheme) where
 
 import FrameworkHs.GenGrammars.L01VerifyScheme
 
@@ -7,6 +7,9 @@ import FrameworkHs.Helpers
 
 type Env = [UVar]
 
+-- | Verify that the program is valid.  We try to catch as many errors
+-- as possible in this pass, so that we do not encounter errors from
+-- the middle of the compiler.
 verifyScheme :: P423Config -> Prog -> Prog
 verifyScheme c p@(Letrec ls b) = runPassM c $ do
   allDistinct "label" labels
@@ -15,6 +18,9 @@ verifyScheme c p@(Letrec ls b) = runPassM c $ do
   return p
   where
     (labels,bodies) = unzip ls
+
+--------------------------------------------------------------------------------
+-- Helpers:
 
 vBody :: [Label] -> Body -> PassM ()
 vBody labels bo@(Locals uvars t) = do

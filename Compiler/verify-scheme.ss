@@ -42,6 +42,9 @@
 ;;; If the value is a valid program, verify scheme returns the value
 ;;; unchanged; otherwise it signals an error.
 ;;;
+;;; We try to catch as many errors as possible in this pass, so that we
+;;; do not encounter errors from the middle of the compiler.
+;;;
 ;;; At this level in the compiler verify-scheme is also responsible for
 ;;; ensuring that machine constraints are not violated in generated
 ;;; assembler code to the best of its ability.

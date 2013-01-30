@@ -1,10 +1,14 @@
-module CompilerHs.GenerateX86_64 where
+
+module CompilerHs.GenerateX86_64 (generateX86_64) where
 
 import FrameworkHs.GenGrammars.L41FlattenProgram
 
 import FrameworkHs.Helpers
 import FrameworkHs.Prims as My
 
+-- | Like the name says, emit x86 assembly code to stdout that
+-- implements the semantics of our Scheme-like intermediate
+-- representation.
 generateX86_64 :: Prog -> Gen
 generateX86_64 (Code ls s) =
   do emitEntry

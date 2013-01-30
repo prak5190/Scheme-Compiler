@@ -9,6 +9,7 @@ import qualified FrameworkHs.GenGrammars.L37ExposeFrameVar as L2
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 
+-- | This pass replaces FVars with displacement operands (`Disp` type).
 exposeFrameVar :: P423Config -> Prog -> L2.Prog
 exposeFrameVar c (Letrec ls t) = 
   L2.Letrec (zip las $ map (eTail fpr) ts) $ eTail fpr t
@@ -16,12 +17,14 @@ exposeFrameVar c (Letrec ls t) =
     (las,ts) = unzip ls
     fpr = framePointerRegister c
 
+-- | Here is where the real work occurs.
 eLoc :: Reg -> Loc -> L2.Loc
 eLoc fpr lo = case lo of
   RegL r       -> L2.RegL r
   FVar (FV n) -> L2.Disp $ D fpr $ ash wordShift n
 
 ------------------------------------------------------------
+-- Boilerplate
 
 eTail :: Reg -> Tail -> L2.Tail
 eTail fpr ta = case ta of
