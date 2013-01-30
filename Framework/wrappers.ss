@@ -27,6 +27,16 @@
 (define rewrite-opnds
   (lambda (x)
     (match x
+      ;; Begin Haskell hack for disp/index-opnd read/show invariance
+      [(disp ,r ,o)
+       `(mref ,r ,o)]
+      [(index ,r1 ,r2)
+       `(mref ,r1 ,r2)]
+      [(set! (disp ,r ,o) ,[expr])
+       `(mset! ,r ,o ,expr)]
+      [(set! (index ,r1 ,r2) ,[expr])
+       `(mset! ,r1 ,r2 ,expr)]
+      ;; End hack
       [,r (guard (disp-opnd? r))
        `(mref ,(disp-opnd-reg r) ,(disp-opnd-offset r))]
       [,r (guard (index-opnd? r))
