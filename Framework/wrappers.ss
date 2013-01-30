@@ -48,10 +48,6 @@
        `(mref ,(disp-opnd-reg r) ,(disp-opnd-offset r))]
       [,r (guard (index-opnd? r))
        `(mref ,(index-opnd-breg r) ,(index-opnd-ireg r))]
-      [(set! (disp ,r ,i) ,[expr])
-       `(mset! ,r ,i ,expr)]
-      [(set! (index ,r1 ,r2) ,[expr])
-       `(mset! ,r1 ,r2 ,expr)]
       [(set! ,r ,[expr]) (guard (disp-opnd? r))
        `(mset! ,(disp-opnd-reg r) ,(disp-opnd-offset r) ,expr)]
       [(set! ,r ,[expr]) (guard (index-opnd? r))
