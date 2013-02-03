@@ -58,6 +58,40 @@
       Reg
       FVar))
 
+ (l29-uncover-frame-conflict
+    (%remove 
+      (Body locals))
+    (%add
+      (Conflict Reg UVar)
+      (Body
+        (locals (UVar *)
+                (frame-conflict (UVar Conflict *) *)
+                Tail)))) 
+
+(l30-introduce-allocation-forms
+    (%remove 
+      (Body locals))
+    (%add
+;;      (Conflict Reg UVar)
+      (Body
+        (locals (UVar *)
+                (ulocals ()
+                         (locate () 
+                                 (frame-conflict (UVar Conflict *) *)
+                                 Tail))))))
+
+(l31-select-instructions
+    (%remove 
+      (Body locals))
+    (%add
+;;      (Conflict Reg UVar)
+      (Body
+        (locals (UVar *)
+                (ulocals (UVar *)
+                         (locate ((UVar FVar) *) 
+                                 (frame-conflict (UVar Conflict *) *)
+                                 Tail))))))
+
 (l32-uncover-register-conflict
   (%remove
     (Body locals))

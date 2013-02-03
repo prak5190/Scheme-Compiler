@@ -145,8 +145,13 @@
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
+    uncover-frame-conflict/wrapper
+    introduce-allocation-forms/wrapper
+    select-instructions/wrapper
     uncover-register-conflict/wrapper
     assign-registers/wrapper
+    assign-frame/wrapper
+    finalize-frame-locations/wrapper
     discard-call-live/wrapper
     finalize-locations/wrapper
     expose-frame-var/wrapper
@@ -188,6 +193,7 @@
       ((uncover-register-conflict) uncover-register-conflict/wrapper)
       ((assign-registers) assign-registers/wrapper)
       ((assign-frame) assign-frame/wrapper)
+      ((finalize-frame-locations) finalize-frame-locations/wrapper)
       ((discard-call-live) discard-call-live/wrapper)
       ((finalize-locations) finalize-locations/wrapper)
       ((expose-frame-var) expose-frame-var/wrapper)
@@ -218,7 +224,7 @@
     (only (framework wrappers aux)
       set! handle-overflow locals lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-       ,(if (grammar-verification) (verify-grammar:l29-select-instructions x) x)))
+       ,(if (grammar-verification) (verify-grammar:l29-uncover-frame-conflict x) x)))
   ,return-value-register)
 
 ;;-----------------------------------

@@ -20,18 +20,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Don't import this library, import (framework test-suite)!
-(library (framework test-suite aux)
-  (export
-    make-test-case
-    test-case?
-    test-case-valid?
-    test-case-source
-    invalid
-    valid)
-  (import (chezscheme))
-
-(define (invalid)
+;; Don't import this library, import (Framework test-suite)!
+(invalid
   '(3
     (begin rax 5)
     (letrec () (set! rax 5))
@@ -240,7 +230,7 @@
         (begin (set! rax (sra rax 64)) (r15))))
     ))
 
-(define (valid)
+(valid
   '((letrec () (locals () (begin (set! rax 5) (r15 rbp rax))))
     (letrec ()
       (locals (a.0 b.1)
@@ -2230,52 +2220,4 @@
               (set! rax (+ rax #b0000000000000000000000000000000000001000000000000000000000000000)))
           (r15 rax rbp))))
     ))
-
-;; Defines the test-case record, along with a writer that prints
-;; whether the test case is a valid test or not, and the test source.
-(define-record test-case (valid? source))
-(record-writer (type-descriptor test-case)
-  (lambda (r p wr)
-    (begin
-      (display "<" p)
-      (if (test-case-valid? r)
-          (display "valid test " p)
-          (display "invalid test " p))
-      (wr (test-case-source r) p)
-      (display ">" p))))
-
-)
-
-(library (framework test-suite)
-  (export
-    valid-tests
-    invalid-tests
-    test-ref
-    test-case?
-    test-case-valid?
-    test-case-source)
-  (import
-    (chezscheme)
-    (framework test-suite aux))
-
-(define (test-ref suite num)
-  (test-case-source (list-ref suite num)))
-
-(define invalid-tests
-  (make-parameter
-    (map (lambda (t) (make-test-case #f t)) (invalid))
-    (lambda (x)
-      (unless (and (list? x) (for-all test-case? x))
-        (errorf 'invalid-tests "~s not a valid test suite" x))
-      x)))
-
-(define valid-tests
-  (make-parameter
-    (map (lambda (t) (make-test-case #t t)) (valid))
-    (lambda (x)
-      (unless (and (list? x) (for-all test-case? x))
-        (errorf 'valid-tests "~s not a valid test suite" x))
-      x)))
-
-)
 
