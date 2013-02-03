@@ -1,28 +1,5 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; Adapted for P423 Spring 2012 by Claire Alvis
-;;
-;; In order to provide more useful testing information, test suites
-;; are now stored as lists of records. To run a test suite, use the
-;; framework provided in (framework testing).
-;;
-;; (test-ref <suite> <num>) 
-;;    retrieves the source of the test at index num
-;;
-;; (valid-tests)
-;; (invalid-tests)
-;;    two suites of valid and invalid tests (respectively) for
-;;    you to test your compiler against
-;;
-;; To add a test case:
-;; Just put the test source inside the invalid or valid list.
-;; Everything else will happen automatically!
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Don't import this library, import (Framework test-suite)!
 (invalid
-  '(3
+  3
     (begin rax 5)
     (letrec () (set! rax 5))
     (letrec () (set! rax 5) (r15))
@@ -228,10 +205,10 @@
     (letrec ()
       (locals ()
         (begin (set! rax (sra rax 64)) (r15))))
-    ))
+    )
 
 (valid
-  '((letrec () (locals () (begin (set! rax 5) (r15 rbp rax))))
+  (letrec () (locals () (begin (set! rax 5) (r15 rbp rax))))
     (letrec ()
       (locals (a.0 b.1)
         (begin
@@ -2219,5 +2196,4 @@
               (set! rax (+ rax #b0000000000000000000000000000000000000100000000000000000000000000))
               (set! rax (+ rax #b0000000000000000000000000000000000001000000000000000000000000000)))
           (r15 rax rbp))))
-    ))
-
+    )

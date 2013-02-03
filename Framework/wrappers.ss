@@ -221,7 +221,7 @@
   (x)
   (environment env)
   (import
-    (only (framework wrappers aux)
+    (only (Framework wrappers aux)
       set! handle-overflow locals lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k) 
        ,(if (grammar-verification) (verify-grammar:l29-uncover-frame-conflict x) x)))
@@ -241,7 +241,7 @@
   (x)
   (environment env)
   (import
-    (only (framework wrappers aux)
+    (only (Framework wrappers aux)
       locals ulocals locate set! handle-overflow
       lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k)
@@ -249,21 +249,28 @@
        ,(if (grammar-verification) (verify-grammar:l31-select-instructions x) x)))
   ,return-value-register)
 
-
+;;-----------------------------------
+;; uncover-register-conflict/wrapper
+;;-----------------------------------
 (define-language-wrapper uncover-register-conflict/wrapper (x) 
   (environment env)
-  (import (only (Framework wrappers aux)
-             handle-overflow set! locals
-            lambda register-conflict true false nop))
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow set! locate locals ulocals
+      lambda register-conflict frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
   ,return-value-register)
 
+;;-----------------------------------
+;; assign-registers/wrapper
+;;-----------------------------------
 (define-language-wrapper assign-registers/wrapper (x)
   (environment env)
-  (import (only (Framework wrappers aux)
-             handle-overflow set! locate
-            lambda true false nop))
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow set! locate locals ulocals
+      spills frame-conflict lambda true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
   ,return-value-register)

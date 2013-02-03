@@ -62,35 +62,32 @@
     (%remove 
       (Body locals))
     (%add
-      (Conflict Reg UVar)
       (Body
         (locals (UVar *)
-                (frame-conflict (UVar Conflict *) *)
-                Tail)))) 
+                (frame-conflict ((UVar UVar *) *)
+                Tail)))))
 
 (l30-introduce-allocation-forms
     (%remove 
       (Body locals))
     (%add
-;;      (Conflict Reg UVar)
       (Body
         (locals (UVar *)
                 (ulocals ()
                          (locate () 
-                                 (frame-conflict (UVar Conflict *) *)
-                                 Tail))))))
+                                 (frame-conflict ((UVar UVar *) *)
+                                 Tail)))))))
 
 (l31-select-instructions
     (%remove 
       (Body locals))
     (%add
-;;      (Conflict Reg UVar)
       (Body
         (locals (UVar *)
                 (ulocals (UVar *)
                          (locate ((UVar FVar) *) 
-                                 (frame-conflict (UVar Conflict *) *)
-                                 Tail))))))
+                                 (frame-conflict ((UVar UVar *) *)
+                                 Tail)))))))
 
 (l32-uncover-register-conflict
   (%remove
@@ -99,18 +96,26 @@
     ;; Ignore conflicts with frame vars:
     (Conflict Reg UVar)
     (Body
+      ;        (register-conflict ((UVar UVar * Reg *) *)
       (locals (UVar *)
-;        (register-conflict ((UVar UVar * Reg *) *)
-        (register-conflict ((UVar Conflict *) *)
-          Tail)))))
-
+              (ulocals (UVar *)
+                       (locate ((UVar FVar) *) 
+                               (frame-conflict ((UVar UVar *) *)
+                                               (register-conflict ((UVar Conflict *) *)
+                                                                  Tail))))))))
 (l33-assign-registers
   (%remove
     (Body locals))
   (%add
     (Body
-      (locate ((UVar Reg) *)
-        Tail))))
+      ;        (register-conflict ((UVar UVar * Reg *) *)
+      (locals (UVar *)
+              (ulocals (UVar *)
+                       (spills (UVar *)
+                               (locate ((UVar FVar) *) 
+                                       (frame-conflict ((UVar UVar *) *)
+                                                       (register-conflict ((UVar Conflict *) *)
+                                                                          Tail)))))))))
 
 (l35-discard-call-live
   (%remove
@@ -118,40 +123,40 @@
   (%add
     (Tail (Triv))))
 
- (l36-finalize-locations
-   (%remove
-     (Body locate)
-     UVar
-     Var)
-   (%rename
-     (Body -> Tail)
-     (Var -> Loc)))
+(l36-finalize-locations
+  (%remove
+    (Body locate)
+    UVar
+    Var)
+  (%rename
+    (Body -> Tail)
+    (Var -> Loc)))
 
- (l37-expose-frame-var
-   (%rename
-     (FVar -> Disp)))
+(l37-expose-frame-var
+  (%rename
+    (FVar -> Disp)))
 
- (l39-expose-basic-blocks
-   (%remove
-     (Tail if)
-     Pred
-     (Effect nop if begin))
-   (%add
-     (Tail
-       (if (Relop Triv Triv) (Label) (Label)))))
+(l39-expose-basic-blocks
+  (%remove
+    (Tail if)
+    Pred
+    (Effect nop if begin))
+  (%add
+    (Tail
+      (if (Relop Triv Triv) (Label) (Label)))))
 
- (l41-flatten-program
-   (%remove
-     Prog
-     Tail)
-   (%rename
-     (Effect -> Statement))
-   (%add
-     (Prog
-       (code Statement * Statement))
-     (Statement
-       (if (Relop Triv Triv) (jump Label))
-       (if (not (Relop Triv Triv)) (jump Label))
-       (jump Triv)
-       Label)))
+(l41-flatten-program
+  (%remove
+    Prog
+    Tail)
+  (%rename
+    (Effect -> Statement))
+  (%add
+    (Prog
+      (code Statement * Statement))
+    (Statement
+      (if (Relop Triv Triv) (jump Label))
+      (if (not (Relop Triv Triv)) (jump Label))
+      (jump Triv)
+      Label)))
 )
