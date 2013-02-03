@@ -87,7 +87,9 @@
                 (ulocals (UVar *)
                          (locate ((UVar FVar) *) 
                                  (frame-conflict ((UVar UVar *) *)
-                                 Tail)))))))
+                                 Tail))))
+
+        (locate ((UVar Loc) *) Tail))))
 
 (l32-uncover-register-conflict
   (%remove
@@ -112,10 +114,11 @@
       (locals (UVar *)
               (ulocals (UVar *)
                        (spills (UVar *)
-                               (locate ((UVar FVar) *) 
-                                       (frame-conflict ((UVar UVar *) *)
+                               (locate ((UVar *) *) 
+                                       (frame-conflict ((UVar *) *)
                                                        (register-conflict ((UVar Conflict *) *)
-                                                                          Tail)))))))))
+                                                                          Tail))))))
+      (locate ((UVar FVar) *) Tail))))
 
 (l35-discard-call-live
   (%remove
