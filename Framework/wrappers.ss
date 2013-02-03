@@ -6,12 +6,15 @@
     code
     jump
     locals
+    ulocals
+    spills
     (rename (lambda-p423 lambda))
     register-conflict
     locate
     true
     false
-    nop)
+    nop
+    frame-conflict)
   (import
     (except (chezscheme) set!)
     (Framework match)
@@ -95,12 +98,24 @@
     (syntax-rules ()
       [(_ (x* ...) body) (let ([x* 0] ...) body)]))
 
+(define-syntax spills
+  (syntax-rules ()
+    [(_ (x* ...) body) (let ([x* 0] ...) body)]))
+
+(define-syntax ulocals
+  (syntax-rules ()
+    [(_ (x* ...) body) (let ([x* 0] ...) body)]))
+
 (define-syntax lambda-p423
     (let ()
       (import scheme)
       (syntax-rules ()
         [(lambda () body) (lambda arg-list body)]
         [(lambda arg-list e e* ...) (lambda arg-list e e* ...)])))
+
+(define-syntax frame-conflict
+  (syntax-rules ()
+    [(_ ct body) body]))
 
 (define-syntax register-conflict
   (syntax-rules ()
@@ -142,6 +157,9 @@
     (chezscheme)
     (Framework match)
     (Framework GenGrammars l01-verify-scheme)
+    (Framework GenGrammars l29-uncover-frame-conflict)
+    (Framework GenGrammars l30-introduce-allocation-forms)
+    (Framework GenGrammars l31-select-instructions)
     (Framework GenGrammars l32-uncover-register-conflict)
     (Framework GenGrammars l33-assign-registers)
     (Framework GenGrammars l35-discard-call-live)
@@ -164,8 +182,12 @@
     (case pass
       ((source) source/wrapper)
       ((verify-scheme) verify-scheme/wrapper)
+      ((uncover-frame-conflict) uncover-frame-conflict/wrapper)
+      ((introduce-allocation-forms) introduce-allocation-forms/wrapper)
+      ((select-instructions) select-instructions/wrapper)
       ((uncover-register-conflict) uncover-register-conflict/wrapper)
       ((assign-registers) assign-registers/wrapper)
+      ((assign-frame) assign-frame/wrapper)
       ((discard-call-live) discard-call-live/wrapper)
       ((finalize-locations) finalize-locations/wrapper)
       ((expose-frame-var) expose-frame-var/wrapper)
@@ -185,6 +207,42 @@
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
   ,return-value-register)
+
+;;-----------------------------------
+;; uncover-frame-conflict/wrapper
+;;-----------------------------------
+(define-language-wrapper uncover-frame-conflict/wrapper
+  (x)
+  (environment env)
+  (import
+    (only (framework wrappers aux)
+      set! handle-overflow locals lambda true false nop frame-conflict))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+       ,(if (grammar-verification) (verify-grammar:l29-select-instructions x) x)))
+  ,return-value-register)
+
+;;-----------------------------------
+;; introduce-allocation-forms/wrapper
+;; finalize-frame-locations/wrapper
+;; select-instructions/wrapper
+;; assign-frame/wrapper
+;;-----------------------------------
+(define-language-wrapper
+  (introduce-allocation-forms/wrapper
+   finalize-frame-locations/wrapper
+   select-instructions/wrapper
+   assign-frame/wrapper)
+  (x)
+  (environment env)
+  (import
+    (only (framework wrappers aux)
+      locals ulocals locate set! handle-overflow
+      lambda true false nop frame-conflict))
+  (call/cc (lambda (k) (set! ,return-address-register k)
+             ;;we call l31 here because this is in an iterate form and the grammar doesn't change.
+       ,(if (grammar-verification) (verify-grammar:l31-select-instructions x) x)))
+  ,return-value-register)
+
 
 (define-language-wrapper uncover-register-conflict/wrapper (x) 
   (environment env)
