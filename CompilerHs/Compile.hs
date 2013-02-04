@@ -18,6 +18,13 @@ import qualified FrameworkHs.GenGrammars.L01VerifyScheme as L01
 import CompilerHs.VerifyScheme                 (verifyScheme)
 import CompilerHs.UncoverRegisterConflict      (uncoverRegisterConflict)
 import CompilerHs.AssignRegisters              (assignRegisters)
+
+import CompilerHs.UncoverFrameConflict         (uncoverFrameConflict)
+import CompilerHs.IntroduceAllocationForms     (introduceAllocationForms)
+import CompilerHs.SelectInstructions           (selectInstructions)
+import CompilerHs.AssignFrame                  (assignFrame)
+import CompilerHs.FinalizeFrameLocations       (finalizeFrameLocations)
+
 import CompilerHs.DiscardCallLive              (discardCallLive)
 import CompilerHs.FinalizeLocations            (finalizeLocations)
 import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
@@ -51,7 +58,6 @@ dcl = P423Pass { pass = discardCallLive
                , trace = False
                }
 
-
 fnl = P423Pass { pass = finalizeLocations
                , passName = "finalizeLocations"
                , wrapperName = "finalize-locations/wrapper"
@@ -76,13 +82,48 @@ flp = P423Pass { pass = flattenProgram
                , trace = False 
                }
 
+ufc = P423Pass { pass = uncoverFrameConflict
+               , passName = "uncoverFrameConflict"
+               , wrapperName = "uncover-frame-conflict/wrapper"
+               , trace = False 
+               }
+
+iaf = P423Pass { pass = introduceAllocationForms
+               , passName = "introduceAllocationForms"
+               , wrapperName = "introduce-allocation-forms/wrapper"
+               , trace = False 
+               }
+
+sis = P423Pass { pass = selectInstructions
+               , passName = "selectInstructions"
+               , wrapperName = "select-instructions/wrapper"
+               , trace = False 
+               }
+
+asf = P423Pass { pass = assignFrame
+               , passName = "assignFrame"
+               , wrapperName = "assign-frame/wrapper"
+               , trace = False 
+               }
+
+ffl = P423Pass { pass = finalizeFrameLocations
+               , passName = "finalizeFrameLocations"
+               , wrapperName = "finalize-frame-locations/wrapper"
+               , trace = False 
+               }
+
 -- | Compose the complete compiler as a pipeline of passes.
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
   p <- liftPassM$ parseProg l
   p <- runPass vfs p
+  p <- runPass ufc p
+  p <- runPass iaf p
+  p <- runPass sis p
   p <- runPass urc p
   p <- runPass asr p
+  p <- runPass asf p
+  p <- runPass ffl p
   p <- runPass dcl p
   p <- runPass fnl p
   p <- runPass efv p
