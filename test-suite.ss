@@ -141,6 +141,24 @@
     (letrec ()
       (locals ()
         (begin (set! x.5 (+ x.5 x.5)) (r15))))
+
+    ;; Invalid, non-unique suffixes:
+    (letrec ()
+      (locals (x.1 y.1)
+        (begin
+          (set! x.1 5)
+          (set! y.1 6)
+          (set! rax y.1)
+          (r15 rax))))
+
+    ;; Catch a compiler which is treating variables JUST by their suffix:
+    (letrec ()
+      (locals (x.1)
+        (begin
+          (set! x.1 5)
+          (set! rax y.1)
+          (r15 rax))))
+
     (letrec ()
       (locals (x z.5)
         (begin
