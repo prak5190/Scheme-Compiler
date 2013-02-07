@@ -22,6 +22,7 @@ import CompilerHs.AssignRegisters              (assignRegisters)
 import CompilerHs.UncoverFrameConflict         (uncoverFrameConflict)
 import CompilerHs.IntroduceAllocationForms     (introduceAllocationForms)
 import CompilerHs.SelectInstructions           (selectInstructions)
+import CompilerHs.EverybodyHome                (everybodyHome)
 import CompilerHs.AssignFrame                  (assignFrame)
 import CompilerHs.FinalizeFrameLocations       (finalizeFrameLocations)
 
@@ -49,6 +50,12 @@ urc = P423Pass { pass = uncoverRegisterConflict
 asr = P423Pass { pass = assignRegisters
                , passName = "assignRegisters"
                , wrapperName = "assign-registers/wrapper"
+               , trace = False
+               }
+
+eho = P423Pass { pass = everybodyHome
+               , passName = "everybodyHome"
+               , wrapperName = "assign-registers/wrapper" --same wrapper because this doesn't actually change the grammar
                , trace = False
                }
 
@@ -119,9 +126,10 @@ p423Compile l = do
   p <- runPass vfs p
   p <- runPass ufc p
   p <- runPass iaf p
-  p <- runPass sis p
+  p <- runPass sis p --iterate
   p <- runPass urc p
   p <- runPass asr p
+  p <- runPass eho p --break/when
   p <- runPass asf p
   p <- runPass ffl p
   p <- runPass dcl p
