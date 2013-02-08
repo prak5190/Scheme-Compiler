@@ -3,26 +3,22 @@
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
-;;
-;; * uncover-frame-conflict     l-01 -> l-29
-;; * introduce-allocation-forms l-29 -> l-30
-;; * select-instructions        l-30 -> l-31 
-;;
-;;   uncover-register-conflict  l-31 -> l-32
-;;   assign-registers           l-32 -> l-33
-;;   discard-call-live          l-33 -> l-35
-;;   finalize-locations         l-35 -> l-36
+;; * uncover-frame-conflict     l-01 -> l-28
+;; * introduce-allocation-forms l-28 -> l-29
+;; * select-instructions        l-29 -> l-31
+;; * uncover-register-conflict  l-31 -> l-32
+;; * assign-registers           l-32 -> l-33
+;; * everybody-home?            l-33 -> l-33
+;; * assign-frame               l-33 -> l-32
+;; * finalize-frame-locations   l-32 -> l-29
+;;   discard-call-live          l-29 -> l-35
+;; * finalize-locations         l-35 -> l-36
 ;;   expose-frame-var           l-36 -> l-37
 ;;   expose-basic-blocks        l-37 -> l-39
 ;;   flatten-program            l-39 -> l-41
 ;;   generate-x86-64            l-41 -> ()
 
-;; !!!!!!! CSZ: TODO: need to add l-29-31
-;; need to update top level grammar
-;;    (Framework GenGrammars l29-uncover-frame-conflict)
-;;    (Framework GenGrammars l30-introduce-allocation-forms)
-;;    (Framework GenGrammars l31-select-instructions)
-;;
+;; (*) Updated this week.
 
 (p423-grammars
   (l01-verify-scheme
@@ -81,7 +77,7 @@
         (locate ((UVar Loc) *) Tail)
         )))
 
-(l30-select-instructions
+(l31-select-instructions
     (%remove 
       (Body locals))
     (%add
@@ -92,7 +88,7 @@
                                  (frame-conflict ((UVar Var *) *)
                                  Tail)))))))
 
-(l31-uncover-register-conflict
+(l32-uncover-register-conflict
   (%remove
     (Body locals))
   (%add
@@ -106,7 +102,7 @@
                                (frame-conflict ((UVar Var *) *)
                                                (register-conflict ((UVar Conflict *) *)
                                                                   Tail)))))))) 
-(l32-assign-registers
+(l33-assign-registers
   (%remove
     (Body locals))
   (%add
@@ -117,9 +113,11 @@
                                (locate ((UVar FVar) *) 
                                        (frame-conflict ((UVar Var *) *) 
                                                        Tail))))))))
-(l33-assign-frame)
 
-(l34-finalize-frame-locations)
+;; There is no assign-frame language, because it's the same as l32-assign-registers.
+
+;; There is no l36-finalize-frame-locations, because finalize-frame-locations
+;; outputs the grammar l29-introduce-allocation-forms.
 
 (l35-discard-call-live
   (%remove

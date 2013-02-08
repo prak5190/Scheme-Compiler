@@ -164,11 +164,9 @@
     (Framework GenGrammars l01-verify-scheme)
     (Framework GenGrammars l28-uncover-frame-conflict)
     (Framework GenGrammars l29-introduce-allocation-forms)
-    (Framework GenGrammars l30-select-instructions)
-    (Framework GenGrammars l31-uncover-register-conflict)
-    (Framework GenGrammars l32-assign-registers)
-    (Framework GenGrammars l33-assign-frame)
-    (Framework GenGrammars l34-finalize-frame-locations)
+    (Framework GenGrammars l31-select-instructions)
+    (Framework GenGrammars l32-uncover-register-conflict)
+    (Framework GenGrammars l33-assign-registers)
     (Framework GenGrammars l35-discard-call-live)
     (Framework GenGrammars l36-finalize-locations)
     (Framework GenGrammars l37-expose-frame-var)
@@ -248,7 +246,7 @@
       lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k)
              ;;we call l31 here because this is in an iterate form and the grammar doesn't change.
-       ,(if (grammar-verification) (verify-grammar:l30-select-instructions x) x)))
+       ,(if (grammar-verification) (verify-grammar:l31-select-instructions x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -261,7 +259,7 @@
       handle-overflow set! locate locals ulocals
       lambda register-conflict frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l31-uncover-register-conflict x) x)))
+		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -274,7 +272,7 @@
       handle-overflow set! locate locals ulocals
       spills frame-conflict lambda true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l32-assign-registers x) x)))
+		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
   ,return-value-register)
 
 (define-language-wrapper discard-call-live/wrapper (x)
