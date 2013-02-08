@@ -43,7 +43,7 @@
 ;;; If the value is a valid program, verify scheme returns the value
 ;;; unchanged; otherwise it signals an error.
 ;;;
-;;; At this level in the compiler verify-scheme no longer checks machine
+;;; At this level in the Compiler verify-scheme no longer checks machine
 ;;; constraints, as select-instructions should now perform instruction
 ;;; selection and correctly select which instruction to use based on the
 ;;; machine constraints.

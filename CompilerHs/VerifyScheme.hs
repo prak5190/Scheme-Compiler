@@ -42,7 +42,6 @@ vPred labels env pr = case pr of
   FalseP       -> return ()
   AppP r t1 t2 -> do vTriv labels env t1
                      vTriv labels env t2
-                     assert (relopConstraints env t1 t2) (constraintError pr)
   IfP p1 p2 p3 -> mapM_ (vPred labels env) [p1,p2,p3]
   BeginP es p  -> do mapM_ (vEffect labels env) es
                      vPred labels env p
@@ -64,9 +63,7 @@ vEffect labels env ef = case ef of
   Nop              -> return ()
   Set1 v tr        -> do vVar env v
                          vTriv labels env tr
-                         assert (set1Constraints env v tr) (constraintError ef)
   Set2 v b tr1 tr2 -> do vVar env v
-                         assert (Var v == tr1) (identicalError v tr1 ef)
                          assert (set2Constraints env b tr1 tr2) (constraintError ef)
   IfE p e1 e2      -> do vPred labels env p
                          vEffect labels env e1
@@ -92,29 +89,8 @@ set1Constraints env v tr =
 
 set2Constraints :: Env -> Binop -> Triv -> Triv -> Bool
 set2Constraints env b t1 t2 = case b of
-  MUL -> (and [ (trivIsReg t1 env)
-              , (or [ (trivIsReg t2 env)
-                    , (trivIsFVar t2 env)
-                    , (trivIsInt32 t2)
-                    ])
-              ])
-  SRA -> (and [ (trivIsUInt6 t2)
-              , (or [ (trivIsReg t1 env)
-                    , (trivIsFVar t1 env)
-                    ])
-              ])
-  _   -> (or [ (and [ (trivIsReg t1 env)
-                    , (or [ (trivIsReg t2 env)
-                          , (trivIsFVar t2 env)
-                          , (trivIsInt32 t2)
-                          ])
-                    ])
-             , (and [ (trivIsFVar t1 env)
-                    , (or [ (trivIsReg t2 env)
-                          , (trivIsInt32 t2)
-                          ])
-                    ])
-             ])
+  SRA -> trivIsUInt6 t2
+  _   -> True
 
 vTriv :: [Label] -> Env -> Triv -> PassM ()
 vTriv labels env tr = case tr of
