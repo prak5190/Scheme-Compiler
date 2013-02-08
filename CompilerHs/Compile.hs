@@ -126,15 +126,21 @@ p423Compile l = do
   p <- runPass vfs p
   p <- runPass ufc p
   p <- runPass iaf p
-  p <- runPass sis p --iterate
-  p <- runPass urc p
-  p <- runPass asr p
-  p <- runPass eho p --break/when
-  p <- runPass asf p
-  p <- runPass ffl p
+  let loop p = do 
+        p <- runPass sis p --iterate
+        p <- runPass urc p
+        p <- runPass asr p
+        b <- runPass eho p --break/when
+        if b then return p
+         else do 
+           p <- runPass asf p
+           p <- runPass ffl p
+           loop p
+  p <- loop p
   p <- runPass dcl p
   p <- runPass fnl p
   p <- runPass efv p
   p <- runPass ebb p
   p <- runPass flp p
   assemble$ generateX86_64 p
+

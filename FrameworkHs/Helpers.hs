@@ -448,6 +448,9 @@ instance PP String where
   pp = fromString
   ppp = P.text 
 
+instance PP Bool where
+  pp = fromString . show
+
 instance PP Integer where
   pp = fromShow
   ppp = P.text . show
