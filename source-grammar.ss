@@ -58,7 +58,7 @@
       Reg
       FVar))
 
- (l29-uncover-frame-conflict
+ (l28-uncover-frame-conflict
     (%remove 
       (Body locals))
     (%add
@@ -67,7 +67,7 @@
                 (frame-conflict ((UVar Var *) *)
                 Tail)))))
 
-(l30-introduce-allocation-forms
+(l29-introduce-allocation-forms
     (%remove 
       (Body locals))
     (%add
@@ -78,9 +78,10 @@
                                  (frame-conflict ((UVar Var *) *)
                                  Tail))))
 
-        (locate ((UVar Loc) *) Tail))))
+        (locate ((UVar Loc) *) Tail)
+        )))
 
-(l31-select-instructions
+(l30-select-instructions
     (%remove 
       (Body locals))
     (%add
@@ -89,11 +90,9 @@
                 (ulocals (UVar *)
                          (locate ((UVar FVar) *) 
                                  (frame-conflict ((UVar Var *) *)
-                                 Tail))))
+                                 Tail)))))))
 
-        (locate ((UVar Loc) *) Tail))))
-
-(l32-uncover-register-conflict
+(l31-uncover-register-conflict
   (%remove
     (Body locals))
   (%add
@@ -106,10 +105,8 @@
                        (locate ((UVar FVar) *) 
                                (frame-conflict ((UVar Var *) *)
                                                (register-conflict ((UVar Conflict *) *)
-                                                                  Tail)))))
-      (locate ((UVar FVar) *) Tail))))
-
-(l33-assign-registers
+                                                                  Tail)))))))) 
+(l32-assign-registers
   (%remove
     (Body locals))
   (%add
@@ -119,11 +116,24 @@
                        (spills (UVar *)
                                (locate ((UVar FVar) *) 
                                        (frame-conflict ((UVar Var *) *) 
-                                                       Tail)))))
-      (locate ((UVar FVar) *) Tail))))
+                                                       Tail))))))))
+(l33-assign-frame
+  (%remove
+    (Body locals))
+  (%add
+    (Body
+      (locals (UVar *)
+              (ulocals (UVar *)
+                               (locate ((UVar FVar) *) 
+                                       (frame-conflict ((UVar Var *) *) 
+                                                       Tail)))))))
+
+(l34-finalize-frame-locations)
 
 (l35-discard-call-live
   (%remove
+    (Conflict)
+    (Body locals)
     (Tail Triv))
   (%add
     (Tail (Triv))))
