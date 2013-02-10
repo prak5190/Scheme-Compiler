@@ -11,7 +11,7 @@
 ;; * everybody-home?            l-33 -> l-33
 ;; * assign-frame               l-33 -> l-32
 ;; * finalize-frame-locations   l-32 -> l-29
-;;   discard-call-live          l-33 -> l-35
+;;   discard-call-live          l-29 -> l-35
 ;; * finalize-locations         l-35 -> l-36
 ;;   expose-frame-var           l-36 -> l-37
 ;;   expose-basic-blocks        l-37 -> l-39
@@ -114,7 +114,7 @@
                                        (frame-conflict ((UVar Var *) *) 
                                                        Tail))))))))
 
-;; There is no assign-frame language, because it's the same as l33-assign-registers.
+;; There is no assign-frame language, because it's the same as l32-assign-registers.
 
 ;; There is no l36-finalize-frame-locations, because finalize-frame-locations
 ;; outputs the grammar l29-introduce-allocation-forms.

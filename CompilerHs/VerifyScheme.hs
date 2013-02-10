@@ -100,7 +100,7 @@ vTriv labels env tr = case tr of
 
 vVar :: Env -> Var -> PassM ()
 vVar env v = case v of
-  UVar uv -> assert (elem uv env) ("unbound uvar: " ++ show uv)
+  UVar uv -> (assert (elem uv env) ("unbound uvar: " ++ show uv))
   Loc l   -> return ()
 
 identicalError :: Var -> Triv -> Effect -> String
@@ -118,12 +118,17 @@ assert :: Bool -> String -> PassM ()
 assert False msg = passFailure "VerifyScheme" msg
 assert True _ = return ()
 
-allDistinct :: (Eq a, Show a) => String -> [a] -> PassM ()
+allDistinct :: (LooseEq a, Eq a, Show a) => String -> [a] -> PassM ()
 allDistinct name xs = case xs of
   []                     -> return ()
   [x]                    -> return ()
-  (x:xs') | x `elem` xs' -> passFailure "VerifyScheme" ("duplicate " ++ name ++ ": " ++ show x)
+  (x:xs') | x `looseElem` xs' -> passFailure "VerifyScheme" ("duplicate " ++ name ++ ": " ++ show x)
           | otherwise    -> allDistinct name xs'
+
+looseElem :: (LooseEq a) => a -> [a] -> Bool
+looseElem e []     = False
+looseElem e (x:xs) | e .= x = True
+looseElem e (x:xs) = looseElem e xs
 
 varIsReg :: Var -> Env -> Bool
 varIsReg v env = case v of
