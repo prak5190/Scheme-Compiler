@@ -33,6 +33,10 @@ import CompilerHs.ExposeFrameVar               (exposeFrameVar)
 import CompilerHs.FlattenProgram               (flattenProgram)
 import CompilerHs.GenerateX86_64               (generateX86_64)
 
+import CompilerHs.FlattenSet                   (flattenSet)
+import CompilerHs.RemoveComplexOpera           (removeComplexOpera)
+import CompilerHs.ImposeCallingConventions     (imposeCallingConventions)
+
 import qualified Data.ByteString as B
 
 vfs = P423Pass { pass = verifyScheme
@@ -113,11 +117,32 @@ ffl = P423Pass { pass = finalizeFrameLocations
                , trace = False 
                }
 
+rco = P423Pass { pass = removeComplexOpera
+               , passName = "removeComplexOpera"
+               , wrapperName = "remove-complex-opera*/wrapper"
+               , trace = False 
+               }
+
+fls = P423Pass { pass = flattenSet
+               , passName = "flattenSet"
+               , wrapperName = "flatten-set!/wrapper"
+               , trace = False 
+               }
+
+icc = P423Pass { pass = imposeCallingConventions
+               , passName = "imposeCallingConventions"
+               , wrapperName = "impose-calling-conventions/wrapper"
+               , trace = False 
+               }
+
 -- | Compose the complete compiler as a pipeline of passes.
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
-  p <- liftPassM$ parseProg l
+  p <- liftPassM$ parseProg l  
   p <- runPass vfs p
+  p <- runPass rco p
+  p <- runPass fls p
+  p <- runPass icc p
   p <- runPass ufc p
   p <- runPass iaf p
   let loop p = do 
@@ -137,4 +162,3 @@ p423Compile l = do
   p <- runPass ebb p
   p <- runPass flp p
   assemble$ generateX86_64 p
-
