@@ -103,7 +103,8 @@ data P423Config =
     , parameterRegisters :: [Reg]
     }
 
--- | A monad for implementing passes
+-- | A monad for implementing passes.  It provides access to the global
+-- configuration, and also handles errors.
 type PassM = ReaderT P423Config (Either String)
 
 -- | Getting the configuration
@@ -182,7 +183,7 @@ instance Show P423Exception where
 shortExcDescrip :: P423Exception -> String
 shortExcDescrip e = case e of
   (AssemblyFailedException e)   -> "Assembly failure"
-  (ParseErrorException pe)      -> "SExp parse failure"
+  (ParseErrorException pe)      -> "SExp parse failure in tests"
   (ASTParseException s)         -> "AST parse failure"
   (NoValidTestsException)       -> "Couldn't find valid tests"
   (NoInvalidTestsException)     -> "Couldn't find invalid tests"
