@@ -162,9 +162,8 @@
     (chezscheme)
     (Framework match)
     (Framework GenGrammars l01-verify-scheme)
-    (Framework GenGrammars l28-uncover-frame-conflict)
-    (Framework GenGrammars l29-introduce-allocation-forms)
-    (Framework GenGrammars l31-select-instructions)
+    (Framework GenGrammars l27-uncover-frame-conflict)
+    (Framework GenGrammars l28-introduce-allocation-forms)
     (Framework GenGrammars l32-uncover-register-conflict)
     (Framework GenGrammars l33-assign-registers)
     (Framework GenGrammars l35-discard-call-live)
@@ -224,7 +223,7 @@
     (only (Framework wrappers aux)
       set! handle-overflow locals lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-       ,(if (grammar-verification) (verify-grammar:l28-uncover-frame-conflict x) x)))
+       ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -245,8 +244,7 @@
       locals ulocals locate set! handle-overflow
       lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k)
-             ;;we call l31 here because this is in an iterate form and the grammar doesn't change.
-       ,(if (grammar-verification) (verify-grammar:l31-select-instructions x) x)))
+       ,(if (grammar-verification) (verify-grammar:l28-introduce-allocation-forms x) x)))
   ,return-value-register)
 
 ;;-----------------------------------

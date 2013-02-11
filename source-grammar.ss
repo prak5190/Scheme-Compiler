@@ -3,22 +3,20 @@
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
-;; * uncover-frame-conflict     l-01 -> l-28
-;; * introduce-allocation-forms l-28 -> l-29
-;; * select-instructions        l-29 -> l-31
-;; * uncover-register-conflict  l-31 -> l-32
-;; * assign-registers           l-32 -> l-33
-;; * everybody-home?            l-33 -> l-33
-;; * assign-frame               l-33 -> l-32
-;; * finalize-frame-locations   l-32 -> l-29
-;;   discard-call-live          l-29 -> l-35
-;; * finalize-locations         l-35 -> l-36
+;;   uncover-frame-conflict     l-01 -> l-27
+;;   introduce-allocation-forms l-27 -> l-28
+;;     select-instructions       l-28 -> l-28
+;;     uncover-register-conflict l-28 -> l-32
+;;     assign-registers          l-32 -> l-33
+;;     everybody-home?           l-33 -> bool
+;;     assign-frame              l-33 -> l-28
+;;     finalize-frame-locations  l-28 -> l-28
+;;   discard-call-live          l-33 -> l-35
+;;   finalize-locations         l-35 -> l-36
 ;;   expose-frame-var           l-36 -> l-37
 ;;   expose-basic-blocks        l-37 -> l-39
 ;;   flatten-program            l-39 -> l-41
 ;;   generate-x86-64            l-41 -> ()
-
-;; (*) Updated this week.
 
 (p423-grammars
   (l01-verify-scheme
@@ -54,7 +52,7 @@
       Reg
       FVar))
 
- (l28-uncover-frame-conflict
+ (l27-uncover-frame-conflict
     (%remove 
       (Body locals))
     (%add
@@ -63,21 +61,9 @@
                 (frame-conflict ((UVar Var *) *)
                 Tail)))))
 
-(l29-introduce-allocation-forms
-    (%remove 
-      (Body locals))
-    (%add
-      (Body
-        (locals (UVar *)
-                (ulocals ()
-                         (locate () 
-                                 (frame-conflict ((UVar Var *) *)
-                                 Tail))))
-
-        (locate ((UVar Loc) *) Tail)
-        )))
-
-(l31-select-instructions
+;; This is an important grammar.  Its the one that is used at the top
+;; and end of every iteration of the register-allocation loop.
+(l28-introduce-allocation-forms
     (%remove 
       (Body locals))
     (%add
@@ -86,8 +72,11 @@
                 (ulocals (UVar *)
                          (locate ((UVar FVar) *) 
                                  (frame-conflict ((UVar Var *) *)
-                                 Tail)))))))
+                                 Tail))))
+        (locate ((UVar Loc) *) Tail)
+        )))
 
+;; Adds register-conflict to the deeply nested Body forms.
 (l32-uncover-register-conflict
   (%remove
     (Body locals))
@@ -95,16 +84,17 @@
     ;; Ignore conflicts with frame vars:
     (Conflict Reg UVar)
     (Body
-      ;        (register-conflict ((UVar UVar * Reg *) *)
       (locals (UVar *)
               (ulocals (UVar *)
                        (locate ((UVar FVar) *) 
                                (frame-conflict ((UVar Var *) *)
                                                (register-conflict ((UVar Conflict *) *)
-                                                                  Tail)))))))) 
+                                                                  Tail))))))))
+;; Adds the 'spill' form.
 (l33-assign-registers
   (%remove
-    (Body locals))
+    (Body locals)
+    (Conflict))
   (%add
     (Body
       (locals (UVar *)
@@ -114,14 +104,12 @@
                                        (frame-conflict ((UVar Var *) *) 
                                                        Tail))))))))
 
-;; There is no assign-frame language, because it's the same as l32-assign-registers.
 
-;; There is no l36-finalize-frame-locations, because finalize-frame-locations
-;; outputs the grammar l29-introduce-allocation-forms.
+; assign-frame: This is the same as l28-introduce-allocation-forms
+; finalize-frame-locations: also uses l28-introduce-allocation-forms
 
 (l35-discard-call-live
   (%remove
-    (Conflict)
     (Body locals)
     (Tail Triv))
   (%add

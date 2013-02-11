@@ -53,12 +53,6 @@ asr = P423Pass { pass = assignRegisters
                , trace = False
                }
 
-eho = P423Pass { pass = everybodyHome
-               , passName = "everybodyHome"
-               , wrapperName = "assign-registers/wrapper" --same wrapper because this doesn't actually change the grammar
-               , trace = False
-               }
-
 dcl = P423Pass { pass = discardCallLive
                , passName = "discardCallLive"
                , wrapperName = "discard-call-live/wrapper"
@@ -127,10 +121,10 @@ p423Compile l = do
   p <- runPass ufc p
   p <- runPass iaf p
   let loop p = do 
-        p <- runPass sis p --iterate
+        p <- runPass sis p
         p <- runPass urc p
         p <- runPass asr p
-        b <- runPass eho p --break/when
+        let b = everybodyHome p
         if b then return p
          else do 
            p <- runPass asf p
