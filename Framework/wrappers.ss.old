@@ -145,9 +145,6 @@
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
-    remove-complex-opera*/wrapper
-    flatten-set!/wrapper
-    impose-calling-conventions/wrapper
     uncover-frame-conflict/wrapper
     introduce-allocation-forms/wrapper
     select-instructions/wrapper
@@ -165,11 +162,9 @@
     (chezscheme)
     (Framework match)
     (Framework GenGrammars l01-verify-scheme)
-    (Framework GenGrammars l23-remove-complex-opera)
-    (Framework GenGrammars l24-flatten-set)
-    (Framework GenGrammars l25-impose-calling-conventions)
-    (Framework GenGrammars l27-uncover-frame-conflict)
-    (Framework GenGrammars l28-introduce-allocation-forms)
+    (Framework GenGrammars l28-uncover-frame-conflict)
+    (Framework GenGrammars l29-introduce-allocation-forms)
+    (Framework GenGrammars l31-select-instructions)
     (Framework GenGrammars l32-uncover-register-conflict)
     (Framework GenGrammars l33-assign-registers)
     (Framework GenGrammars l35-discard-call-live)
@@ -192,9 +187,6 @@
     (case pass
       ((source) source/wrapper)
       ((verify-scheme) verify-scheme/wrapper)
-      ((remove-complex-opera*) remove-complex-opera*/wrapper)
-      ((flatten-set!) flatten-set!/wrapper)
-      ((impose-calling-conventions) impose-calling-conventions/wrapper)
       ((uncover-frame-conflict) uncover-frame-conflict/wrapper)
       ((introduce-allocation-forms) introduce-allocation-forms/wrapper)
       ((select-instructions) select-instructions/wrapper)
@@ -211,65 +203,16 @@
       (else (errorf 'pass->wrapper
               "Wrapper for pass ~s not found" pass)))))
 
-;;-----------------------------------
-;; source/wrapper
-;; verify-scheme/wrapper
-;;-----------------------------------
-(define-language-wrapper
-  (source/wrapper verify-scheme/wrapper)
+(define-language-wrapper (source/wrapper verify-scheme/wrapper)
   (x)
   (environment env)
-  (import
-    (only (Framework wrappers aux)
-      set! handle-overflow locals true false nop)
-    (only (chezscheme) lambda))
+  (import (only (Framework wrappers aux)
+            set! handle-overflow  locals
+            lambda true false nop))
   (reset-machine-state!)
-  ,x ;,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
-  )
-
-;;-----------------------------------
-;; remove-complex-opera*/wrapper
-;;-----------------------------------
-(define-language-wrapper
-  (remove-complex-opera*/wrapper)
-  (x)
-  (environment env)
-  (import
-    (only (Framework wrappers aux)
-      set! handle-overflow locals true false nop)
-    (only (chezscheme) lambda))
-  (reset-machine-state!)
-  ,x ;,(if (grammar-verification) (verify-grammar:l23-remove-complex-opera x) x)
-  )
-
-;;-----------------------------------
-;; flatten-set!/wrapper
-;;-----------------------------------
-(define-language-wrapper
-  (flatten-set!/wrapper)
-  (x)
-  (environment env)
-  (import
-    (only (Framework wrappers aux)
-      set! handle-overflow locals true false nop)
-    (only (chezscheme) lambda))
-  (reset-machine-state!)
-  ,x ; ,(if (grammar-verification) (verify-grammar:l24-flatten-set x) x)
-  )
-
-;;-----------------------------------
-;; impose-calling-conventions/wrapper
-;;-----------------------------------
-(define-language-wrapper impose-calling-conventions/wrapper
-  (x)
-  (environment env)
-  (import
-    (only (Framework wrappers aux)
-      set! handle-overflow lambda locals true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
+		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
   ,return-value-register)
-
 
 ;;-----------------------------------
 ;; uncover-frame-conflict/wrapper
@@ -281,7 +224,7 @@
     (only (Framework wrappers aux)
       set! handle-overflow locals lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-       ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
+       ,(if (grammar-verification) (verify-grammar:l28-uncover-frame-conflict x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -302,7 +245,8 @@
       locals ulocals locate set! handle-overflow
       lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k)
-       ,(if (grammar-verification) (verify-grammar:l28-introduce-allocation-forms x) x)))
+             ;;we call l31 here because this is in an iterate form and the grammar doesn't change.
+       ,(if (grammar-verification) (verify-grammar:l31-select-instructions x) x)))
   ,return-value-register)
 
 ;;-----------------------------------

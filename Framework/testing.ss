@@ -357,7 +357,7 @@
     [(pass-verification-violation? pass-result)
      (list "Fail"
            (format "~a: ~s"
-                   "Verification error"
+                   "Wrapper answer verification error"
                    (pass-verification-violation-pass pass-result)))]
     [(or (error? pass-result) (violation? pass-result))
      (list "Fail" 
@@ -372,7 +372,7 @@
      "wrapper violation"]
     [(pass-verification-violation? pass-result)
      (format "~a: ~s"
-       "verification error"
+       "wrapper answer verification error"
        (pass-verification-violation-pass pass-result))]
     [(or (error? pass-result) (violation? pass-result))
      "fail"]

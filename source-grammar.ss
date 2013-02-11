@@ -1,8 +1,11 @@
 ;; P423
-;; Week 5 grammars
+;; Week 6 grammars
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
+;; * remove-complex-opera*      l-01 -> l-23
+;; * flatten-set!               l-23 -> l-24
+;; * impose-calling-conventions l-24 -> l-25
 ;;   uncover-frame-conflict     l-01 -> l-27
 ;;   introduce-allocation-forms l-27 -> l-28
 ;;     select-instructions       l-28 -> l-28
@@ -18,39 +21,85 @@
 ;;   flatten-program            l-39 -> l-41
 ;;   generate-x86-64            l-41 -> ()
 
+;; (*) Updated this week.
+
 (p423-grammars
   (l01-verify-scheme
     (start Prog)
     (Prog
-      (letrec ((Label (lambda () Body)) *) Body))
+      (letrec ((Label (lambda (UVar *) Body)) *) Body))
     (Body
       (locals (UVar *) Tail))
-    (Tail      
+    (Tail
       (if Pred Tail Tail)
       (begin Effect * Tail)
-      (Triv Loc *))
+      (Binop Value Value)
+      (Value Value *)
+      Triv)
     (Pred
       (true)
-      (false)      
+      (false)
       (if Pred Pred Pred)
       (begin Effect * Pred)
-      (Relop Triv Triv))
+      (Relop Value Value))
     (Effect
       (nop)
-      (set! Var Triv)
-      (set! Var (Binop Triv Triv))
+      (set! UVar Value)
       (if Pred Effect Effect)
       (begin Effect * Effect))
+    (Value
+      (if Pred Value Value)
+      (begin Effect * Value)
+      (Binop Value Value)
+      Triv)
     (Triv
-      Var
-      Integer
-      Label)
-    (Var
       UVar
-      Loc)
-    (Loc
-      Reg
-      FVar))
+      Integer
+      Label))
+
+ ;; Replace Value with Triv in arguments of procedure calls and primitive application.
+ (l23-remove-complex-opera
+   (%remove
+     (Tail Binop Value)
+     (Pred Relop)
+     (Value Binop))
+   (%add
+     (Tail
+       (Binop Triv Triv)
+       (Triv Triv *))
+     (Pred (Relop Triv Triv))
+     (Value (Binop Triv Triv))))
+
+ ;; Remove Value, set! rhs may only be Triv or Binop.
+ (l24-flatten-set
+   (%remove
+     Value
+     (Effect set!))
+   (%add
+     (Effect
+       (set! UVar Triv)
+       (set! UVar (Binop Triv Triv)))))
+
+ (l25-impose-calling-conventions
+   (%remove
+     (Prog letrec)
+     (Tail Triv Binop)
+     (Effect set!)
+     (Triv UVar))
+   (%add
+     (Prog (letrec ((Label (lambda () Body)) *) Body))
+     (Tail (Triv Loc *))
+     (Effect
+       (set! Var Triv)
+       (set! Var (Binop Triv Triv)))
+     (Loc
+       Reg
+       FVar)
+     (Var
+       UVar
+       Loc)
+     (Triv Var)))
+
 
  (l27-uncover-frame-conflict
     (%remove 

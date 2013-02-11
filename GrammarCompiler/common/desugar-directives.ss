@@ -106,7 +106,9 @@
                        (let ((new-subs
                               (remp
                                (lambda (s)
-                                 (memq (car s) rem-subs))
+                                 (if (list? s)
+                                     (memq (car s) rem-subs)
+                                     (memq s rem-subs)))
                                (cdr t))))
                          (cond
                            ((null? new-subs)

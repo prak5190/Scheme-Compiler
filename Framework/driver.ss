@@ -316,7 +316,7 @@
        (let ([output (pass inv)])
          (let ([input-res (input-wrapper inv)]
                [output-res (output-wrapper output)])
-           (verify-against inv input-res output output-res pass))
+           (verify-answers-against inv input-res output output-res pass))
          output))]))
 
 (define-syntax run-emit-pass
@@ -326,7 +326,7 @@
        (let ([output (assemble (lambda () (pass inv)))])
          (let ([input-res (input-wrapper inv)]
                [output-res (output-wrapper output)])
-           (verify-against inv input-res output output-res pass))
+           (verify-answers-against inv input-res output output-res pass))
          (void)))]))
 
 (define-syntax run-iterated-pass
@@ -444,7 +444,7 @@
 
 ;;Other;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (verify-against inv input-res output output-res pass)
+(define (verify-answers-against inv input-res output output-res pass)
   (define (stringify x)
     (if (string? x)
         x
@@ -457,7 +457,7 @@
         (make-irritants-condition (list pass))
         (make-pass-verification-violation
           pass inv output input-res output-res)
-        (make-message-condition "~a failed verification")))))
+        (make-message-condition "~a failed to produce the correct [wrapper-] evaluated answer")))))
 
 (define display-pass-verification-violation
   (case-lambda
@@ -472,7 +472,7 @@
     (assert (output-port? p))
     (assert (textual-port? p))
     (format p
-      "Verification of pass ~a failed.~n"
+      "Wrapper answers from pass ~a failed.~n"
       (pass-verification-violation-pass c))
     (format p "~8,8tInput Pass:~n")
     (parameterize ([pretty-initial-indent 0])

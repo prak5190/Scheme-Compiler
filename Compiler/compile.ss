@@ -7,6 +7,9 @@
     (Framework match)
     (Framework helpers)
     (Compiler verify-scheme)
+    (Compiler remove-complex-opera*)
+    (Compiler flatten-set!)
+    (Compiler impose-calling-conventions)
     (Compiler uncover-frame-conflict)
     (Compiler introduce-allocation-forms)
     (Compiler select-instructions)
@@ -34,6 +37,9 @@
 ;; Compose the complete Compiler as a pipeline of passes.
 (define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
+  (remove-complex-opera*)
+  (flatten-set!)
+  (impose-calling-conventions)
   (uncover-frame-conflict)
   (introduce-allocation-forms)
   (iterate
