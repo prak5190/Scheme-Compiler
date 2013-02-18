@@ -6,7 +6,7 @@
 ;; * remove-complex-opera*      l-01 -> l-23
 ;; * flatten-set!               l-23 -> l-24
 ;; * impose-calling-conventions l-24 -> l-25
-;;   uncover-frame-conflict     l-01 -> l-27
+;;   uncover-frame-conflict     l-25 -> l-27
 ;;   introduce-allocation-forms l-27 -> l-28
 ;;     select-instructions       l-28 -> l-28
 ;;     uncover-register-conflict l-28 -> l-32
