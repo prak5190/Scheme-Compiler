@@ -365,7 +365,7 @@
           (set! the-stack (make-vector n)))
         n)))
 
-  (define grammar-verification (make-parameter #t))
+  (define grammar-verification (make-parameter #f))
 
   (define $check-heap-overflow
     (lambda (ap)
