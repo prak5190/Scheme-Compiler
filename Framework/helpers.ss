@@ -197,7 +197,6 @@
 ;;;   whether grammar verification is performed inside each wrapper.
 
 
-#!chezscheme
 (library (Framework helpers aux)
   (export
     word-shift
@@ -264,12 +263,7 @@
   (lambda (x)
     (syntax-case x ()
       [(k (name args ...) defn ... expr)
-       (with-syntax ([who (datum->syntax-object #'k 'who)])
-         #'(define name
-             (let ([who 'name])
-               (lambda (args ...)
-                 defn ...
-                 expr))))]
+       #'(k name (lambda (args ...) defn ... expr))]
       [(k name defn ... expr)
        (with-syntax ([who (datum->syntax-object #'k 'who)])
          #'(define name
@@ -280,6 +274,8 @@
 (define-syntax trace-define-who
   (lambda (x)
     (syntax-case x ()
+      [(k (name args ...) defn ... expr)
+       #'(k name (lambda (args ...) defn ... expr))]
       [(k name defn ... expr)
        (with-syntax ([who (datum->syntax-object #'k 'who)])
          #'(trace-define name
@@ -589,7 +585,7 @@
            #'(define-frame-variable k min)
            #`(begin
                (define-frame-variable k min)
-               (k #,(+ 1 mind) max))))]))
+               (k #,(+ mind 1) max))))]))
 
 (define-syntax (define-frame-variable x)
   (syntax-case x ()
@@ -606,21 +602,21 @@
                  (putprop (string->symbol (format "fv~d" #,i))
                    'frame-index #,i)
                  (void)))
-             (define-syntax (fvi x)
+             (define-syntax (%fvi x)
                (define (fp k)
                  (datum->syntax k frame-pointer-register))
-               (syntax-case x (set!)
-                 [k (identifier? #'k)
+               (syntax-case x (set id)
+                 [(k id)
                   #`(mref (- #,(fp #'k) (fp-offset))
                           #,(fxsll index word-shift))]
-                 [(set! k val) (identifier? #`k)
+                 [(k set exp)
                   #`(mset! (- #,(fp #'k) (fp-offset))
                            #,(fxsll index word-shift)
-                           val)]
-                 [(k x (... ...)) 
-                  #`((mref (- #,(fp #'k) (fp-offset))
-                           #,(fxsll index word-shift))
-                     x (... ...))])))))]))
+                           exp)]))
+             (define-syntax fvi
+               (identifier-syntax
+                 [fvi (%fvi id)]
+                 [(set! fvi exp) (%fvi set exp)])))))]))
 
 ; (define max-frame-var
 ;   (make-parameter 100
@@ -760,22 +756,6 @@
        (unless (and (integer? x) (exact? x) (>= x 0))
          (error 'unique-name-count "invalid count ~s" count))
        (set! count x)]))
-;   (define extract-root
-;     (lambda (sym)
-;       (list->string
-;         (let ([chars (string->list (symbol->string sym))])
-;           (define (s0 ls)
-;             (cond
-;               [(null? ls) chars]
-;               [(char-numeric? (car ls)) (s1 (cdr ls))]
-;               [else chars]))
-;           (define (s1 ls)
-;             (cond
-;               [(null? ls) chars]
-;               [(char-numeric? (car ls)) (s1 (cdr ls))]
-;               [(memv (car ls) '(#\. #\$)) (reverse (cdr ls))]
-;               [else chars]))
-;           (s0 (reverse chars))))))
   (define extract-suffix
     (lambda (sym)
       (let ([str (symbol->string sym)])
@@ -988,3 +968,28 @@
 (reset-machine-state!)
 
 ) ;; End library
+
+(library (Framework helpers frame-variables)
+  (export
+    prepare-frame-variables
+    fv0 fv1 fv2 fv3 fv4 fv5 fv6 fv7 fv8 fv9 fv10 fv11 fv12 fv13
+    fv14 fv15 fv16 fv17 fv18 fv19 fv20 fv21 fv22 fv23 fv24 fv25
+    fv26 fv27 fv28 fv29 fv30 fv31 fv32 fv33 fv34 fv35 fv36 fv37
+    fv38 fv39 fv40 fv41 fv42 fv43 fv44 fv45 fv46 fv47 fv48 fv49
+    fv50 fv51 fv52 fv53 fv54 fv55 fv56 fv57 fv58 fv59 fv60 fv61
+    fv62 fv63 fv64 fv65 fv66 fv67 fv68 fv69 fv70 fv71 fv72 fv73
+    fv74 fv75 fv76 fv77 fv78 fv79 fv80 fv81 fv82 fv83 fv84 fv85
+    fv86 fv87 fv88 fv89 fv90 fv91 fv92 fv93 fv94 fv95 fv96 fv97
+    fv98 fv99)
+  (import
+    (chezscheme)
+    (Framework helpers))
+
+(define-frame-variables 0 100)
+(define (prepare-frame-variables) (void))
+
+)
+
+(let ()
+  (import (Framework helpers frame-variables))
+  (prepare-frame-variables))
