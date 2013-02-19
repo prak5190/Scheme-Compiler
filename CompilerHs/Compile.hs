@@ -7,6 +7,7 @@ import System.Cmd
 import System.Process
 import System.Exit
 import Control.Exception (throw)
+import qualified Debug.Trace as D
 
 import FrameworkHs.Driver
 import FrameworkHs.Prims
@@ -15,12 +16,14 @@ import FrameworkHs.SExpReader.LispData
 
 import FrameworkHs.ParseL01                    (parseProg)
 import qualified FrameworkHs.GenGrammars.L01VerifyScheme as L01
+
 import CompilerHs.VerifyScheme                 (verifyScheme)
 import CompilerHs.UncoverRegisterConflict      (uncoverRegisterConflict)
 import CompilerHs.AssignRegisters              (assignRegisters)
 
 import CompilerHs.UncoverFrameConflict         (uncoverFrameConflict)
-import CompilerHs.IntroduceAllocationForms     (introduceAllocationForms)
+import CompilerHs.PreAssignFrame               (preAssignFrame)
+import CompilerHs.AssignNewFrame               (assignNewFrame)
 import CompilerHs.SelectInstructions           (selectInstructions)
 import CompilerHs.EverybodyHome                (everybodyHome)
 import CompilerHs.AssignFrame                  (assignFrame)
@@ -93,11 +96,18 @@ ufc = P423Pass { pass = uncoverFrameConflict
                , trace = False 
                }
 
-iaf = P423Pass { pass = introduceAllocationForms
-               , passName = "introduceAllocationForms"
-               , wrapperName = "introduce-allocation-forms/wrapper"
+paf = P423Pass { pass = preAssignFrame
+               , passName = "preAssignFrame"
+               , wrapperName = "pre-assign-frame/wrapper"
                , trace = False 
                }
+
+anf = P423Pass { pass = assignNewFrame
+               , passName = "assignNewFrame"
+               , wrapperName = "assign-new-frame/wrapper"
+               , trace = False 
+               }
+
 
 sis = P423Pass { pass = selectInstructions
                , passName = "selectInstructions"
@@ -135,17 +145,20 @@ icc = P423Pass { pass = imposeCallingConventions
                , trace = False 
                }
 
+
 -- | Compose the complete compiler as a pipeline of passes.
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
-  p <- liftPassM$ parseProg l  
+  p <- liftPassM$ parseProg l
   p <- runPass vfs p
   p <- runPass rco p
   p <- runPass fls p
   p <- runPass icc p
   p <- runPass ufc p
-  p <- runPass iaf p
-  let loop p = do 
+  p <- runPass paf p
+  p <- runPass anf p  
+  let loop p = do
+        p <- runPass ffl p        
         p <- runPass sis p
         p <- runPass urc p
         p <- runPass asr p
@@ -153,7 +166,6 @@ p423Compile l = do
         if b then return p
          else do 
            p <- runPass asf p
-           p <- runPass ffl p
            loop p
   p <- loop p
   p <- runPass dcl p

@@ -12,7 +12,7 @@ import FrameworkHs.Helpers (parseListWithFinal, parseInt32, parseInt64, parseLab
 
 parseProg :: LispVal -> PassM Prog
 parseProg (List [(Symbol "letrec"),List bs,b]) =
-  do
+  do 
      bs' <- mapM parseTuple bs
      b'  <- parseBody b
      return (Letrec bs' b')
@@ -27,10 +27,9 @@ parseProg (List [(Symbol "letrec"),List bs,b]) =
 parseProg e = parseFailureM ("parseProg: Invalid Prog: " ++ show e)
 
 
-
 parseBody :: LispVal -> PassM Body
 parseBody (List [(Symbol "locals"),List bs,t]) =
-  do
+  do 
      us <- mapM parseUVar bs
      t  <- parseTail t
      return (Locals us t)
@@ -76,7 +75,7 @@ parseValue (List (binop:rst)) = do
   binop' <- parseBinop binop
   rst'   <- mapM parseValue rst
   case rst' of
-    [x,y] -> return$ AppV binop' x y
+    [x,y] -> return$ AppV1 binop' x y
     _     -> parseFailureM$ "binop "++show binop'++" applied to wrong number of args: "++show rst'
 parseValue triv =
 --  trace ("Is this triv?" ++show triv) $
@@ -116,6 +115,10 @@ parseEffect (List [(Symbol "if"),p,e1,e2]) =
 parseEffect (List ((Symbol "begin"):ls)) =
   do (es,e) <- parseListWithFinal parseEffect parseEffect ls
      return (BeginE es e)
+parseEffect (List (hd:ls)) =
+  do v  <- parseValue hd
+     ls <- mapM parseValue ls
+     return (AppE v ls)
 parseEffect e = parseFailureM ("Invalid Effect: " ++ show e)
 
 
