@@ -247,7 +247,9 @@
     (Framework GenGrammars l24-flatten-set)
     (Framework GenGrammars l25-impose-calling-conventions)
     (Framework GenGrammars l27-uncover-frame-conflict)
-    (Framework GenGrammars l28-introduce-allocation-forms)
+    (Framework GenGrammars l28-pre-assign-frame)
+    (Framework GenGrammars l29-assign-new-frame)
+    (Framework GenGrammars l30-finalize-frame-locations)
     (Framework GenGrammars l32-uncover-register-conflict)
     (Framework GenGrammars l33-assign-registers)
     (Framework GenGrammars l35-discard-call-live)
@@ -371,7 +373,7 @@
       handle-overflow letrec locals spills call-live
       frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-    ,x ;,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x) 
+    ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)
     ))
   ,return-value-register)
 
@@ -389,7 +391,7 @@
       handle-overflow letrec locals locate call-live
       frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-       ,x ;,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x) 
+       ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x) 
        ))
   ,return-value-register)
 
@@ -397,7 +399,10 @@
 ;;----------------------------------
 ;; assign-new-frame
 ;;----------------------------------
-(define-language-wrapper assign-new-frame/wrapper (x)
+(define-language-wrapper 
+  (assign-new-frame/wrapper 
+   assign-frame/wrapper)
+  (x)
   (environment env)
   (define frame-size ,(compute-frame-size x))
   ,return-point-simple
@@ -409,18 +414,37 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,x ;,(if (grammar-verification) (verify-grammar:l28-introduce-allocation-forms x) x)
+      ,(if (grammar-verification) (verify-grammar:l29-assign-new-frame x) x)
       ))
   ,return-value-register)
 
 ;;-----------------------------------
 ;; finalize-frame-locations/wrapper
-;; select-instructions/wrapper
-;; assign-frame/wrapper
 ;;-----------------------------------
 (define-language-wrapper
   (finalize-frame-locations/wrapper
-   select-instructions/wrapper
+   select-instructions/wrapper)
+  (x)
+  (environment env)
+  ,return-point-simple
+  ,set!
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow letrec locate
+      locals ulocals frame-conflict
+      true false nop))
+  (call/cc (lambda (k) (set! ,return-address-register k)
+       ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
+  ,return-value-register)
+
+#;
+;;-----------------------------------
+;; select-instructions/wrapper
+;; assign-frame/wrapper
+;;-----------------------------------
+;; DUPLICATE OF ABOVE WITH DIFFERENT GRAMMAR VERIFICATION:
+(define-language-wrapper
+  (select-instructions/wrapper
    assign-frame/wrapper)
   (x)
   (environment env)
@@ -432,7 +456,7 @@
       locals ulocals frame-conflict
       true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k)
-       ,(if (grammar-verification) (verify-grammar:l28-introduce-allocation-forms x) x)))
+       ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
   ,return-value-register)
 
 ;;-----------------------------------

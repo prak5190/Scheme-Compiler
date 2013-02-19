@@ -1,19 +1,21 @@
-;; P423
-;; Week 6 grammars
+;; P423 / P523
+;; Week 7 grammars
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
-;; * remove-complex-opera*      l-01 -> l-23
-;; * flatten-set!               l-23 -> l-24
-;; * impose-calling-conventions l-24 -> l-25
+;;   remove-complex-opera*      l-01 -> l-23
+;;   flatten-set!               l-23 -> l-24
+;;   impose-calling-conventions l-24 -> l-25
 ;;   uncover-frame-conflict     l-25 -> l-27
-;;   introduce-allocation-forms l-27 -> l-28
-;;     select-instructions       l-28 -> l-28
-;;     uncover-register-conflict l-28 -> l-32
+;; * pre-assign-frame           l-27 -> l-28
+;; * assign-new-frame           l-28 -> l-29
+;;     finalize-frame-locations  l-29 -> l-30
+;;     select-instructions       l-30 -> l-30
+;;     uncover-register-conflict l-30 -> l-32
 ;;     assign-registers          l-32 -> l-33
 ;;     everybody-home?           l-33 -> bool
-;;     assign-frame              l-33 -> l-28
-;;     finalize-frame-locations  l-28 -> l-28
+;;     assign-frame              l-33 -> l-29
+
 ;;   discard-call-live          l-33 -> l-35
 ;;   finalize-locations         l-35 -> l-36
 ;;   expose-frame-var           l-36 -> l-37
@@ -21,7 +23,7 @@
 ;;   flatten-program            l-39 -> l-41
 ;;   generate-x86-64            l-41 -> ()
 
-;; (*) Updated this week.
+;; (*) New this week.
 
 (p423-grammars
   (l01-verify-scheme
@@ -46,11 +48,13 @@
       (nop)
       (set! UVar Value)
       (if Pred Effect Effect)
-      (begin Effect * Effect))
+      (begin Effect * Effect)
+      (Value Value *))
     (Value
       (if Pred Value Value)
       (begin Effect * Value)
       (Binop Value Value)
+      (Value Value *)
       Triv)
     (Triv
       UVar
@@ -62,44 +66,56 @@
    (%remove
      (Tail Binop Value)
      (Pred Relop)
-     (Value Binop))
+     (Value Binop Value)
+     (Effect Value))
    (%add
      (Tail
        (Binop Triv Triv)
        (Triv Triv *))
      (Pred (Relop Triv Triv))
-     (Value (Binop Triv Triv))))
+     (Value (Binop Triv Triv)
+	    (Triv Triv *))
+     (Effect (Triv Triv *))))
 
  ;; Remove Value, set! rhs may only be Triv or Binop.
  (l24-flatten-set
    (%remove
      Value
-     (Effect set!))
+     (Effect set! Triv))
    (%add
      (Effect
        (set! UVar Triv)
-       (set! UVar (Binop Triv Triv)))))
+       (set! UVar (Binop Triv Triv))
+       (set! UVar (Triv Triv *))
+       (Triv Triv *))))
 
  (l25-impose-calling-conventions
    (%remove
      (Prog letrec)
      (Tail Triv Binop)
-     (Effect set!)
-     (Triv UVar))
+     (Effect set! Triv)
+     (Triv UVar)
+     (Body locals))
    (%add
      (Prog (letrec ((Label (lambda () Body)) *) Body))
-     (Tail (Triv Loc *))
+     (Body (locals (UVar *) 
+	     (new-frames (Frame *)
+		Tail)))
+     ;; Operands can include new frame vars (NFVs) which are
+     ;; technically UVars even though they are used as locations:
+     (Tail (Triv Var *))  ;; Note 'Var' not 'Loc'.
      (Effect
        (set! Var Triv)
-       (set! Var (Binop Triv Triv)))
+       (set! Var (Binop Triv Triv))
+       (return-point Label Tail))
      (Loc
        Reg
        FVar)
      (Var
        UVar
        Loc)
-     (Triv Var)))
-
+     (Triv Var)
+     (Frame (UVar *))))
 
  (l27-uncover-frame-conflict
     (%remove 
@@ -107,23 +123,50 @@
     (%add
       (Body
         (locals (UVar *)
-                (frame-conflict ((UVar Var *) *)
-                Tail)))))
+          (new-frames (Frame *)
+	    (spills (UVar *)
+	       (frame-conflict ((UVar Var *) *)
+                 (call-live (UFVar *) Tail))))))
+      (UFVar UVar FVar)))
 
-;; This is an important grammar.  Its the one that is used at the top
-;; and end of every iteration of the register-allocation loop.
-(l28-introduce-allocation-forms
+(l28-pre-assign-frame
     (%remove 
       (Body locals))
     (%add
       (Body
+        ;; Eliminate 'spills' only:
+        (locals (UVar *)
+          (new-frames (Frame *)
+	    (locate ((UVar FVar) *)
+	      (frame-conflict ((UVar Var *) *)
+		(call-live (UFVar *) Tail)))))
+        (locate ((UVar Loc) *) Tail)
+        )))
+
+;; This is an important grammar.  Its the one that is used at the top
+;; and end of every iteration of the register-allocation loop.
+(l29-assign-new-frame
+    (%remove 
+      (Body locals)
+;      (Tail Triv)
+      Frame)
+    (%add
+      (Body
+	;; Add ulocals, remove new-frames, call-live:
         (locals (UVar *)
                 (ulocals (UVar *)
                          (locate ((UVar FVar) *) 
                                  (frame-conflict ((UVar Var *) *)
-                                 Tail))))
-        (locate ((UVar Loc) *) Tail)
-        )))
+                                 Tail)))))
+      ;; NFV's are gone:
+      ; (Tail (Triv Loc *))
+      ))
+
+
+;; Resolve NFVs into frame vars.
+(l30-finalize-frame-locations
+    (%remove (Tail Triv))
+    (%add (Tail (Triv Loc *))))
 
 ;; Adds register-conflict to the deeply nested Body forms.
 (l32-uncover-register-conflict
@@ -154,8 +197,8 @@
                                                        Tail))))))))
 
 
-; assign-frame: This is the same as l28-introduce-allocation-forms
-; finalize-frame-locations: also uses l28-introduce-allocation-forms
+; assign-frame: This is the same as l29-assign-new-frame
+
 
 (l35-discard-call-live
   (%remove
@@ -181,7 +224,7 @@
   (%remove
     (Tail if)
     Pred
-    (Effect nop if begin))
+    (Effect nop if begin return-point))
   (%add
     (Tail
       (if (Relop Triv Triv) (Label) (Label)))))
