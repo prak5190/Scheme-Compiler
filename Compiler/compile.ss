@@ -30,7 +30,7 @@
   (with-output-to-file "t.s"
     thunk 
     'replace)
-  (unless (zero? (system "cc -m64 -o t t.s framework/runtime.c"))
+  (unless (zero? (system "cc -m64 -o t t.s Framework/runtime.c"))
     (error 'assemble "assembly failed"))
   "./t")
 
