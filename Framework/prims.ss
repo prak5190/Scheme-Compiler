@@ -79,12 +79,7 @@
 
 (define isDisp disp-opnd?)
 
-(define isInd
-  (lambda (x)
-    (match x
-      [(ind ,[isReg -> reg] ,[isReg -> off])
-       (and reg off)]
-      [,_ #f])))
+(define isInd index-opnd?)
 
 (define isInt64 int64?)
 
