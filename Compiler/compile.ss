@@ -6,7 +6,7 @@
     (Framework wrappers)
     (Framework match)
     (Framework helpers)
-    (Compiler verify-scheme)
+    (Compiler verify-uil)
     (Compiler remove-complex-opera*)
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
@@ -35,7 +35,10 @@
   "./t")
 
 (define-compiler (p423-compile p423-step pass->wrapper)
-  (verify-scheme)
+  (verify-uil)
+
+  ;; assign8: What you add to the rest of the compiler is up to you! -RRN [2013.02.25]
+
   (remove-complex-opera*)
   (flatten-set!)
   (impose-calling-conventions)

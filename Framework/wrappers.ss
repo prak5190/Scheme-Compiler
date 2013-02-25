@@ -1,6 +1,7 @@
 (library (Framework wrappers aux)
   (export
     env
+    alloc
     handle-overflow
     set!
     rewrite-opnds
@@ -38,6 +39,16 @@
      (define name `(define-syntax name body)))
     ((_ (define name body))
      (define name `(define name body)))))
+
+(wrap
+  (define alloc
+    (lambda (nbytes)
+      (unless (fxzero? (fxremainder nbytes word-size))
+        (error 'alloc "~s is not a multiple of word size" nbytes))
+      (let ([addr ,allocation-pointer-register])
+        (set! ,allocation-pointer-register (+ addr nbytes))
+        (check-heap-overflow ,allocation-pointer-register)
+        addr))))
 
 (define int64-in-range?
   (lambda (x)
@@ -221,7 +232,7 @@
   (export
     pass->wrapper
     source/wrapper
-    verify-scheme/wrapper
+    verify-uil/wrapper
     remove-complex-opera*/wrapper
     flatten-set!/wrapper
     impose-calling-conventions/wrapper
@@ -242,7 +253,7 @@
   (import
     (except (chezscheme) set!)
     (Framework match)
-    (Framework GenGrammars l01-verify-scheme)
+    (Framework GenGrammars l22-verify-uil)
     (Framework GenGrammars l23-remove-complex-opera)
     (Framework GenGrammars l24-flatten-set)
     (Framework GenGrammars l25-impose-calling-conventions)
@@ -262,13 +273,14 @@
     (only (Framework wrappers aux) 
       env rewrite-opnds compute-frame-size
       return-point-complex return-point-simple
-      new-frames set!))
+      new-frames set! alloc))
 
 (define pass->wrapper
   (lambda (pass)
+    ;; RRN: Seems better to replace this with string-append + string<->symbol 
     (case pass
       ((source) source/wrapper)
-      ((verify-scheme) verify-scheme/wrapper)
+      ((verify-uil) verify-uil/wrapper)
       ((remove-complex-opera*) remove-complex-opera*/wrapper)
       ((flatten-set!) flatten-set!/wrapper)
       ((impose-calling-conventions) impose-calling-conventions/wrapper)
@@ -291,13 +303,13 @@
 
 ;;-----------------------------------
 ;; source/wrapper
-;; verify-scheme/wrapper
+;; verify-uil/wrapper
 ;;-----------------------------------
 (define-language-wrapper
-  (source/wrapper verify-scheme/wrapper)
+  (source/wrapper verify-uil/wrapper)
   (x)
   (environment env)
-  ,set!
+  ,set! ,alloc
   (import
     (only (Framework wrappers aux)
       handle-overflow locals true false nop)
@@ -314,7 +326,7 @@
   (remove-complex-opera*/wrapper)
   (x)
   (environment env)
-  ,set!
+  ,set! ,alloc
   (import
     (only (Framework wrappers aux)
       handle-overflow locals true false nop)
@@ -331,7 +343,7 @@
   (flatten-set!/wrapper)
   (x)
   (environment env)
-  ,set!
+  ,set! ,alloc
   (import
     (only (Framework wrappers aux)
       handle-overflow locals true false nop)
@@ -343,12 +355,12 @@
 ;;-----------------------------------
 ;; impose-calling-conventions/wrapper
 ;;-----------------------------------
-(define-language-wrapper impose-calling-conventions/wrapper
+(define-language-wrapper (impose-calling-conventions/wrapper)
   (x)
   (environment env)
   (define frame-size ,(compute-frame-size x))
   ,return-point-complex
-  ,new-frames
+  ,new-frames ,alloc
   ,set!
   (import
     (only (Framework wrappers aux)
@@ -356,7 +368,6 @@
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
   ,return-value-register)
-
 
 ;;-----------------------------------
 ;; uncover-frame-conflict/wrapper
@@ -511,6 +522,7 @@
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
   ,return-value-register)
+
 
 (define-language-wrapper expose-frame-var/wrapper
   (x)

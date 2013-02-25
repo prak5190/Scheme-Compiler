@@ -2,13 +2,13 @@
 ;; Week 7 grammars
 ;;
 ;; Passes:
-;;   verify-scheme              l-01 -> l-01
-;;   remove-complex-opera*      l-01 -> l-23
+;;   verify-uil                 l-22 -> l-22
+;;   remove-complex-opera*      l-22 -> l-23
 ;;   flatten-set!               l-23 -> l-24
 ;;   impose-calling-conventions l-24 -> l-25
 ;;   uncover-frame-conflict     l-25 -> l-27
-;; * pre-assign-frame           l-27 -> l-28
-;; * assign-new-frame           l-28 -> l-29
+;;   pre-assign-frame           l-27 -> l-28
+;;   assign-new-frame           l-28 -> l-29
 ;;     finalize-frame-locations  l-29 -> l-30
 ;;     select-instructions       l-30 -> l-30
 ;;     uncover-register-conflict l-30 -> l-32
@@ -23,10 +23,8 @@
 ;;   flatten-program            l-39 -> l-41
 ;;   generate-x86-64            l-41 -> ()
 
-;; (*) New this week.
-
 (p423-grammars
-  (l01-verify-scheme
+  (l22-verify-uil
     (start Prog)
     (Prog
       (letrec ((Label (lambda (UVar *) Body)) *) Body))
@@ -35,6 +33,8 @@
     (Tail
       (if Pred Tail Tail)
       (begin Effect * Tail)
+      (alloc Value)
+      (mref  Value Value)
       (Binop Value Value)
       (Value Value *)
       Triv)
@@ -47,12 +47,15 @@
     (Effect
       (nop)
       (set! UVar Value)
+      (mset! Value Value Value)
       (if Pred Effect Effect)
       (begin Effect * Effect)
       (Value Value *))
     (Value
       (if Pred Value Value)
       (begin Effect * Value)
+      (alloc Value *)
+      (mref  Value Value)
       (Binop Value Value)
       (Value Value *)
       Triv)
@@ -64,20 +67,28 @@
  ;; Replace Value with Triv in arguments of procedure calls and primitive application.
  (l23-remove-complex-opera
    (%remove
-     (Tail Binop Value)
+     (Tail Binop Value alloc mref)
      (Pred Relop)
-     (Value Binop Value)
-     (Effect Value))
+     (Value alloc mref Binop Value)
+     (Effect Value mset!))
    (%add
      (Tail
+       (alloc Triv)
+       (mref Triv Triv)
        (Binop Triv Triv)
        (Triv Triv *))
      (Pred (Relop Triv Triv))
-     (Value (Binop Triv Triv)
+     (Value (alloc Triv)
+	    (mref Triv Triv)
+	    (Binop Triv Triv)
 	    (Triv Triv *))
-     (Effect (Triv Triv *))))
+     (Effect 
+      (mset! Triv Triv Triv)
+      (Triv Triv *))))
 
  ;; Remove Value, set! rhs may only be Triv or Binop.
+ ;; We could treat mref's as Binops and save a bit in the grammar, but
+ ;; then we wouldn't be able to verify that they are removed later.
  (l24-flatten-set
    (%remove
      Value
@@ -85,6 +96,8 @@
    (%add
      (Effect
        (set! UVar Triv)
+       (set! UVar (alloc Triv))
+       (set! UVar (mref Triv Triv))
        (set! UVar (Binop Triv Triv))
        (set! UVar (Triv Triv *))
        (Triv Triv *))))
@@ -105,6 +118,8 @@
      ;; technically UVars even though they are used as locations:
      (Tail (Triv Var *))  ;; Note 'Var' not 'Loc'.
      (Effect
+       (set! Var (alloc Triv))
+       (set! Var (mref Triv Triv))
        (set! Var Triv)
        (set! Var (Binop Triv Triv))
        (return-point Label Tail))
@@ -116,6 +131,10 @@
        Loc)
      (Triv Var)
      (Frame (UVar *))))
+
+
+;; Hmm... when are you going to get rid of that 'alloc' form? -RRN [2013.02.25]
+
 
  (l27-uncover-frame-conflict
     (%remove 
@@ -148,7 +167,6 @@
 (l29-assign-new-frame
     (%remove 
       (Body locals)
-;      (Tail Triv)
       Frame)
     (%add
       (Body
@@ -217,8 +235,11 @@
     (Var -> Loc)))
 
 (l37-expose-frame-var
-  (%rename
-    (FVar -> Disp)))
+  (%remove UFVar Loc)
+  (%add (Loc Reg Disp Ind)))
+
+;; Are memory index-opnds much different than displacement opnds in
+;; how they should be handled? -RRN [2013.02.25]
 
 (l39-expose-basic-blocks
   (%remove
