@@ -233,6 +233,7 @@
     label->x86-64-label 
     make-disp-opnd
     disp-opnd disp-opnd? disp-opnd-reg disp-opnd-offset
+    make-index-opnd 
     index-opnd index-opnd? index-opnd-breg index-opnd-ireg
     unique-name unique-name-count extract-suffix unique-label
     extract-root
@@ -251,7 +252,7 @@
     return-value-register return-address-register 
     allocation-pointer-register
     define-who trace-define-who 
-    fp-offset
+    fp-offset check-heap-overflow
     grammar-verification
     )
   (import
@@ -367,7 +368,7 @@
 
   (define grammar-verification (make-parameter #t))
 
-  (define $check-heap-overflow
+  (define check-heap-overflow
     (lambda (ap)
       (when (> (fxsrl (- ap heap-offset) word-shift) (vector-length the-heap))
         (error 'alloc "heap overflow"))))
@@ -783,6 +784,9 @@
 ;;; operands
 
 (define-record disp-opnd (reg offset))
+
+;; Index into memory using a base address (stored in breg) and an
+;; index (stored in ireg).
 (define-record index-opnd (breg ireg))
 (module ()
   (record-writer (type-descriptor disp-opnd)
