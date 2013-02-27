@@ -3,7 +3,7 @@ module FrameworkHs.ParseL01 where
 
 import Control.Applicative ((<$>))
 import Debug.Trace         (trace)
-import FrameworkHs.GenGrammars.L01VerifyScheme
+import FrameworkHs.GenGrammars.L22VerifyUil
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
 
@@ -46,6 +46,15 @@ parseTail (List [(Symbol "if"),p,t1,t2]) =
 parseTail (List ((Symbol "begin"):ls)) =
   do (es,t) <- parseListWithFinal parseEffect parseTail ls
      return (BeginT es t)
+
+parseTail (List [Symbol "alloc",a]) =
+  do a' <- parseValue a
+     return (AllocT a')
+parseTail (List [Symbol "mref",a,b]) =
+  do a' <- parseValue a
+     b' <- parseValue b
+     return (MrefT a' b')
+     
 parseTail (List (hd:ls)) =
   -- In the application case we need to enable BACKTRACKING:
   orPassM (do v  <- parseValue hd
@@ -72,6 +81,15 @@ parseValue (List [Symbol "if",p,v1,v2]) = do
   v1' <- parseValue v1
   v2' <- parseValue v2
   return$ IfV p' v1' v2'
+
+parseValue (List [Symbol "alloc",a]) =
+  do a' <- parseValue a
+     return (AllocV a')
+parseValue (List [Symbol "mref",a,b]) =
+  do a' <- parseValue a
+     b' <- parseValue b
+     return (MrefV a' b')
+  
 parseValue (List (op:rst)) = do
   firstItem <- orPassM (fmap Left $ parseBinop op) (fmap Right $ parseValue op)
   case firstItem of
@@ -112,11 +130,15 @@ parsePred e = parseFailureM ("Invalid Pred: " ++ show e)
 
 parseEffect :: LispVal -> PassM Effect
 parseEffect (List [(Symbol "nop")]) = return (Nop)
-
 parseEffect (List [(Symbol "set!"),v,rhs]) =
   do v   <- parseUVar v
      rhs <- parseValue rhs
      return (Set v rhs)
+parseEffect (List [(Symbol "mset!"),v,ix,rhs]) =
+  do v'   <- parseValue v
+     ix'  <- parseValue ix
+     rhs' <- parseValue rhs
+     return (Mset v' ix' rhs')
 parseEffect (List [(Symbol "if"),p,e1,e2]) =
   do p <- parsePred p
      e1 <- parseEffect e1

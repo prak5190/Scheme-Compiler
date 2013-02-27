@@ -770,7 +770,7 @@
                      (set! z.3 (alloc 8))
                      (mset! z.3 0 (+ x.1 y.2))
                      z.3)))])
-      (locals()
+      (locals ()
         (mref (add$0 1 2) 0)))
 
     ;; Thiago Rebello
@@ -1550,7 +1550,7 @@
                                   (set! n.1 (+ n.1 x.2))
                                   (set! n.1 (+ n.1 y.3)))
                               (+ x.2 n.1))))])
-      (locals ()(if-test$6 1)))
+      (locals () (if-test$6 1)))
     (letrec ()
       (locals (x.1 y.2 z.3)
         (begin

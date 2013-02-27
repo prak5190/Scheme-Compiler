@@ -54,7 +54,7 @@
     (Value
       (if Pred Value Value)
       (begin Effect * Value)
-      (alloc Value *)
+      (alloc Value)
       (mref  Value Value)
       (Binop Value Value)
       (Value Value *)

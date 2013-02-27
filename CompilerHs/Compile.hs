@@ -14,6 +14,7 @@ import FrameworkHs.Helpers
 import FrameworkHs.SExpReader.LispData
 
 import FrameworkHs.ParseL01                    (parseProg)
+{-
 import qualified FrameworkHs.GenGrammars.L01VerifyScheme as L01
 import CompilerHs.VerifyScheme                 (verifyScheme)
 import CompilerHs.UncoverRegisterConflict      (uncoverRegisterConflict)
@@ -134,31 +135,32 @@ icc = P423Pass { pass = imposeCallingConventions
                , wrapperName = "impose-calling-conventions/wrapper"
                , trace = False 
                }
-
+-}
 -- | Compose the complete compiler as a pipeline of passes.
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
-  p <- liftPassM$ parseProg l  
-  p <- runPass vfs p
-  p <- runPass rco p
-  p <- runPass fls p
-  p <- runPass icc p
-  p <- runPass ufc p
-  p <- runPass iaf p
-  let loop p = do 
-        p <- runPass sis p
-        p <- runPass urc p
-        p <- runPass asr p
-        let b = everybodyHome p
-        if b then return p
-         else do 
-           p <- runPass asf p
-           p <- runPass ffl p
-           loop p
-  p <- loop p
-  p <- runPass dcl p
-  p <- runPass fnl p
-  p <- runPass efv p
-  p <- runPass ebb p
-  p <- runPass flp p
-  assemble$ generateX86_64 p
+  p <- liftPassM$ parseProg l
+  return "VICTORY"
+  -- p <- runPass vfs p
+  -- p <- runPass rco p
+  -- p <- runPass fls p
+  -- p <- runPass icc p
+  -- p <- runPass ufc p
+  -- p <- runPass iaf p
+  -- let loop p = do 
+  --       p <- runPass sis p
+  --       p <- runPass urc p
+  --       p <- runPass asr p
+  --       let b = everybodyHome p
+  --       if b then return p
+  --        else do 
+  --          p <- runPass asf p
+  --          p <- runPass ffl p
+  --          loop p
+  -- p <- loop p
+  -- p <- runPass dcl p
+  -- p <- runPass fnl p
+  -- p <- runPass efv p
+  -- p <- runPass ebb p
+  -- p <- runPass flp p
+  -- assemble$ generateX86_64 p
