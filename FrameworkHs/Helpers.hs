@@ -2,13 +2,7 @@
 module FrameworkHs.Helpers
   (
     -- * Types for compiler configuration and construction
-    P423Config ( P423Config
-               , framePointerRegister
-               , allocationPointerRegister
-               , returnAddressRegister
-               , returnValueRegister
-               , parameterRegisters
-               )
+    P423Config (.. )
   , PassM, getConfig, runPassM, orPassM
   , P423Exception ( AssemblyFailedException
                   , ParseErrorException
@@ -101,6 +95,7 @@ data P423Config =
     , returnAddressRegister :: Reg
     , returnValueRegister :: Reg
     , parameterRegisters :: [Reg]
+    , runWrappers :: Bool  
     }
 
 -- | A monad for implementing passes
