@@ -95,9 +95,9 @@
      (Effect set! Triv))
    (%add
      (Effect
-       (set! UVar Triv)
        (set! UVar (alloc Triv))
        (set! UVar (mref Triv Triv))
+       (set! UVar Triv)
        (set! UVar (Binop Triv Triv))
        (set! UVar (Triv Triv *))
        (Triv Triv *))))
@@ -118,10 +118,10 @@
      ;; technically UVars even though they are used as locations:
      (Tail (Triv Var *))  ;; Note 'Var' not 'Loc'.
      (Effect
-       (set! Var (alloc Triv))
-       (set! Var (mref Triv Triv))
        (set! Var Triv)
        (set! Var (Binop Triv Triv))
+       (set! Var (alloc Triv))
+       (set! Var (mref Triv Triv))
        (return-point Label Tail))
      (Loc
        Reg
@@ -132,9 +132,7 @@
      (Triv Var)
      (Frame (UVar *))))
 
-
 ;; Hmm... when are you going to get rid of that 'alloc' form? -RRN [2013.02.25]
-
 
  (l27-uncover-frame-conflict
     (%remove 
