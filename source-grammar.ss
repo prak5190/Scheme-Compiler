@@ -147,6 +147,7 @@
 ;; and end of every iteration of the register-allocation loop.
 (l29-assign-new-frame
     (%remove 
+      (UFVar UVar FVar) ; No need for this after this point [Z]
       (Body locals)
 ;      (Tail Triv)
       Frame)
