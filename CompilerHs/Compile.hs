@@ -14,17 +14,17 @@ import FrameworkHs.Helpers
 import FrameworkHs.SExpReader.LispData
 
 import FrameworkHs.ParseL01                    (parseProg)
-{-
-import qualified FrameworkHs.GenGrammars.L01VerifyScheme as L01
-import CompilerHs.VerifyScheme                 (verifyScheme)
+
+import CompilerHs.VerifyUIL                    (verifyUIL)
 import CompilerHs.UncoverRegisterConflict      (uncoverRegisterConflict)
 import CompilerHs.AssignRegisters              (assignRegisters)
 
 import CompilerHs.UncoverFrameConflict         (uncoverFrameConflict)
-import CompilerHs.IntroduceAllocationForms     (introduceAllocationForms)
 import CompilerHs.SelectInstructions           (selectInstructions)
 import CompilerHs.EverybodyHome                (everybodyHome)
 import CompilerHs.AssignFrame                  (assignFrame)
+import CompilerHs.PreAssignFrame               (preAssignFrame)
+import CompilerHs.AssignNewFrame               (assignNewFrame)
 import CompilerHs.FinalizeFrameLocations       (finalizeFrameLocations)
 
 import CompilerHs.DiscardCallLive              (discardCallLive)
@@ -40,9 +40,9 @@ import CompilerHs.ImposeCallingConventions     (imposeCallingConventions)
 
 import qualified Data.ByteString as B
 
-vfs = P423Pass { pass = verifyScheme
-               , passName = "verifyScheme"
-               , wrapperName = "verify-scheme/wrapper"
+vfs = P423Pass { pass = verifyUIL
+               , passName = "verifyUIL"
+               , wrapperName = "verify-uil/wrapper"
                , trace = False
                }
 
@@ -75,6 +75,12 @@ efv = P423Pass { pass = exposeFrameVar
                , wrapperName = "expose-frame-var/wrapper"
                , trace = False
                }
+      
+emo = P423Pass { pass = exposeMemoryOperands
+               , passName = "exposeMemoryOperands"
+               , wrapperName = "expose-memory-operands/wrapper"
+               , trace = False
+               }
 
 ebb = P423Pass { pass = exposeBasicBlocks
                , passName = "exposeBasicBlocks"
@@ -85,37 +91,43 @@ ebb = P423Pass { pass = exposeBasicBlocks
 flp = P423Pass { pass = flattenProgram
                , passName = "flattenProgram"
                , wrapperName = "flatten-program/wrapper"
-               , trace = False 
+               , trace = False
                }
 
 ufc = P423Pass { pass = uncoverFrameConflict
                , passName = "uncoverFrameConflict"
                , wrapperName = "uncover-frame-conflict/wrapper"
-               , trace = False 
-               }
-
-iaf = P423Pass { pass = introduceAllocationForms
-               , passName = "introduceAllocationForms"
-               , wrapperName = "introduce-allocation-forms/wrapper"
-               , trace = False 
+               , trace = False
                }
 
 sis = P423Pass { pass = selectInstructions
                , passName = "selectInstructions"
                , wrapperName = "select-instructions/wrapper"
-               , trace = False 
+               , trace = False
+               }
+
+paf = P423Pass { pass = preAssignFrame
+               , passName = "preAssignFrame"
+               , wrapperName = "pre-assign-frame/wrapper"
+               , trace = False
+               }
+
+anf = P423Pass { pass = assignNewFrame
+               , passName = "assignNewFrame"
+               , wrapperName = "assign-new-frame/wrapper"
+               , trace = False
                }
 
 asf = P423Pass { pass = assignFrame
                , passName = "assignFrame"
                , wrapperName = "assign-frame/wrapper"
-               , trace = False 
+               , trace = False
                }
 
 ffl = P423Pass { pass = finalizeFrameLocations
                , passName = "finalizeFrameLocations"
                , wrapperName = "finalize-frame-locations/wrapper"
-               , trace = False 
+               , trace = False
                }
 
 rco = P423Pass { pass = removeComplexOpera
@@ -135,32 +147,38 @@ icc = P423Pass { pass = imposeCallingConventions
                , wrapperName = "impose-calling-conventions/wrapper"
                , trace = False 
                }
--}
+
+eap = P423Pass { pass = exposeAllocationPointer
+               , passName = "exposeAllocationPointer"
+               , wrapperName = "expose-allocation-pointer/wrapper"
+               , trace = False 
+               }
+
 -- | Compose the complete compiler as a pipeline of passes.
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
-  p <- liftPassM$ parseProg l
-  return "VICTORY"
-  -- p <- runPass vfs p
-  -- p <- runPass rco p
-  -- p <- runPass fls p
-  -- p <- runPass icc p
-  -- p <- runPass ufc p
-  -- p <- runPass iaf p
-  -- let loop p = do 
-  --       p <- runPass sis p
-  --       p <- runPass urc p
-  --       p <- runPass asr p
-  --       let b = everybodyHome p
-  --       if b then return p
-  --        else do 
-  --          p <- runPass asf p
-  --          p <- runPass ffl p
-  --          loop p
-  -- p <- loop p
-  -- p <- runPass dcl p
-  -- p <- runPass fnl p
-  -- p <- runPass efv p
-  -- p <- runPass ebb p
-  -- p <- runPass flp p
-  -- assemble$ generateX86_64 p
+  p <- liftPassM$ parseProg l  
+  p <- runPass vfs p
+  p <- runPass rco p
+  p <- runPass fls p
+  p <- runPass icc p
+  p <- runPass ufc p
+  p <- runPass paf p
+  p <- runPass anf p
+  let loop p = do 
+        p <- runPass ffl p
+        p <- runPass sis p
+        p <- runPass urc p
+        p <- runPass asr p
+        let b = everybodyHome p
+        if b then return p
+         else do 
+           p <- runPass asf p
+           loop p
+  p <- loop p
+  p <- runPass dcl p
+  p <- runPass fnl p
+  p <- runPass efv p
+  p <- runPass ebb p
+  p <- runPass flp p
+  assemble$ generateX86_64 p
