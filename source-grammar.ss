@@ -234,7 +234,7 @@
 
 (l37-expose-frame-var
   (%remove UFVar Loc)
-  (%add (Loc Reg Disp Ind)))
+  (%add (Loc Reg Disp)))
 
 ;; Are memory index-opnds much different than displacement opnds in
 ;; how they should be handled? -RRN [2013.02.25]
