@@ -157,7 +157,6 @@
 	    (locate ((UVar FVar) *)
 	      (frame-conflict ((UVar Var *) *)
 		(call-live (UFVar *) Tail)))))
-        (locate ((UVar Loc) *) Tail)
         )))
 
 ;; This is an important grammar.  Its the one that is used at the top
@@ -174,11 +173,10 @@
                 (ulocals (UVar *)
                          (locate ((UVar FVar) *) 
                                  (frame-conflict ((UVar Var *) *)
-                                 Tail)))))
-      ;; NFV's are gone:
-      ; (Tail (Triv Loc *))
-      ))
-
+                                 Tail))))
+	;; Add "finished" locate form, as this grammar is used in iterative register allocation.
+	(locate ((UVar Loc) *) Tail)
+	)))
 
 ;; Resolve NFVs into frame vars.
 (l30-finalize-frame-locations
