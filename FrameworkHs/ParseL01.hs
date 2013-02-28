@@ -147,6 +147,10 @@ parseEffect (List [(Symbol "if"),p,e1,e2]) =
 parseEffect (List ((Symbol "begin"):ls)) =
   do (es,e) <- parseListWithFinal parseEffect parseEffect ls
      return (BeginE es e)
+parseEffect (List (fn:ls)) =
+  do v <- parseValue fn
+     vs <- mapM parseValue ls
+     return $ AppE v vs
 parseEffect e = parseFailureM ("Invalid Effect: " ++ show e)
 
 
