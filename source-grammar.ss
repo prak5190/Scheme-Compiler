@@ -102,10 +102,11 @@
        (set! UVar (Triv Triv *))
        (Triv Triv *))))
 
+ ;; alloc/mref will only occur on the RHS of set! after this pass:
  (l25-impose-calling-conventions
    (%remove
      (Prog letrec)
-     (Tail Triv Binop)
+     (Tail Triv Binop alloc mref)
      (Effect set! Triv)
      (Triv UVar)
      (Body locals))
