@@ -54,6 +54,7 @@ module FrameworkHs.Helpers
   , parseReg
   , parseInt32
   , parseInt64
+  , parseValPrim, parseEffectPrim, parsePredPrim
     
   -- * Misc numeric and string helpers
   , isInt32
@@ -515,7 +516,7 @@ instance PP PredPrim where
 
 instance PP ValPrim where
   pp p = fromString$ case p of    
-    Times -> "*" ; Plus -> "+" ; Car -> "car" ; Cdr -> "cdr" ; Cons -> "cons"
+    Times -> "*" ; Plus -> "+" ; Minus -> "-"; Car -> "car" ; Cdr -> "cdr" ; Cons -> "cons"
     MakeVector -> "make-vector" ; VectorLength -> "vector-length" ; VectorRef -> "vector-ref"
     Void -> "void"
 
@@ -639,6 +640,49 @@ parseInt64 (IntNumber i) = if isInt64 n
                               else parseFailureM ("parseInt64: Out of range: " ++ show i)
   where n = fromIntegral i
 parseInt64 e = parseFailureM ("parseInt64: Not an int: " ++ show e)
+
+
+-- TODO: Could use a single association list to go both directions:
+parseValPrim :: LispVal -> PassM ValPrim
+parseValPrim (Symbol s) = case s of
+  "*"      -> return Times
+  "+"      -> return Plus
+  "-"      -> return Minus
+  "car"    -> return Car
+  "cdr"    -> return Cdr
+  "cons"   -> return Cons
+  "make-vector" -> return MakeVector
+  "vector-length" -> return VectorLength
+  "vector-ref"    -> return VectorRef
+  "void"          -> return Void
+  e        -> parseFailureM ("parseValPrim: Not a value primitive: " ++ e)
+parseValPrim e = parseFailureM ("parseValPrim: Not a symbol: " ++ show e)
+
+parsePredPrim :: LispVal -> PassM PredPrim
+parsePredPrim (Symbol s) = case s of
+  "<"      -> return Lt
+  "<="     -> return Lte
+  "="      -> return Eq
+  ">="     -> return Gte
+  ">"      -> return Gt
+  "boolean?" -> return BooleanP
+  "eq?"      -> return EqP
+  "fixnum?"  -> return FixnumP
+  "null?"    -> return NullP
+  "pair?"    -> return PairP
+  "vector?"  -> return VectorP     
+  e        -> parseFailureM ("parsePredPrim: Not a pred primitive: " ++ e)
+parsePredPrim e = parseFailureM ("parsePredPrim: Not a symbol: " ++ show e)
+
+parseEffectPrim :: LispVal -> PassM EffectPrim
+parseEffectPrim (Symbol s) = case s of
+  "set-car!" -> return SetCar
+  "set-cdr!" -> return SetCdr
+  "vector-set!"-> return VectorSet
+  e        -> parseFailureM ("parseEffectPrim: Not an effect primitive: " ++ e)
+parseEffectPrim e = parseFailureM ("parseEffectPrim: Not a symbol: " ++ show e)
+
+
 
 ------------------------------------------------------------
 -- Parse Helpers -------------------------------------------

@@ -77,7 +77,7 @@ data PredPrim = Lt | Lte | Eq | Gte | Gt
 data EffectPrim = SetCar | SetCdr | VectorSet
      deriving (Read, Show, Eq, Ord)
               
-data ValPrim = Times | Plus | Car | Cdr | Cons
+data ValPrim = Times | Plus | Minus | Car | Cdr | Cons
              | MakeVector | VectorLength | VectorRef | Void
      deriving (Read, Show, Eq, Ord)
               
