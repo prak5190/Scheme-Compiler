@@ -15,15 +15,6 @@ import FrameworkHs.SExpReader.LispData
 
 import FrameworkHs.ParseL01                    (parseProg)
 
-import Debug.Trace as D
-p423Compile :: LispVal -> CompileM String
-p423Compile l = do
-  p <- liftPassM$ parseProg l
-  D.trace ("PARSED:\n  "++show p) $ return ()
-  return ("PARSED:\n  "++show p)
-
-
-{-
 import CompilerHs.VerifyUIL                    (verifyUIL)
 import CompilerHs.UncoverRegisterConflict      (uncoverRegisterConflict)
 import CompilerHs.AssignRegisters              (assignRegisters)
@@ -46,9 +37,6 @@ import CompilerHs.GenerateX86_64               (generateX86_64)
 import CompilerHs.FlattenSet                   (flattenSet)
 import CompilerHs.RemoveComplexOpera           (removeComplexOpera)
 import CompilerHs.ImposeCallingConventions     (imposeCallingConventions)
-
-import CompilerHs.ExposeAllocationPointer      (exposeAllocationPointer)
-import CompilerHs.ExposeMemoryOperands         (exposeMemoryOperands)
 
 import qualified Data.ByteString as B
 
@@ -174,7 +162,6 @@ p423Compile l = do
   p <- runPass rco p
   p <- runPass fls p
   p <- runPass icc p
-  p <- runPass eap p       
   p <- runPass ufc p
   p <- runPass paf p
   p <- runPass anf p
@@ -192,9 +179,6 @@ p423Compile l = do
   p <- runPass dcl p
   p <- runPass fnl p
   p <- runPass efv p
-  -- p <- runPass emo p
-  -- p <- runPass ebb p
-  -- p <- runPass flp p
-  -- assemble$ generateX86_64 p
-  return ""
--}
+  p <- runPass ebb p
+  p <- runPass flp p
+  assemble$ generateX86_64 p
