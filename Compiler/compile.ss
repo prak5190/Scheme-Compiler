@@ -7,6 +7,7 @@
     (Framework match)
     (Framework helpers)
     (Compiler verify-scheme)
+    (Compiler specify-representation)
     (Compiler uncover-locals)
     (Compiler remove-let)
     (Compiler verify-uil)
@@ -41,6 +42,7 @@
 
 (define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
+  (specify-representation)
   (uncover-locals)
   (remove-let)
   (verify-uil)

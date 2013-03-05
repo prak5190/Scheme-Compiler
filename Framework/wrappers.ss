@@ -1,5 +1,6 @@
 (library (Framework wrappers aux)
   (export
+    ptr->datum
     env
     alloc
     handle-overflow
@@ -21,7 +22,10 @@
     call-live
     return-point-complex
     return-point-simple
-    new-frames)
+    new-frames
+    (rename (p423-* *))
+    (rename (p423-+ +))
+    (rename (p423-- -)))
   (import
     (except (chezscheme) set! letrec)
     (Framework match)
@@ -223,12 +227,65 @@
   (syntax-rules ()
     [(_ (x* ...) body) body]))
 
+(define-who p423-*
+  (lambda (x y)
+    (import scheme)
+    (let ([ans (* x y)])
+      (unless (fixnum-range? ans)
+        (errorf who "result ~s is outside of fixnum range" ans))
+      ans)))
+
+(define-who p423-+
+  (lambda (x y)
+    (import scheme)
+    (let ([ans (+ x y)])
+      (unless (fixnum-range? ans)
+        (errorf who "result ~s is outside of fixnum range" ans))
+      ans)))
+
+(define-who p423--
+  (lambda (x y)
+    (import scheme)
+    (let ([ans (- x y)])
+      (unless (fixnum-range? ans)
+        (errorf who "result ~s is outside of fixnum range" ans))
+      ans)))
+
 (define (true) #t)
 
 (define (false) #f)
 
 (define (nop) (void))
 
+(define ptr->datum
+  (lambda (ptr)
+    (define istype?
+      (lambda (mask tag x)
+        (= (logand x mask) tag)))
+    (define tagref
+      (lambda (tag disp p)
+        (mref p (- disp tag))))
+    (let f ([ptr ptr])
+      (cond
+        [(eqv? ptr $false) #f]
+        [(eqv? ptr $true) #t]
+        [(eqv? ptr $nil) '()]
+        [(eqv? ptr $void) (void)]
+        [(istype? mask-fixnum tag-fixnum ptr)
+         (ash ptr (- shift-fixnum))]
+        [(istype? mask-pair tag-pair ptr)
+         (cons (f (tagref tag-pair disp-car ptr))
+           (f (tagref tag-pair disp-cdr ptr)))]
+        [(istype? mask-vector tag-vector ptr)
+         (let ([n (f (tagref tag-vector disp-vector-length ptr))])
+           (let ([v (make-vector n)])
+             (do ([i 0 (+ i 1)])
+                 ((= i n) v)
+               (vector-set! v i
+                 (f (tagref tag-vector
+                      (+ disp-vector-data (fxsll i word-shift))
+                      ptr))))))]
+        [else (errorf 'ptr->datum "can't handle ~s" ptr)]))))
 )
 
 (library (Framework wrappers)
@@ -236,6 +293,7 @@
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
+    specify-representation/wrapper
     uncover-locals/wrapper
     remove-let/wrapper
     verify-uil/wrapper
@@ -291,6 +349,7 @@
     (case pass
       ((source) source/wrapper)
       ((verify-scheme) verify-scheme/wrapper)
+      ((specify-representation) specify-representation/wrapper)
       ((uncover-locals) uncover-locals/wrapper)
       ((remove-let) remove-let/wrapper)
       ((verify-uil) verify-uil/wrapper)
@@ -327,10 +386,24 @@
   ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow true false nop)
-    (only (chezscheme) set! letrec))
+      handle-overflow true false nop
+      * + -)
+    (except (chezscheme) * + -))
   (reset-machine-state!)
   ,x)
+
+;;-----------------------------------
+;; specify-representation
+;;-----------------------------------
+(define-language-wrapper
+  specify-representation/wrapper
+  (x)
+  (environment env)
+  ,alloc
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow true false nop ptr->datum))
+  (ptr->datum ,x))
 
 ;;-----------------------------------
 ;; uncover-locals/wrapper
@@ -342,9 +415,9 @@
   ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow locals true false nop)
+      handle-overflow locals true false nop ptr->datum)
     (except (chezscheme) set!))
-  ,x)
+  (ptr->datum ,x))
 
 ;;-----------------------------------
 ;; verify-uil/wrapper
@@ -360,9 +433,9 @@
   ,set! ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow locals true false nop)
+      handle-overflow locals true false nop ptr->datum)
     (except (chezscheme) set! lambda))
-  ,x)
+  (ptr->datum ,x))
 
 ;; TODO: Duplicate grammar for remove-complex-opera*/wrapper grammar check.
 ;; TODO: Duplicate grammar for flatten-set!/wrapper
@@ -380,11 +453,11 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locals true false nop)
+      handle-overflow letrec locals true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; expose-allocation-pointer/wrapper
@@ -398,11 +471,11 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locals true false nop)
+      handle-overflow letrec locals true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l26-expose-allocation-pointer  x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; uncover-frame-conflict/wrapper
@@ -417,11 +490,11 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow letrec locals spills call-live
-      frame-conflict true false nop)
+      frame-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;----------------------------------
 ;; pre-assign-frame
@@ -435,11 +508,11 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow letrec locals locate call-live 
-      frame-conflict true false nop)
+      frame-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;----------------------------------
 ;; assign-new-frame
@@ -452,13 +525,13 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow letrec locals ulocals spills locate
-      frame-conflict true false nop)
+      frame-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
       ,(if (grammar-verification) (verify-grammar:l29-assign-new-frame x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 
 ;;-----------------------------------
@@ -478,11 +551,11 @@
     (only (Framework wrappers aux)
       handle-overflow letrec locate
       locals ulocals frame-conflict
-      true false nop)
+      true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 	     ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; uncover-register-conflict/wrapper
@@ -494,11 +567,11 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow letrec locate locals ulocals frame-conflict
-      register-conflict true false nop)
+      register-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; assign-registers/wrapper
@@ -510,11 +583,11 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow letrec locate locals ulocals spills
-      frame-conflict true false nop)
+      frame-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; discard-call-live/wrapper
@@ -525,11 +598,11 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locate true false nop)
+      handle-overflow letrec locate true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; finalize-locations/wrapper
@@ -540,11 +613,11 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec true false nop)
+      handle-overflow letrec true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; expose-frame-var/wrapper
@@ -558,13 +631,13 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow true false nop)
+      handle-overflow true false nop ptr->datum)
     (except (chezscheme) set!))
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;; DUPLICATED from previous, except with different grammar verification:
 (define-language-wrapper
@@ -575,13 +648,13 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow true false nop)
+      handle-overflow true false nop ptr->datum)
     (except (chezscheme) set!))
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l38-expose-memory-operands x) x))))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 
 ;;-----------------------------------
@@ -591,13 +664,13 @@
   (environment env)
   ,set!
   (import
-    (only (Framework wrappers aux) handle-overflow)
+    (only (Framework wrappers aux) handle-overflow ptr->datum)
     (except (chezscheme) set!))
   (call/cc
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l39-expose-basic-blocks x) x))))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; flatten-program/wrapper
@@ -607,13 +680,13 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow code jump)
+      handle-overflow code jump ptr->datum)
     (except (chezscheme) set!))
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
-  ,return-value-register)
+  (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
 ;; generate-x86/wrapper
@@ -624,6 +697,9 @@
                   (format "exec '~a'" program)
                   (buffer-mode block)
                   (native-transcoder))])
-    (read in)))
+    ;(import (only (Framework wrappers aux) ptr->datum))
+    ;(ptr->datum (read in))
+    (get-line in)
+    ))
 
 )

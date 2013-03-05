@@ -31,6 +31,37 @@
   (l01-verify-scheme
     (start Prog)
     (Prog
+      (letrec ((Label (lambda (UVar *) Value)) *) Value))
+    (Pred
+      (let ([UVar Value]*) Pred)
+      (true)
+      (false)
+      (if Pred Pred Pred)
+      (begin Effect * Pred)
+      (PredPrim Value *))
+    (Effect
+      (let ([UVar Value]*) Effect)
+      (nop)
+      (if Pred Effect Effect)
+      (begin Effect * Effect)
+      (EffectPrim Value *)
+      (Value Value *))
+    (Value
+      (quote Immediate)
+      (let ([UVar Value]*) Value)
+      (if Pred Value Value)
+      (begin Effect * Value)
+      (ValPrim Value *)
+      (Value Value *)
+      UVar Label)
+    ; (Immediate fixnum () #t #f) ;; BUILTIN!
+    )
+
+  (l19-specify-representation
+   (%remove Prog Pred Effect Value)  ;; Remove ALL.  Start fresh.
+   (%add
+    (start Prog)
+    (Prog
       (letrec ((Label (lambda (UVar *) Tail)) *) Tail))
     (Tail
       (let ([UVar Value]*) Tail)
@@ -67,7 +98,7 @@
     (Triv
       UVar
       Integer
-      Label))
+      Label)))
 
   (l20-uncover-locals
    (%remove Prog)

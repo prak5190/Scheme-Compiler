@@ -501,6 +501,31 @@ instance PP Reg where
     R14 -> fromString "r14"
     R15 -> fromString "r15"
 
+instance PP EffectPrim where
+  pp b = case b of
+    SetCar    -> fromString "set-car!"
+    SetCdr    -> fromString "set-cdr!"
+    VectorSet -> fromString "vector-set!"
+
+instance PP PredPrim where
+  pp p = fromString $ case p of
+    Lt -> "<" ; Lte -> "<=" ; Eq -> "=" ; Gte -> ">=" ; Gt -> ">"
+    BooleanP -> "boolean?" ; EqP -> "eq?" ; FixnumP -> "fixnum?"
+    NullP -> "null?" ; PairP -> "pair?" ; VectorP -> "vector?"
+
+instance PP ValPrim where
+  pp p = fromString$ case p of    
+    Times -> "*" ; Plus -> "+" ; Car -> "car" ; Cdr -> "cdr" ; Cons -> "cons"
+    MakeVector -> "make-vector" ; VectorLength -> "vector-length" ; VectorRef -> "vector-ref"
+    Void -> "void"
+
+instance PP Immediate where
+  pp p = fromString$ case p of
+    Fixnum i -> show i
+    NullList -> "()"
+    HashT -> "#t"
+    HashF -> "#f"
+
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 
