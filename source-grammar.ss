@@ -1,7 +1,11 @@
 ;; P423 / P523
-;; Week 7 grammars
+;; Week 9 grammars
 ;;
 ;; Passes:
+;;   verify-scheme              l-01 -> l-01
+;;   uncover-locals             l-01 -> l-20
+;;   remoove-let                l-20 -> l-21
+
 ;;   verify-uil                 l-22 -> l-22
 ;;   remove-complex-opera*      l-22 -> l-23
 ;;   flatten-set!               l-23 -> l-24
@@ -15,7 +19,6 @@
 ;;     assign-registers          l-32 -> l-33
 ;;     everybody-home?           l-33 -> bool
 ;;     assign-frame              l-33 -> l-29
-
 ;;   discard-call-live          l-33 -> l-35
 ;;   finalize-locations         l-35 -> l-36
 ;;   expose-frame-var           l-36 -> l-37
@@ -24,34 +27,36 @@
 ;;   generate-x86-64            l-41 -> ()
 
 (p423-grammars
-  (l22-verify-uil
+
+  (l01-verify-scheme
     (start Prog)
     (Prog
-      (letrec ((Label (lambda (UVar *) Body)) *) Body))
-    (Body
-      (locals (UVar *) Tail))
+      (letrec ((Label (lambda (UVar *) Tail)) *) Tail))
     (Tail
+      (let ([UVar Value]*) Tail)
       (if Pred Tail Tail)
-      (begin Effect * Tail)
+      (begin Effect * Tail)      
       (alloc Value)
       (mref  Value Value)
       (Binop Value Value)
       (Value Value *)
       Triv)
     (Pred
+      (let ([UVar Value]*) Pred)
       (true)
       (false)
       (if Pred Pred Pred)
       (begin Effect * Pred)
       (Relop Value Value))
     (Effect
+      (let ([UVar Value]*) Effect)
       (nop)
-      (set! UVar Value)
       (mset! Value Value Value)
       (if Pred Effect Effect)
       (begin Effect * Effect)
       (Value Value *))
     (Value
+      (let ([UVar Value]*) Value)
       (if Pred Value Value)
       (begin Effect * Value)
       (alloc Value)
@@ -63,6 +68,22 @@
       UVar
       Integer
       Label))
+
+  (l20-uncover-locals
+   (%remove Prog)
+   (%add 
+    (Prog (letrec ((Label (lambda (UVar *) Body)) *) Body))
+    (Body (locals (UVar *) Tail))))
+
+  (l21-remove-let
+   (%remove 
+    (Tail let)
+    (Pred let)
+    (Effect let)
+    (Value let))
+   (%add (Effect (set! UVar Value))))
+
+  (l22-verify-uil)
 
  ;; Replace Value with Triv in arguments of procedure calls and primitive application.
  (l23-remove-complex-opera
@@ -133,7 +154,16 @@
      (Triv Var)
      (Frame (UVar *))))
 
-;; Hmm... when are you going to get rid of that 'alloc' form? -RRN [2013.02.25]
+ ;; After this point, alloc is gone and we reference the
+ ;; allocation-pointer-register directly.
+ (l26-expose-allocation-pointer
+   (%remove (Effect set!))
+   (%add 
+    (Effect (set! Var Triv)
+	    (set! Var (Binop Triv Triv))
+	    ;; Remove alloc!
+	    (set! Var (mref Triv Triv))
+	    )))
 
  (l27-uncover-frame-conflict
     (%remove 
@@ -236,8 +266,14 @@
   (%remove UFVar Loc)
   (%add (Loc Reg Disp)))
 
-;; Are memory index-opnds much different than displacement opnds in
-;; how they should be handled? -RRN [2013.02.25]
+(l38-expose-memory-operands
+   (%remove (Tail mref) 
+	    (Effect mset! set!))
+   (%add 
+    (Loc Ind)
+    (Effect
+     (set! Loc Triv)
+     (set! Loc (Binop Triv Triv)))))
 
 (l39-expose-basic-blocks
   (%remove

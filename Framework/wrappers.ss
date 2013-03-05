@@ -9,13 +9,13 @@
     jump
     (rename (p423-letrec letrec))
     locals
+    locate
     ulocals
     spills
     register-conflict
-    locate
     true
     false
-    nop    
+    nop
     frame-conflict
     compute-frame-size
     call-live
@@ -29,7 +29,7 @@
 
 (define env
   (environment
-    '(except (chezscheme) set! letrec)
+    '(chezscheme)
     '(Framework helpers)
     '(Framework helpers frame-variables)))
 
@@ -51,18 +51,22 @@
         addr))))
 
 (define int64-in-range?
-  (lambda (x)
-    (<= (- (expt 2 63)) x (- (expt 2 63) 1))))
+  (let ()
+    (import scheme)
+    (lambda (x)
+      (<= (- (expt 2 63)) x (- (expt 2 63) 1)))))
 
 (define handle-overflow
-  (lambda (x)
-    (cond
-      [(not (number? x)) x]
-      [(int64-in-range? x) x]
-      [(not (= x (logand 18446744073709551615 x)))
-       (handle-overflow (logand 18446744073709551615 x))]
-      [(< x 0) (handle-overflow (+ x (expt 2 64)))]
-      [else (handle-overflow (- x (expt 2 64)))])))
+  (let ()
+    (import scheme)
+    (lambda (x)
+      (cond
+        [(not (number? x)) x]
+        [(int64-in-range? x) x]
+        [(not (= x (logand 18446744073709551615 x)))
+         (handle-overflow (logand 18446744073709551615 x))]
+        [(< x 0) (handle-overflow (+ x (expt 2 64)))]
+        [else (handle-overflow (- x (expt 2 64)))]))))
 
 (define rewrite-opnds
   (lambda (x)
@@ -78,9 +82,9 @@
        `(mset! ,r1 ,r2 ,expr)]
       ;; End hack
       [,r (guard (disp-opnd? r))
-       `(mref ,(disp-opnd-reg r) ,(disp-opnd-offset r))]
+        `(mref ,(disp-opnd-reg r) ,(disp-opnd-offset r))]
       [,r (guard (index-opnd? r))
-       `(mref ,(index-opnd-breg r) ,(index-opnd-ireg r))]
+        `(mref ,(index-opnd-breg r) ,(index-opnd-ireg r))]
       [(set! ,r ,[expr]) (guard (disp-opnd? r))
        `(mset! ,(disp-opnd-reg r) ,(disp-opnd-offset r) ,expr)]
       [(set! ,r ,[expr]) (guard (index-opnd? r))
@@ -95,16 +99,16 @@
       [,x (if (frame-var? x) (+ (frame-var->index x) 1) 0)])))
 
 (wrap
-(define-syntax set!
-  (let ()
-    (import scheme)
-    (syntax-rules (,frame-pointer-register)
-      [(_ ,frame-pointer-register (op xxx n))
+  (define-syntax set!
+    (let ()
+      (import scheme)
+      (syntax-rules (,frame-pointer-register)
+        [(_ ,frame-pointer-register (op xxx n))
          (begin
            (fp-offset (op (fp-offset) n))
            (set! ,frame-pointer-register (op xxx n)))]
-      [(_ x expr)
-       (set! x (handle-overflow expr))]))))
+        [(_ x expr)
+         (set! x (handle-overflow expr))]))))
 
 (define-syntax code
   (lambda (x)
@@ -135,11 +139,7 @@
   (syntax-rules ()
     [(_ target) (target)]))
 
-  (define-syntax locals
-    (syntax-rules ()
-      [(_ (x* ...) body) (let ([x* 0] ...) body)]))
-
-(define-syntax spills
+(define-syntax locals
   (syntax-rules ()
     [(_ (x* ...) body) (let ([x* 0] ...) body)]))
 
@@ -147,6 +147,9 @@
   (syntax-rules ()
     [(_ (x* ...) body) (let ([x* 0] ...) body)]))
 
+(define-syntax spills
+  (syntax-rules ()
+    [(_ (x* ...) body) (let ([x* 0] ...) body)]))
 
 (define-syntax frame-conflict
   (syntax-rules ()
@@ -232,10 +235,14 @@
   (export
     pass->wrapper
     source/wrapper
+    verify-scheme/wrapper
+    uncover-locals/wrapper
+    remove-let/wrapper
     verify-uil/wrapper
     remove-complex-opera*/wrapper
     flatten-set!/wrapper
     impose-calling-conventions/wrapper
+    expose-allocation-pointer/wrapper
     uncover-frame-conflict/wrapper
     pre-assign-frame/wrapper
     assign-new-frame/wrapper
@@ -247,6 +254,7 @@
     discard-call-live/wrapper
     finalize-locations/wrapper
     expose-frame-var/wrapper
+    expose-memory-operands/wrapper
     expose-basic-blocks/wrapper
     flatten-program/wrapper
     generate-x86-64/wrapper)
@@ -257,6 +265,7 @@
     (Framework GenGrammars l23-remove-complex-opera)
     (Framework GenGrammars l24-flatten-set)
     (Framework GenGrammars l25-impose-calling-conventions)
+    (Framework GenGrammars l26-expose-allocation-pointer)
     (Framework GenGrammars l27-uncover-frame-conflict)
     (Framework GenGrammars l28-pre-assign-frame)
     (Framework GenGrammars l29-assign-new-frame)
@@ -266,11 +275,12 @@
     (Framework GenGrammars l35-discard-call-live)
     (Framework GenGrammars l36-finalize-locations)
     (Framework GenGrammars l37-expose-frame-var)
+    (Framework GenGrammars l38-expose-memory-operands)
     (Framework GenGrammars l39-expose-basic-blocks)
     (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
-    (only (Framework wrappers aux) 
+    (only (Framework wrappers aux)
       env rewrite-opnds compute-frame-size
       return-point-complex return-point-simple
       new-frames set! alloc))
@@ -280,10 +290,14 @@
     ;; RRN: Seems better to replace this with string-append + string<->symbol 
     (case pass
       ((source) source/wrapper)
+      ((verify-scheme) verify-scheme/wrapper)
+      ((uncover-locals) uncover-locals/wrapper)
+      ((remove-let) remove-let/wrapper)
       ((verify-uil) verify-uil/wrapper)
       ((remove-complex-opera*) remove-complex-opera*/wrapper)
       ((flatten-set!) flatten-set!/wrapper)
       ((impose-calling-conventions) impose-calling-conventions/wrapper)
+      ((expose-allocation-pointer) expose-allocation-pointer/wrapper)
       ((uncover-frame-conflict) uncover-frame-conflict/wrapper)
       ((pre-assign-frame) pre-assign-frame/wrapper)
       ((assign-new-frame) assign-new-frame/wrapper)
@@ -295,6 +309,7 @@
       ((discard-call-live) discard-call-live/wrapper)
       ((finalize-locations) finalize-locations/wrapper)
       ((expose-frame-var) expose-frame-var/wrapper)
+      ((expose-memory-operands) expose-memory-operands/wrapper)
       ((expose-basic-blocks) expose-basic-blocks/wrapper)
       ((flatten-program) flatten-program/wrapper)
       ((generate-x86-64) generate-x86-64/wrapper)
@@ -303,70 +318,90 @@
 
 ;;-----------------------------------
 ;; source/wrapper
+;; verify-scheme/wrapper
+;;-----------------------------------
+(define-language-wrapper
+  (source/wrapper verify-scheme/wrapper)
+  (x)
+  (environment env)
+  ,alloc
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow true false nop)
+    (only (chezscheme) set! letrec))
+  (reset-machine-state!)
+  ,x)
+
+;;-----------------------------------
+;; uncover-locals/wrapper
+;;-----------------------------------
+(define-language-wrapper
+  uncover-locals/wrapper
+  (x)
+  (environment env)
+  ,alloc
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow locals true false nop)
+    (except (chezscheme) set!))
+  ,x)
+
+;;-----------------------------------
 ;; verify-uil/wrapper
-;;-----------------------------------
-(define-language-wrapper
-  (source/wrapper verify-uil/wrapper)
-  (x)
-  (environment env)
-  ,set! ,alloc
-  (import
-    (only (Framework wrappers aux)
-      handle-overflow locals true false nop)
-    (only (chezscheme) letrec))
-  (reset-machine-state!)
-  ,x ;,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
-  )
-
-;;-----------------------------------
+;; remove-let/wrapper
 ;; remove-complex-opera*/wrapper
-;;-----------------------------------
-;; DUPLICATE of verify-scheme/wrapper except for the grammar check:
-(define-language-wrapper
-  (remove-complex-opera*/wrapper)
-  (x)
-  (environment env)
-  ,set! ,alloc
-  (import
-    (only (Framework wrappers aux)
-      handle-overflow locals true false nop)
-    (only (chezscheme) letrec))
-  (reset-machine-state!)
-  ,x ;,(if (grammar-verification) (verify-grammar:l23-remove-complex-opera x) x)
-  )
-
-;;-----------------------------------
 ;; flatten-set!/wrapper
 ;;-----------------------------------
-;; DUPLICATE of verify-scheme/wrapper except for the grammar check:
 (define-language-wrapper
-  (flatten-set!/wrapper)
+  (verify-uil/wrapper remove-let/wrapper
+   remove-complex-opera*/wrapper flatten-set!/wrapper)
   (x)
   (environment env)
   ,set! ,alloc
   (import
     (only (Framework wrappers aux)
       handle-overflow locals true false nop)
-    (only (chezscheme) letrec))
-  (reset-machine-state!)
-  ,x ; ,(if (grammar-verification) (verify-grammar:l24-flatten-set x) x)
-  )
+    (except (chezscheme) set! lambda))
+  ,x)
+
+;; TODO: Duplicate grammar for remove-complex-opera*/wrapper grammar check.
+;; TODO: Duplicate grammar for flatten-set!/wrapper
 
 ;;-----------------------------------
 ;; impose-calling-conventions/wrapper
 ;;-----------------------------------
-(define-language-wrapper (impose-calling-conventions/wrapper)
+(define-language-wrapper impose-calling-conventions/wrapper
   (x)
   (environment env)
   (define frame-size ,(compute-frame-size x))
   ,return-point-complex
-  ,new-frames ,alloc
+  ,new-frames
+  ,alloc
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locals true false nop))
+      handle-overflow letrec locals true false nop)
+    (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
+  ,return-value-register)
+
+;;-----------------------------------
+;; expose-allocation-pointer/wrapper
+;;-----------------------------------
+(define-language-wrapper expose-allocation-pointer/wrapper
+  (x)
+  (environment env)
+  (define frame-size ,(compute-frame-size x))
+  ,return-point-complex
+  ,new-frames
+  ,set!
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow letrec locals true false nop)
+    (except (chezscheme) set! letrec))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l26-expose-allocation-pointer  x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -382,10 +417,10 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow letrec locals spills call-live
-      frame-conflict true false nop))
+      frame-conflict true false nop)
+    (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-    ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)
-    ))
+		   ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
   ,return-value-register)
 
 ;;----------------------------------
@@ -399,21 +434,17 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locals locate call-live
-      frame-conflict true false nop))
+      handle-overflow letrec locals locate call-live 
+      frame-conflict true false nop)
+    (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-       ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x) 
-       ))
+		   ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x)))
   ,return-value-register)
-
 
 ;;----------------------------------
 ;; assign-new-frame
 ;;----------------------------------
-(define-language-wrapper 
-  (assign-new-frame/wrapper 
-   assign-frame/wrapper)
-  (x)
+(define-language-wrapper assign-new-frame/wrapper (x)
   (environment env)
   (define frame-size ,(compute-frame-size x))
   ,return-point-simple
@@ -421,41 +452,23 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow letrec locals ulocals spills locate
-      frame-conflict true false nop))
+      frame-conflict true false nop)
+    (except (chezscheme) set! letrec))
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(if (grammar-verification) (verify-grammar:l29-assign-new-frame x) x)
-      ))
+      ,(if (grammar-verification) (verify-grammar:l29-assign-new-frame x) x)))
   ,return-value-register)
+
 
 ;;-----------------------------------
 ;; finalize-frame-locations/wrapper
-;;-----------------------------------
-(define-language-wrapper
-  (finalize-frame-locations/wrapper
-   select-instructions/wrapper)
-  (x)
-  (environment env)
-  ,return-point-simple
-  ,set!
-  (import
-    (only (Framework wrappers aux)
-      handle-overflow letrec locate
-      locals ulocals frame-conflict
-      true false nop))
-  (call/cc (lambda (k) (set! ,return-address-register k)
-       ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
-  ,return-value-register)
-
-#;
-;;-----------------------------------
 ;; select-instructions/wrapper
 ;; assign-frame/wrapper
 ;;-----------------------------------
-;; DUPLICATE OF ABOVE WITH DIFFERENT GRAMMAR VERIFICATION:
 (define-language-wrapper
-  (select-instructions/wrapper
+  (finalize-frame-locations/wrapper
+   select-instructions/wrapper
    assign-frame/wrapper)
   (x)
   (environment env)
@@ -465,9 +478,10 @@
     (only (Framework wrappers aux)
       handle-overflow letrec locate
       locals ulocals frame-conflict
-      true false nop))
-  (call/cc (lambda (k) (set! ,return-address-register k)
-       ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
+      true false nop)
+    (except (chezscheme) set! letrec))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+	     ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -479,8 +493,9 @@
   ,return-point-simple
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locate locals ulocals
-      frame-conflict register-conflict true false nop))
+      handle-overflow letrec locate locals ulocals frame-conflict
+      register-conflict true false nop)
+    (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
   ,return-value-register)
@@ -494,37 +509,49 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locate locals ulocals
-      spills frame-conflict true false nop))
+      handle-overflow letrec locate locals ulocals spills
+      frame-conflict true false nop)
+    (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
   ,return-value-register)
 
+;;-----------------------------------
+;; discard-call-live/wrapper
+;;-----------------------------------
 (define-language-wrapper discard-call-live/wrapper (x)
-  (environment env)
-  ,return-point-simple
-  ,set!
-  (import (only (Framework wrappers aux)
-             handle-overflow letrec locate
-            true false nop))
-  (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
-  ,return-value-register)
-
-(define-language-wrapper finalize-locations/wrapper
-  (x)
   (environment env)
   ,return-point-simple
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec true false nop))
+      handle-overflow letrec locate true false nop)
+    (except (chezscheme) set! letrec))
+  (call/cc (lambda (k) (set! ,return-address-register k) 
+		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
+  ,return-value-register)
+
+;;-----------------------------------
+;; finalize-locations/wrapper
+;;-----------------------------------
+(define-language-wrapper finalize-locations/wrapper (x)
+  (environment env)
+  ,return-point-simple
+  ,set!
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow letrec true false nop)
+    (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
   ,return-value-register)
 
-
-(define-language-wrapper expose-frame-var/wrapper
+;;-----------------------------------
+;; expose-frame-var/wrapper
+;; expose-memory-operands/wrapper
+;;-----------------------------------
+(define-language-wrapper
+  (expose-frame-var/wrapper)
   (x)
   (environment env)
   ,return-point-simple
@@ -532,41 +559,65 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow true false nop)
-    (only (chezscheme) letrec))
-  (call/cc
+    (except (chezscheme) set!))
+  (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
   ,return-value-register)
 
-(define-language-wrapper expose-basic-blocks/wrapper
+;; DUPLICATED from previous, except with different grammar verification:
+(define-language-wrapper
+  (expose-memory-operands/wrapper)
   (x)
   (environment env)
+  ,return-point-simple
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow)
-    (only (chezscheme) letrec))
+      handle-overflow true false nop)
+    (except (chezscheme) set!))
   (call/cc 
+    (lambda (k)
+      (set! ,return-address-register k)
+      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l38-expose-memory-operands x) x))))
+  ,return-value-register)
+
+
+;;-----------------------------------
+;; expose-basic-blocks/wrapper
+;;-----------------------------------
+(define-language-wrapper expose-basic-blocks/wrapper (x)
+  (environment env)
+  ,set!
+  (import
+    (only (Framework wrappers aux) handle-overflow)
+    (except (chezscheme) set!))
+  (call/cc
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l39-expose-basic-blocks x) x))))
   ,return-value-register)
 
-(define-language-wrapper flatten-program/wrapper
-  (x)
+;;-----------------------------------
+;; flatten-program/wrapper
+;;-----------------------------------
+(define-language-wrapper flatten-program/wrapper (x)
   (environment env)
   ,set!
   (import
     (only (Framework wrappers aux)
       handle-overflow code jump)
-    (only (chezscheme) letrec))
+    (except (chezscheme) set!))
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
   ,return-value-register)
 
+;;-----------------------------------
+;; generate-x86/wrapper
+;;-----------------------------------
 (define (generate-x86-64/wrapper program)
   (let-values ([(out in err pid)
                 (open-process-ports

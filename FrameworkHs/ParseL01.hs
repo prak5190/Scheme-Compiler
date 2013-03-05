@@ -3,7 +3,7 @@ module FrameworkHs.ParseL01 where
 
 import Control.Applicative ((<$>))
 import Debug.Trace         (trace)
-import FrameworkHs.GenGrammars.L22VerifyUil
+import FrameworkHs.GenGrammars.L01VerifyScheme
 import FrameworkHs.SExpReader.LispData
 import FrameworkHs.Prims
 
@@ -14,39 +14,40 @@ parseProg :: LispVal -> PassM Prog
 parseProg (List [(Symbol "letrec"),List bs,b]) =
   do
      bs' <- mapM parseTuple bs
-     b'  <- parseBody b
+     b'  <- parseTail b
      return (Letrec bs' b')
-  where parseTuple :: LispVal -> PassM (Label,[UVar],Body)
+  where parseTuple :: LispVal -> PassM (Label,[UVar],Tail)
         parseTuple (List [l,List[(Symbol "lambda"),List args,b]]) =
           do 
              l' <- parseLabel l
-             b' <- parseBody b
+             b' <- parseTail b
              args' <- mapM parseUVar args
              return (l',args',b')
         parseTuple e = parseFailureM ("parseProg: Invalid tuple: " ++ show e)
 parseProg e = parseFailureM ("parseProg: Invalid Prog: " ++ show e)
 
 
-
-parseBody :: LispVal -> PassM Body
-parseBody (List [(Symbol "locals"),List bs,t]) =
-  do
-     us <- mapM parseUVar bs
-     t  <- parseTail t
-     return (Locals us t)
-parseBody e = parseFailureM ("Invalid Body: " ++ show e)
-
+parseBinds :: LispVal -> PassM [(UVar,Value)]
+parseBinds (List ls) = mapM fn ls
+ where
+   fn (List [lhs,rhs]) = 
+     do uv   <- parseUVar lhs
+        rhs' <- parseValue rhs
+        return (uv,rhs')
 
 parseTail :: LispVal -> PassM Tail
 parseTail (List [(Symbol "if"),p,t1,t2]) =
-  do p <- parsePred p
+  do p  <- parsePred p
      t1 <- parseTail t1
      t2 <- parseTail t2
      return (IfT p t1 t2)
 parseTail (List ((Symbol "begin"):ls)) =
   do (es,t) <- parseListWithFinal parseEffect parseTail ls
      return (BeginT es t)
-
+parseTail (List [(Symbol "let"),binds,tl]) =
+  do binds' <- parseBinds binds
+     tl'    <- parseTail tl
+     return (LetT binds' tl')
 parseTail (List [Symbol "alloc",a]) =
   do a' <- parseValue a
      return (AllocT a')
@@ -81,10 +82,13 @@ parseValue (List [Symbol "if",p,v1,v2]) = do
   v1' <- parseValue v1
   v2' <- parseValue v2
   return$ IfV p' v1' v2'
-
+parseValue (List [(Symbol "let"),binds,bod]) =
+  do binds' <- parseBinds binds
+     bod'   <- parseValue bod
+     return (LetV binds' bod')
 parseValue (List [Symbol "alloc",a]) =
   do a' <- parseValue a
-     return (AllocV a')
+     return (AllocV a')     
 parseValue (List [Symbol "mref",a,b]) =
   do a' <- parseValue a
      b' <- parseValue b
@@ -101,10 +105,7 @@ parseValue (List (op:rst)) = do
     Right val' -> do
       rst' <- mapM parseValue rst
       return $ AppV2 val' rst'
-         
-
-
-
+      
 parseValue triv =
 --  trace ("Is this triv?" ++show triv) $
   TrivV <$> parseTriv triv
@@ -115,25 +116,25 @@ parsePred (List [(Symbol "false")]) = return (FalseP)
 parsePred (List ((Symbol "begin"):ls)) =
   do (es,p) <- parseListWithFinal parseEffect parsePred ls
      return (BeginP es p)
-parsePred (List [r,v1,v2]) =
-  do r  <- parseRelop r
-     v1 <- parseValue v1
-     v2 <- parseValue v2
-     return (AppP r v1 v2)
 parsePred (List [(Symbol "if"),p1,p2,p3]) =
   do p1 <- parsePred p1
      p2 <- parsePred p2
      p3 <- parsePred p3
      return (IfP p1 p2 p3)
+parsePred (List [(Symbol "let"),binds,bod]) =
+  do binds' <- parseBinds binds
+     bod'   <- parsePred bod
+     return (LetP binds' bod')
+parsePred (List [r,v1,v2]) =
+  do r  <- parseRelop r
+     v1 <- parseValue v1
+     v2 <- parseValue v2
+     return (AppP r v1 v2)
 parsePred e = parseFailureM ("Invalid Pred: " ++ show e)
 
 
 parseEffect :: LispVal -> PassM Effect
 parseEffect (List [(Symbol "nop")]) = return (Nop)
-parseEffect (List [(Symbol "set!"),v,rhs]) =
-  do v   <- parseUVar v
-     rhs <- parseValue rhs
-     return (Set v rhs)
 parseEffect (List [(Symbol "mset!"),v,ix,rhs]) =
   do v'   <- parseValue v
      ix'  <- parseValue ix
@@ -144,6 +145,10 @@ parseEffect (List [(Symbol "if"),p,e1,e2]) =
      e1 <- parseEffect e1
      e2 <- parseEffect e2
      return (IfE p e1 e2)
+parseEffect (List [(Symbol "let"),binds,bod]) =
+  do binds' <- parseBinds binds
+     bod'   <- parseEffect bod
+     return (LetE binds' bod')
 parseEffect (List ((Symbol "begin"):ls)) =
   do (es,e) <- parseListWithFinal parseEffect parseEffect ls
      return (BeginE es e)
