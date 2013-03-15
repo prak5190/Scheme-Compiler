@@ -60,7 +60,7 @@
   (l19-specify-representation
    (%remove Prog Pred Effect Value)  ;; Remove ALL.  Start fresh.
    (%add
-    (start Prog)
+;    (start Prog)
     (Prog
       (letrec ((Label (lambda (UVar *) Tail)) *) Tail))
     (Tail
