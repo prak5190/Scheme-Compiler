@@ -23,7 +23,24 @@ module FrameworkHs.Helpers
              , trace
              )
   , Option (..)
-    
+  
+  -- * Helpers for representations
+  , fixnumBits
+  , shiftFixnum
+  , tagFixnum
+  , tagPair
+  , tagProcedure
+  , tagVector
+  , tagNonfixnum
+  , repTrue
+  , repFalse
+  , repNil
+  , repVoid
+  , dispCar
+  , dispCdr
+  , dispVectorData
+  , dispVectorLength
+  , sizePair
   -- * An alternative `Show` class for printing to X86 assembly code:
   , X86Print, format
   , OpCode
@@ -60,6 +77,7 @@ module FrameworkHs.Helpers
   , isInt32
   , isInt64
   , isUInt6
+  , isFixnum
   , wordShift
   , ash
   , chomp
@@ -72,6 +90,7 @@ import Data.List (intersperse)
 import Data.Set (size, fromList)
 import Data.Char (isDigit, isSpace, isAlpha)
 import Data.Int
+import Data.Bits
 import Data.ByteString (ByteString, hPut)
 -- import Data.ByteString (ByteString, hPut)
 import Data.ByteString.Char8 (unpack)
@@ -693,6 +712,7 @@ inBitRange r i = (((- (2 ^ (r-1))) <= n) && (n <= ((2 ^ (r-1)) - 1)))
 
 isInt32 = inBitRange 32
 isInt64 = inBitRange 64
+isFixnum = inBitRange fixnumBits
 
 isUInt6 :: Integer -> Bool
 isUInt6 i = (0 <= i) && (i <= 63)
@@ -723,3 +743,58 @@ ash n = (* (2 ^ n))
 -- | Remove whitespace from both ends of a string.
 chomp :: String -> String
 chomp = reverse . dropWhile isSpace . reverse
+
+
+-- | Bit range of a valid boxed signed immediate integer
+fixnumBits :: Integer
+fixnumBits = 64 - (fromIntegral shiftFixnum)
+
+-- | Left-shift for integer immediates
+shiftFixnum :: Int
+shiftFixnum = 3
+
+-- | Tag for fixnum values
+tagFixnum :: Integer
+tagFixnum = 0x0
+
+-- | Tag for pair values
+tagPair :: Integer
+tagPair = 0x1
+
+-- | Tag for procedure values
+tagProcedure :: Integer
+tagProcedure = 0x2
+
+tagVector :: Integer
+tagVector = 0x3
+
+tagNonfixnum :: Integer
+tagNonfixnum = 0x6
+
+repFalse :: Integer
+repFalse = shiftL 0x0 shiftFixnum + tagNonfixnum
+
+repTrue :: Integer
+repTrue = shiftL 0x1 shiftFixnum + tagNonfixnum
+
+repNil :: Integer
+repNil = shiftL 0x2 shiftFixnum + tagNonfixnum
+
+repVoid :: Integer
+repVoid = shiftL 0x3 shiftFixnum + tagNonfixnum
+
+dispCar :: Integer
+dispCar = 0
+
+dispCdr :: Integer
+dispCdr = 8
+
+sizePair :: Integer
+sizePair = 2 * dispCdr
+
+dispVectorLength :: Integer
+dispVectorLength = 0
+
+dispVectorData :: Integer
+dispVectorData = 8
+
