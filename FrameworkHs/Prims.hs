@@ -84,7 +84,7 @@ data ValPrim = Times | Plus | Minus | Car | Cdr | Cons
 valPrimArity :: ValPrim -> Int
 valPrimArity vp =
   case vp of
-    Times -> 2 ; Plus -> 2 ; Car -> 1 ; Cdr -> 1 ; Cons -> 2
+    Times -> 2 ; Plus -> 2 ; Minus -> 2 ; Car -> 1 ; Cdr -> 1 ; Cons -> 2
     MakeVector -> 1 ; VectorLength -> 1 ; VectorRef -> 2 ; Void -> 0
     
 predPrimArity :: PredPrim -> Int
