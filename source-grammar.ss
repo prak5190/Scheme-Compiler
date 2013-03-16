@@ -1,9 +1,12 @@
 ;; P423 / P523
-;; Week 9 grammars
+;; Week 11 grammars
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
-;;   uncover-locals             l-01 -> l-20
+;;   lift-letrec                l-01 -> l-17
+;;   normalize-context          l-17 -> l-18
+;;   specify-representation     l-18 -> l-19
+;;   uncover-locals             l-19 -> l-20
 ;;   remoove-let                l-20 -> l-21
 
 ;;   verify-uil                 l-22 -> l-22
@@ -23,44 +26,67 @@
 ;;   finalize-locations         l-35 -> l-36
 ;;   expose-frame-var           l-36 -> l-37
 ;;   expose-basic-blocks        l-37 -> l-39
+;;   optimize-jumps             l-39 -> l-39
 ;;   flatten-program            l-39 -> l-41
 ;;   generate-x86-64            l-41 -> ()
 
 (p423-grammars
 
-  (l01-verify-scheme
+ (l01-verify-scheme
     (start Prog)
-    (Prog
+    (Prog Expr)
+    (Expr     
+      (quote Immediate)
+      (let ([UVar Expr]*) Expr)
+      (letrec ((Label (lambda (UVar *) Expr)) *) Expr)
+      (if Expr Expr Expr)
+      (begin Expr * Expr)
+      (ValPrim Expr *)
+      (EffectPrim Expr *)
+      (PredPrim Expr *)
+      (Value Value *)
+      UVar Label)
+    ; (Immediate fixnum () #t #f) ;; BUILTIN!
+    )
+
+  (l17-lift-letrec
+    (%remove Prog (Expr letrec)) ;; Remove ALL.  Start fresh.
+    (%add 
+     (Prog (letrec ((Label (lambda (UVar *) Expr)) *) Expr)))
+    )
+
+  (l18-normalize-context
+    (%remove Prog Expr)  ;; Remove ALL.  Start fresh.
+    (%add
+     (Prog
       (letrec ((Label (lambda (UVar *) Value)) *) Value))
-    (Pred
+     (Pred
       (let ([UVar Value]*) Pred)
       (true)
       (false)
       (if Pred Pred Pred)
       (begin Effect * Pred)
       (PredPrim Value *))
-    (Effect
+     (Effect
       (let ([UVar Value]*) Effect)
       (nop)
       (if Pred Effect Effect)
       (begin Effect * Effect)
       (EffectPrim Value *)
       (Value Value *))
-    (Value
+     (Value
       (quote Immediate)
       (let ([UVar Value]*) Value)
       (if Pred Value Value)
       (begin Effect * Value)
       (ValPrim Value *)
       (Value Value *)
-      UVar Label)
-    ; (Immediate fixnum () #t #f) ;; BUILTIN!
+      UVar Label))
     )
 
   (l19-specify-representation
    (%remove Prog Pred Effect Value)  ;; Remove ALL.  Start fresh.
    (%add
-;    (start Prog)
     (Prog
       (letrec ((Label (lambda (UVar *) Tail)) *) Tail))
     (Tail
@@ -314,6 +340,8 @@
   (%add
     (Tail
       (if (Relop Triv Triv) (Label) (Label)))))
+
+;; No l40, optimize-jumps uses l39.
 
 (l41-flatten-program
   (%remove

@@ -7,6 +7,8 @@
     (Framework match)
     (Framework helpers)
     (Compiler verify-scheme)
+    (Compiler lift-letrec)
+    (Compiler normalize-context)
     (Compiler specify-representation)
     (Compiler uncover-locals)
     (Compiler remove-let)
@@ -29,6 +31,7 @@
     (Compiler expose-frame-var)
     (Compiler expose-memory-operands)
     (Compiler expose-basic-blocks)
+    (Compiler optimize-jumps)
     (Compiler flatten-program)
     (Compiler generate-x86-64))
 
@@ -42,6 +45,8 @@
 
 (define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
+  (lift-letrec)
+  (normalize-context)
   (specify-representation)
   (uncover-locals)
   (remove-let)
@@ -65,6 +70,7 @@
   (expose-frame-var)
   (expose-memory-operands)
   (expose-basic-blocks)
+  (optimize-jumps)
   (flatten-program)
   (generate-x86-64 assemble))
 
