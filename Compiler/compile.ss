@@ -7,6 +7,9 @@
     (Framework match)
     (Framework helpers)
     (Compiler verify-scheme)
+    (Compiler uncover-free)
+    (Compiler convert-closures)
+    (Compiler introduce-procedure-primitives)
     (Compiler lift-letrec)
     (Compiler normalize-context)
     (Compiler specify-representation)
@@ -45,6 +48,9 @@
 
 (define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
+  (uncover-free)
+  (convert-closures)
+  (introduce-procedure-primitives)
   (lift-letrec)
   (normalize-context)
   (specify-representation)
@@ -74,4 +80,5 @@
   (flatten-program)
   (generate-x86-64 assemble))
 
+  
 )
