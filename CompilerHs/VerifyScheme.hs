@@ -88,7 +88,9 @@ vLetrecBinds binds m = do
     m
 
 vLambda :: ([UVar], Expr) -> VerifyM ()
-vLambda (formals, e) = local (first $ const formals) $ vExpr e
+vLambda (formals, e) = do
+  tell formals
+  local (first $ const formals) $ vExpr e
 
 assert :: Bool -> String -> VerifyM ()
 assert False msg = verifyFailure msg
@@ -99,7 +101,7 @@ allDistinct name xs = case xs of
   []                     -> return ()
   [x]                    -> return ()
   (x:xs')                -> 
-    if x `looseElem` xs 
+    if x `looseElem` xs' 
     then failure ("duplicate " ++ name ++ ": " ++ show x)
     else allDistinct name xs'
 

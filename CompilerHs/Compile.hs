@@ -42,7 +42,7 @@ import CompilerHs.DiscardCallLive              (discardCallLive)
 import CompilerHs.FinalizeLocations            (finalizeLocations)
 import CompilerHs.ExposeBasicBlocks            (exposeBasicBlocks)
 
-import CompilerHs.OptimizeJumps                (optimizeJumps)
+-- import CompilerHs.OptimizeJumps                (optimizeJumps)
 
 import CompilerHs.ExposeMemoryOperands         (exposeMemoryOperands)
 import CompilerHs.ExposeFrameVar               (exposeFrameVar)
@@ -142,11 +142,11 @@ ebb = P423Pass { pass = exposeBasicBlocks
                , trace = False || traceAll
                }
 
-opj = P423Pass { pass = optimizeJumps
+{-opj = P423Pass { pass = optimizeJumps
                , passName = "optimizeJumps"
                , wrapperName = "optimize-jumps/wrapper"
                , trace = False || traceAll
-               }
+               }-}
 
 flp = P423Pass { pass = flattenProgram
                , passName = "flattenProgram"
@@ -218,8 +218,10 @@ eap = P423Pass { pass = exposeAllocationPointer
 -- | Compose the complete compiler as a pipeline of passes.
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
-  p <- liftPassM$ parseProg l  
+  p <- liftPassM$ parseProg l
   p <- runPass vfs p
+  p <- runPass llr p
+  p <- runPass ncx p
   p <- runPass spr p
   p <- runPass ucl p
   p <- runPass rml p
