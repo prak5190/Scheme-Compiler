@@ -44,7 +44,7 @@
       (ValPrim Expr *)
       (EffectPrim Expr *)
       (PredPrim Expr *)
-      (Value Value *)
+      (Expr Expr *)
       UVar Label)
     ; (Immediate fixnum () #t #f) ;; BUILTIN!
     )
