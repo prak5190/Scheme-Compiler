@@ -1,13 +1,20 @@
 ;; P423 / P523
-;; Week 11 grammars
+;; Week 12 grammars
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
+;;   optimize-direct-call       l-01 -> l-06
+;;   remove-anonymous-lambda    l-06 -> l-07
+;;   sanitize-binding-forms     l-07 -> l-08
+;;   uncover-free               l-08 -> l-09
+;;   convert-closures           l-09 -> l-10
+;;   optimize-known-call        l-10 -> l-11
+;;   introduce-procedure-primitives l-10 -> l-15
 ;;   lift-letrec                l-01 -> l-17
 ;;   normalize-context          l-17 -> l-18
 ;;   specify-representation     l-18 -> l-19
 ;;   uncover-locals             l-19 -> l-20
-;;   remoove-let                l-20 -> l-21
+;;   remove-let                 l-20 -> l-21
 
 ;;   verify-uil                 l-22 -> l-22
 ;;   remove-complex-opera*      l-22 -> l-23
@@ -38,21 +45,33 @@
     (Expr     
       (quote Immediate)
       (let ([UVar Expr]*) Expr)
-;      (letrec ((Label (lambda (UVar *) Expr)) *) Expr)
-      (letrec ((UVar (lambda (UVar *) Expr)) *) Expr)
+      (letrec ([UVar Lambda] *) Expr)
       (if Expr Expr Expr)
       (begin Expr * Expr)
       (ValPrim Expr *)
       (EffectPrim Expr *)
       (PredPrim Expr *)
       (Expr Expr *)
+      Lambda
       UVar
-;      Label
       )
+    (Lambda (lambda (UVar *) Expr))
     ; (Immediate fixnum () #t #f) ;; BUILTIN!
     )
 
-  (l14-uncover-free
+  ;; No l06-optimize-direct-call, grammar does not change.
+ 
+  (l07-remove-anonymous-lambda
+     (%remove (Expr Lambda let))
+     (%add (Expr (let ([UVar LambdaOrExpr]*) Expr))
+	   (LambdaOrExpr Lambda Expr)))
+
+  (l08-sanitize-bindings
+     (%remove Lambda LambdaOrExpr (Expr let letrec))
+     (%add (Expr (let ([UVar Expr]*) Expr)
+		 (letrec ([UVar (lambda (UVar *) Expr)] *) Expr))))
+
+  (l09-uncover-free
      (%remove (Expr letrec))
      (%add
        (Expr
@@ -61,7 +80,7 @@
      )
   )
 
-  (l15-convert-closures
+  (l10-convert-closures
      (%remove (Expr letrec))
      (%add
        (Expr
@@ -71,15 +90,14 @@
      )
   )
 
-  (l16-introduce-procedure-primitives
+  (l15-introduce-procedure-primitives
      (%remove (Expr letrec))
      (%add
        (Expr
          (letrec ((Label (lambda (UVar *) Expr)) *) Expr)
        )
      )
-  )
-  
+  )  
 
   (l17-lift-letrec
     (%remove Prog (Expr letrec)) ;; Remove ALL.  Start fresh.
