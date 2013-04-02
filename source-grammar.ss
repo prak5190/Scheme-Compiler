@@ -45,29 +45,29 @@
     (Expr     
       (quote Immediate)
       (let ([UVar Expr]*) Expr)
-      (letrec ([UVar Lambda] *) Expr)
+      (letrec ([UVar Lamb] *) Expr)
       (if Expr Expr Expr)
       (begin Expr * Expr)
       (ValPrim Expr *)
       (EffectPrim Expr *)
       (PredPrim Expr *)
       (Expr Expr *)
-      Lambda
+      Lamb
       UVar
       )
-    (Lambda (lambda (UVar *) Expr))
+    (Lamb (lambda (UVar *) Expr))
     ; (Immediate fixnum () #t #f) ;; BUILTIN!
     )
 
   ;; No l06-optimize-direct-call, grammar does not change.
  
   (l07-remove-anonymous-lambda
-     (%remove (Expr Lambda let))
+     (%remove (Expr Lamb let))
      (%add (Expr (let ([UVar LambdaOrExpr]*) Expr))
-	   (LambdaOrExpr Lambda Expr)))
+	   (LambdaOrExpr Lamb Expr)))
 
   (l08-sanitize-bindings
-     (%remove Lambda LambdaOrExpr (Expr let letrec))
+     (%remove Lamb LambdaOrExpr (Expr let letrec))
      (%add (Expr (let ([UVar Expr]*) Expr)
 		 (letrec ([UVar (lambda (UVar *) Expr)] *) Expr))))
 
