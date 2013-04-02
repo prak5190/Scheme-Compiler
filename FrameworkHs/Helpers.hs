@@ -27,10 +27,16 @@ module FrameworkHs.Helpers
   -- * Helpers for representations
   , fixnumBits
   , shiftFixnum
+  , maskFixnum
+  , maskVector
+  , maskPair
+  , maskProcedure
+  , maskBoolean
   , tagFixnum
   , tagPair
   , tagProcedure
   , tagVector
+  , tagBoolean
   , tagNonfixnum
   , repTrue
   , repFalse
@@ -40,6 +46,8 @@ module FrameworkHs.Helpers
   , dispCdr
   , dispVectorData
   , dispVectorLength
+  , dispProcedureData
+  , dispProcedureCode
   , sizePair
   -- * An alternative `Show` class for printing to X86 assembly code:
   , X86Print, format
@@ -526,18 +534,21 @@ instance PP EffectPrim where
     SetCar    -> fromString "set-car!"
     SetCdr    -> fromString "set-cdr!"
     VectorSet -> fromString "vector-set!"
+    ProcedureSet -> fromString "procedure-set!"
 
 instance PP PredPrim where
   pp p = fromString $ case p of
     Lt -> "<" ; Lte -> "<=" ; Eq -> "=" ; Gte -> ">=" ; Gt -> ">"
     BooleanP -> "boolean?" ; EqP -> "eq?" ; FixnumP -> "fixnum?"
     NullP -> "null?" ; PairP -> "pair?" ; VectorP -> "vector?"
+    ProcedureP -> "procedure?"
 
 instance PP ValPrim where
   pp p = fromString$ case p of    
     Times -> "*" ; Plus -> "+" ; Minus -> "-"; Car -> "car" ; Cdr -> "cdr" ; Cons -> "cons"
     MakeVector -> "make-vector" ; VectorLength -> "vector-length" ; VectorRef -> "vector-ref"
     Void -> "void"
+    MakeProcedure -> "make-procedure" ; ProcedureCode -> "procedure-code" ; ProcedureRef -> "procedure-ref"
 
 instance PP Immediate where
   pp p = fromString$ case p of
@@ -690,6 +701,7 @@ parsePredPrim (Symbol s) = case s of
   "null?"    -> return NullP
   "pair?"    -> return PairP
   "vector?"  -> return VectorP     
+  "procedure?"  -> return ProcedureP     
   e        -> parseFailureM ("parsePredPrim: Not a pred primitive: " ++ e)
 parsePredPrim e = parseFailureM ("parsePredPrim: Not a symbol: " ++ show e)
 
@@ -706,12 +718,14 @@ parseEffectPrim e = parseFailureM ("parseEffectPrim: Not a symbol: " ++ show e)
 ------------------------------------------------------------
 -- Parse Helpers -------------------------------------------
 
-inBitRange :: Integer -> Integer -> Bool
+inBitRange :: (Integral a) => Integer -> a -> Bool
 inBitRange r i = (((- (2 ^ (r-1))) <= n) && (n <= ((2 ^ (r-1)) - 1)))
   where n = fromIntegral i
 
 isInt32 = inBitRange 32
 isInt64 = inBitRange 64
+
+isFixnum :: Integral a => a -> Bool
 isFixnum = inBitRange fixnumBits
 
 isUInt6 :: Integer -> Bool
@@ -749,6 +763,21 @@ chomp = reverse . dropWhile isSpace . reverse
 fixnumBits :: Integer
 fixnumBits = 64 - (fromIntegral shiftFixnum)
 
+maskFixnum :: Int64
+maskFixnum = 0x7 -- 0b111
+
+maskPair :: Int64
+maskPair = 0x7 -- 0b111
+
+maskVector :: Int64
+maskVector = 0x7 -- 0b111
+
+maskProcedure :: Int64
+maskProcedure = 0x7 -- 0b111
+
+maskBoolean :: Int64
+maskBoolean = 0xF7 -- 0b11110111
+
 -- | Left-shift for integer immediates
 shiftFixnum :: Int
 shiftFixnum = 3
@@ -767,6 +796,9 @@ tagProcedure = 0x2
 
 tagVector :: Integer
 tagVector = 0x3
+
+tagBoolean :: Integer
+tagBoolean = 0x6
 
 tagNonfixnum :: Integer
 tagNonfixnum = 0x6
@@ -797,4 +829,10 @@ dispVectorLength = 0
 
 dispVectorData :: Integer
 dispVectorData = 8
+
+dispProcedureCode :: Integer
+dispProcedureCode = 0
+
+dispProcedureData :: Integer
+dispProcedureData = 8
 
