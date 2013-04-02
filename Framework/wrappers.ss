@@ -31,9 +31,11 @@
     fill-closure!
     closures
     cookie
-    procedure 
-    procedure-code procedure?
+    procedure
+    procedure?
     make-procedure
+    procedure-code
+    procedure-env
     procedure-set!
     procedure-ref)
   (import
@@ -300,8 +302,12 @@
        ...
        body)]))
 
+(define-syntax well-known
+  (syntax-rules ()
+    [(_ (wk ...) body) body]))
+
 (define-record procedure ((immutable code) (immutable env)) ()
-    ([constructor $make-procedure]))
+  ([constructor $make-procedure]))
 
 (define make-procedure
     (lambda (code i)
@@ -352,7 +358,6 @@
                       (+ disp-vector-data (fxsll i word-shift))
                       ptr))))))]
         [else (errorf 'ptr->datum "can't handle ~s" ptr)]))))
-
 )
 
 (library (Framework wrappers)
@@ -360,6 +365,12 @@
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
+    optimize-direct-call/wrapper
+    remove-anonymous-lambda/wrapper
+    optimize-self-reference/wrapper
+    optimize-free/wrapper
+    uncover-well-known/wrapper
+    sanitize-binding-forms/wrapper
     uncover-free/wrapper
     convert-closures/wrapper
     introduce-procedure-primitives/wrapper
@@ -422,8 +433,15 @@
     (case pass
       ((source) source/wrapper)
       ((verify-scheme) verify-scheme/wrapper)
+      ((optimize-direct-call) optimize-direct-call/wrapper)
+      ((remove-anonymous-lambda) remove-anonymous-lambda/wrapper)
+      ((optimize-self-reference) optimize-self-reference/wrapper)
+      ((optimize-free) optimize-free/wrapper)
+      ((uncover-well-known) uncover-well-known/wrapper) 
+      ((sanitize-binding-forms) sanitize-binding-forms/wrapper)
       ((uncover-free) uncover-free/wrapper)
       ((convert-closures) convert-closures/wrapper)
+      ((optimize-known-call) optimize-known-call/wrapper)
       ((introduce-procedure-primitives) introduce-procedure-primitives/wrapper)
       ((lift-letrec) lift-letrec/wrapper)
       ((normalize-context) normalize-context/wrapper)
@@ -459,7 +477,10 @@
 ;; verify-scheme/wrapper
 ;;-----------------------------------
 (define-language-wrapper
-  (source/wrapper verify-scheme/wrapper)
+  (source/wrapper verify-scheme/wrapper
+   optimize-direct-call/wrapper
+   remove-anonymous-lambda/wrapper
+   sanitize-binding-forms/wrapper)
   (x)
   (environment env)
   (import
@@ -482,15 +503,38 @@
 
 ;;-----------------------------------
 ;; convert-closures/wrapper
+;; optimize-known-call/wrapper
+;; analyze-closure-size/wrapper
+;; optimize-free/wrapper
+;; optimize-self-reference/wrapper
 ;;-----------------------------------
-(define-language-wrapper convert-closures/wrapper
+(define-language-wrapper
+  (convert-closures/wrapper optimize-known-call/wrapper
+   analyze-closure-size/wrapper optimize-free/wrapper
+   optimize-self-reference/wrapper) 
   (x)
   (environment env)
   (import
     (only (Framework wrappers aux)
-      * + - cookie bind-free fill-closure! closures)
+      * + - cookie bind-free closures)
     (except (chezscheme) * + -))
   ,x)
+
+
+
+;;-----------------------------------
+;; uncover-well-known
+;;-----------------------------------
+(define-language-wrapper
+  (uncover-well-known/wrapper) 
+  (x)
+  (environment env)
+  (import
+    (only (Framework wrappers aux)
+      * + - cookie bind-free closures well-known)
+    (except (chezscheme) * + -))
+  ,x)
+
 
 ;;----------------------------------------
 ;; introduce-procedure-primitives/wrapper
@@ -502,8 +546,8 @@
   (environment env)
   (import
     (only (Framework wrappers aux)
-      * + - procedure make-procedure procedure-ref procedure-set! 
-            procedure-code procedure?)
+      * + - procedure make-procedure procedure-ref
+      procedure-set! procedure-code procedure?)
     (except (chezscheme) * + - procedure?))
   ,x)
 
@@ -517,10 +561,9 @@
   (import
     (only (Framework wrappers aux)
       true false nop * + -
-      procedure make-procedure procedure-ref procedure-set!
-      procedure-code procedure?)
+      procedure make-procedure procedure-ref
+      procedure-set! procedure-code procedure?)
     (except (chezscheme) * + - procedure?))
-  (reset-machine-state!)
   ,x)
 
 ;;-----------------------------------
@@ -786,7 +829,6 @@
       (set! ,return-address-register k)
       ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l38-expose-memory-operands x) x))))
   (ptr->datum ,return-value-register))
-
 
 ;;-----------------------------------
 ;; expose-basic-blocks/wrapper
