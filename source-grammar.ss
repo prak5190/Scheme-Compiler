@@ -1,13 +1,16 @@
 ;; P423 / P523
-;; Week 11 grammars
+;; Week 12 grammars
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
+;;   uncover-free               l-01 -> l-09
+;;   convert-closures           l-09 -> l-10
+;;   introduce-procedure-primitives l-10 -> l-15
 ;;   lift-letrec                l-01 -> l-17
 ;;   normalize-context          l-17 -> l-18
 ;;   specify-representation     l-18 -> l-19
 ;;   uncover-locals             l-19 -> l-20
-;;   remoove-let                l-20 -> l-21
+;;   remove-let                 l-20 -> l-21
 
 ;;   verify-uil                 l-22 -> l-22
 ;;   remove-complex-opera*      l-22 -> l-23
@@ -52,7 +55,7 @@
     ; (Immediate fixnum () #t #f) ;; BUILTIN!
     )
 
-  (l14-uncover-free
+  (l09-uncover-free
      (%remove (Expr letrec))
      (%add
        (Expr
@@ -61,7 +64,7 @@
      )
   )
 
-  (l15-convert-closures
+  (l10-convert-closures
      (%remove (Expr letrec))
      (%add
        (Expr
@@ -71,15 +74,14 @@
      )
   )
 
-  (l16-introduce-procedure-primitives
+  (l15-introduce-procedure-primitives
      (%remove (Expr letrec))
      (%add
        (Expr
          (letrec ((Label (lambda (UVar *) Expr)) *) Expr)
        )
      )
-  )
-  
+  )  
 
   (l17-lift-letrec
     (%remove Prog (Expr letrec)) ;; Remove ALL.  Start fresh.
