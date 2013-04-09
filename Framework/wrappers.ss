@@ -37,7 +37,8 @@
     procedure-code
     procedure-env
     procedure-set!
-    procedure-ref)
+    procedure-ref
+    assigned)
   (import
     (except (chezscheme) set! procedure?)
     (Framework match)
@@ -321,6 +322,10 @@
     (lambda (cp i v)
       (vector-set! (procedure-env cp) i v)))
 
+(define-syntax assigned
+    (syntax-rules ()
+      [(_ (var ...) expr) expr]))
+
 (define (true) #t)
 
 (define (false) #f)
@@ -365,6 +370,10 @@
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
+    convert-complex-datum/wrapper
+    uncover-assigned/wrapper
+    purify-letrec/wrapper
+    convert-assignments/wrapper
     optimize-direct-call/wrapper
     remove-anonymous-lambda/wrapper
     optimize-self-reference/wrapper
@@ -433,6 +442,10 @@
     (case pass
       ((source) source/wrapper)
       ((verify-scheme) verify-scheme/wrapper)
+      ((convert-complex-datum) convert-complex-datum/wrapper)
+      ((uncover-assigned) uncover-assigned/wrapper)
+      ((purify-letrec) purify-letrec/wrapper)
+      ((convert-assignments) convert-assignments/wrapper)
       ((optimize-direct-call) optimize-direct-call/wrapper)
       ((remove-anonymous-lambda) remove-anonymous-lambda/wrapper)
       ((optimize-self-reference) optimize-self-reference/wrapper)
@@ -475,11 +488,18 @@
 ;;-----------------------------------
 ;; source/wrapper
 ;; verify-scheme/wrapper
+;; optimize-direct-call/wrapper
+;; remove-anonymous-lambda/wrapper
+;; convert-complex-datum/wrapper
+;; convert-assignments/wrapper
+;; sanitize-binding-forms/wrapper
 ;;-----------------------------------
 (define-language-wrapper
   (source/wrapper verify-scheme/wrapper
    optimize-direct-call/wrapper
    remove-anonymous-lambda/wrapper
+   convert-complex-datum/wrapper
+   convert-assignments/wrapper
    sanitize-binding-forms/wrapper)
   (x)
   (environment env)
@@ -487,6 +507,20 @@
     (only (Framework wrappers aux) * + -)
     (except (chezscheme) * + -))
   (reset-machine-state!)
+  ,x)
+
+;;-----------------------------------
+;; uncover-assigned/wrapper
+;; purify-letrec/wrapper
+;;-----------------------------------
+(define-language-wrapper
+  (uncover-assigned/wrapper
+   purify-letrec/wrapper)
+  (x)
+  (environment env)
+  (import
+    (only (Framework wrappers aux) * + - assigned)
+    (except (chezscheme) * + -))
   ,x)
 
 

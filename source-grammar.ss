@@ -1,9 +1,13 @@
 ;; P423 / P523
-;; Week 12 grammars
+;; Week 14 grammars
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
-;;   optimize-direct-call       l-01 -> l-06
+;; * convert-complex-datum      l-01 -> l-02
+;; * uncover-assigned           l-02 -> l-03
+;; * purify-letrec              l-03 -> l-04
+;; * convert-assignments        l-04 -> l-05
+;;   optimize-direct-call       l-05 -> l-06
 ;;   remove-anonymous-lambda    l-06 -> l-07
 ;;   sanitize-binding-forms     l-07 -> l-08
 ;;   uncover-free               l-08 -> l-09
@@ -43,21 +47,48 @@
     (start Prog)
     (Prog Expr)
     (Expr     
-      (quote Immediate)
-      (let ([UVar Expr]*) Expr)
-      (letrec ([UVar Lamb] *) Expr)
+      (quote Datum)
+      (let    ([UVar Expr] *) Body)
+      (letrec ([UVar Expr] *) Body)
+      (lambda (UVar *) Body)
       (if Expr Expr Expr)
       (begin Expr * Expr)
+      (set! UVar Expr)
       (ValPrim Expr *)
       (EffectPrim Expr *)
       (PredPrim Expr *)
       (Expr Expr *)
-      Lamb
       UVar
       )
-    (Lamb (lambda (UVar *) Expr))
-    ; (Immediate fixnum () #t #f) ;; BUILTIN!
+    (Body Expr)
+    ;; Datum is builtin.
     )
+
+ (l02-convert-complex-datum 
+  (%remove (Expr quote))
+  (%add (Expr (quote Immediate)))
+  )
+ 
+ (l03-uncover-assigned
+  (%remove Body)
+  (%add (Body (assigned (UVar *) Expr)))
+  )
+ 
+ (l04-purify-letrec
+  (%remove (Expr letrec lambda))
+  (%add 
+   (Expr (letrec ([UVar Lamb] *) Body))
+   (Lamb (lambda (UVar *) Body))
+   ))
+ 
+ (l05-convert-assignments 
+  (%remove (Expr set! letrec let)
+	   Lamb Body)
+  (%add 
+   (Expr (let    ([UVar Expr] *) Expr)
+	 (letrec ([UVar Lamb] *) Expr))
+   (Lamb (lambda (UVar *) Expr))
+   ))
 
   ;; No l06-optimize-direct-call, grammar does not change.
  
