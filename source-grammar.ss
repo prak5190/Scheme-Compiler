@@ -43,11 +43,38 @@
 
 (p423-grammars
 
- (l01-verify-scheme
+ ;; This is the INPUT to parse-scheme.
+ (l00-verify-scheme
     (start Prog)
     (Prog Expr)
     (Expr     
+      Immediate
       (quote Datum)
+      (let    ([UVar Expr] *) Body *)
+      (letrec ([UVar Expr] *) Body *)
+      (lambda (UVar *) Body *)
+      (and Expr *)
+      (or Expr *)
+      (not Expr)
+      (if Expr Expr)
+      (if Expr Expr Expr)
+      (begin Expr * Expr)
+      (set! UVar Expr)
+      (ValPrim Expr *)
+      (EffectPrim Expr *)
+      (PredPrim Expr *)
+      (Expr Expr *)
+      UVar
+      )
+    (Body Expr)
+    )
+
+ ;; This is the OUTPUT of parse-scheme
+ (l01-parse-scheme
+    (%remove Expr)
+    (%add 
+     (Expr     
+      (quote Immediate)
       (let    ([UVar Expr] *) Body)
       (letrec ([UVar Expr] *) Body)
       (lambda (UVar *) Body)
@@ -59,10 +86,7 @@
       (PredPrim Expr *)
       (Expr Expr *)
       UVar
-      )
-    (Body Expr)
-    ;; Datum is builtin.
-    )
+      )))
 
  (l02-convert-complex-datum 
   (%remove (Expr quote))

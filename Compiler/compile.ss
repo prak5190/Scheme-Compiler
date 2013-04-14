@@ -6,7 +6,7 @@
     (Framework wrappers)
     (Framework match)
     (Framework helpers)
-    (Compiler verify-scheme)
+    (Compiler parse-scheme)
     (Compiler convert-complex-datum)
     (Compiler uncover-assigned)
     (Compiler purify-letrec)
@@ -55,7 +55,7 @@
   "./t")
 
 (define-compiler (p423-compile p423-step pass->wrapper)
-  (verify-scheme)
+  (parse-scheme)
   (convert-complex-datum)
   (uncover-assigned)
   (purify-letrec)

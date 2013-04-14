@@ -369,7 +369,7 @@
   (export
     pass->wrapper
     source/wrapper
-    verify-scheme/wrapper
+    parse-scheme/wrapper
     convert-complex-datum/wrapper
     uncover-assigned/wrapper
     purify-letrec/wrapper
@@ -441,7 +441,7 @@
     ;; RRN: Seems better to replace this with string-append + string<->symbol 
     (case pass
       ((source) source/wrapper)
-      ((verify-scheme) verify-scheme/wrapper)
+      ((parse-scheme) parse-scheme/wrapper)
       ((convert-complex-datum) convert-complex-datum/wrapper)
       ((uncover-assigned) uncover-assigned/wrapper)
       ((purify-letrec) purify-letrec/wrapper)
@@ -487,7 +487,7 @@
 
 ;;-----------------------------------
 ;; source/wrapper
-;; verify-scheme/wrapper
+;; parse-scheme/wrapper
 ;; optimize-direct-call/wrapper
 ;; remove-anonymous-lambda/wrapper
 ;; convert-complex-datum/wrapper
@@ -495,7 +495,7 @@
 ;; sanitize-binding-forms/wrapper
 ;;-----------------------------------
 (define-language-wrapper
-  (source/wrapper verify-scheme/wrapper
+  (source/wrapper parse-scheme/wrapper
    optimize-direct-call/wrapper
    remove-anonymous-lambda/wrapper
    convert-complex-datum/wrapper
