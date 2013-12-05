@@ -1,11 +1,11 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
 
-(library (nanopass meta-syntax-dispatch)
+(library (Framework nanopass meta-syntax-dispatch)
   (export meta-syntax-dispatch)
   (import (rnrs)
-          (nanopass helpers) 
-          (nanopass records)) 
+          (Framework nanopass helpers) 
+          (Framework nanopass records)) 
   
   ;; (fields->patterns '(e0 e1 e2)) => (any any any)
   ;; (fields->patterns '(e0 ...)) => ((each+ any () ()))
