@@ -13,13 +13,13 @@
 ;;; 6. don't bind quasiquote with Datum output
 ;;; 7. make cata work with Datum output
 
-(library (nanopass pass)
+(library (Framework nanopass pass)
   (export define-pass trace-define-pass echo-define-pass with-output-language nanopass-case)
   (import (rnrs)
-          (nanopass helpers)
-          (nanopass records)
-          (nanopass syntaxconvert)
-          (nanopass meta-parser)
+          (Framework nanopass helpers)
+          (Framework nanopass records)
+          (Framework nanopass syntaxconvert)
+          (Framework nanopass meta-parser)
           (rnrs mutable-pairs))
 
   ;; NOTE: the following is less general then the with-output-language because it does not
