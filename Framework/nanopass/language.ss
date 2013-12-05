@@ -14,14 +14,14 @@
 ;;;   - checking for language output to make sure constructed languages are
 ;;;     internally consistent:
 ;;;     - check to make sure metas are unique
-(library (nanopass language)
+(library (Framework nanopass language)
   (export define-language language->s-expression diff-languages prune-language define-pruned-language)
   (import (rnrs)
-          (nanopass helpers)
-          (nanopass language-helpers)
-          (nanopass records)
-          (nanopass unparser)
-          (nanopass meta-parser))
+          (Framework nanopass helpers)
+          (Framework nanopass language-helpers)
+          (Framework nanopass records)
+          (Framework nanopass unparser)
+          (Framework nanopass meta-parser))
  
   (define-syntax define-language
     (syntax-rules ()

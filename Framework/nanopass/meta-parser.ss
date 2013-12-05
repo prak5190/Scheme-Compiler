@@ -1,15 +1,15 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
 
-(library (nanopass meta-parser)
+(library (Framework nanopass meta-parser)
   (export make-meta-parser rhs-in-context-quasiquote meta-parse-term
     make-quasiquote-transformer make-in-context-transformer
     output-records->syntax parse-cata)
   (import (rnrs)
-          (nanopass helpers)
-          (nanopass records)
-          (nanopass syntaxconvert)
-          (nanopass meta-syntax-dispatch))
+          (Framework nanopass helpers)
+          (Framework nanopass records)
+          (Framework nanopass syntaxconvert)
+          (Framework nanopass meta-syntax-dispatch))
 
   (define make-meta-parser
     (lambda (desc)
