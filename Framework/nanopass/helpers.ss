@@ -1,7 +1,7 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
 
-(library (nanopass helpers)
+(library (Framework nanopass helpers)
   (export
     ;; auxiliary keywords for language/pass definitions
     extends definitions entry terminals nongenerative-id
@@ -63,7 +63,7 @@
 
     ;; handy syntactic stuff
     with-implicit)
-  (import (rnrs) (nanopass implementation-helpers))
+  (import (rnrs) (Framework nanopass implementation-helpers))
 
   (define all-unique-identifiers?
     (lambda (ls)
