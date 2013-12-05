@@ -49,9 +49,7 @@
       (EffectPrim Expr *)
       (PredPrim Expr *)
       (Expr Expr *)
-      UVar
-;      Label
-      )
+      UVar Label)
     ; (Immediate fixnum () #t #f) ;; BUILTIN!
     )
 

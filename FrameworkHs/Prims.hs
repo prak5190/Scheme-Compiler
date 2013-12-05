@@ -12,6 +12,7 @@ module FrameworkHs.Prims
   , PredPrim(..), EffectPrim (..), ValPrim(..)
   , valPrimArity, effectPrimArity, predPrimArity
   , Immediate(..)
+  , Datum(..)    
   )
   where
 
@@ -80,6 +81,7 @@ data EffectPrim = SetCar | SetCdr | VectorSet | ProcedureSet
 data ValPrim = Times | Plus | Minus | Car | Cdr | Cons
              | MakeVector | VectorLength | VectorRef | Void
              | MakeProcedure | ProcedureCode | ProcedureRef
+
      deriving (Read, Show, Eq, Ord)
               
 valPrimArity :: ValPrim -> Int
@@ -103,3 +105,8 @@ effectPrimArity ep =
 
 data Immediate = Fixnum Int64 | NullList | HashT | HashF
      deriving (Read, Show, Eq, Ord)
+
+data Datum = PairDatum Datum Datum
+           | VectorDatum [Datum]
+           | ImmediateDatum Immediate
+     deriving (Read, Show, Eq, Ord)              
