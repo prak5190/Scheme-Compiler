@@ -13,6 +13,8 @@
           isInt64 isInt32 isUInt6 invalid-expr
 	  ValPrim PredPrim EffectPrim
 	  checkValPrim checkPredPrim checkEffectPrim
+	  isImmediate Immediate
+	  isDatum Datum
 	  )
          (import (chezscheme)
                  (Framework match)
@@ -30,6 +32,22 @@
          (list? ls)
          (or (null? (cdr ls)) (not (eq? (car ls) #\0))) ;; No leading zeros.
          (for-all char-numeric? ls))))
+
+;; An immediate is used in the Scheme front-end for quoted constants.
+(define isImmediate
+  (lambda (x)
+    (or (fixnum? x)
+	(eq? x #t) (eq? x #f)
+	(eq? x '()))))
+
+;; A datum is a structured, complex constant
+(define isDatum
+  (lambda (x)
+    (cond 
+     [(isImmediate x) #t]
+     [(pair? x)   (and (isDatum (car x)) (isDatum (cdr x)))]
+     [(vector? x) (isDatum (vector->list x))]
+     [else #f])))
 
 ;; This is very slow... TODO: operate directly on the strings:
 (define isUVar
@@ -138,5 +156,8 @@
 (define ValPrim    (lambda (x) (if (checkValPrim x) #f    (invalid-expr 'ValPrim x))))
 (define EffectPrim (lambda (x) (if (checkEffectPrim x) #f (invalid-expr 'EffectPrim x))))
 (define PredPrim   (lambda (x) (if (checkPredPrim x) #f   (invalid-expr 'PredPrim x))))
+
+(define Immediate (lambda (x) (if (isImmediate x) #f   (invalid-expr 'Immediate x))))
+(define Datum (lambda (x) (if (isDatum x) #f   (invalid-expr 'Datum x))))
 
 )
