@@ -1,9 +1,9 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
 
-(library (nanopass nano-syntax-dispatch)
+(library (Framework nanopass nano-syntax-dispatch)
   (export nano-syntax-dispatch)
-  (import (rnrs) (nanopass helpers))
+  (import (rnrs) (Framework nanopass helpers))
   (define match-each
     (lambda (e p)
       (cond

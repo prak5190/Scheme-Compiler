@@ -1,6 +1,6 @@
-(library (nanopass language-helpers)
+(library (Framework nanopass language-helpers)
   (export prune-language-helper)
-  (import (rnrs) (nanopass records))
+  (import (rnrs) (Framework nanopass records))
 
   (define tspec->ts-syntax
     (lambda (tspec)
