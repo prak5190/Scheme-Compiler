@@ -160,4 +160,6 @@
 (define Immediate (lambda (x) (if (isImmediate x) #f   (invalid-expr 'Immediate x))))
 (define Datum (lambda (x) (if (isDatum x) #f   (invalid-expr 'Datum x))))
 
+(define Datum (lambda (x) (if (isDatum x) #f   (invalid-expr 'Datum x))))
+
 )

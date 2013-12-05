@@ -21,11 +21,11 @@ parseBinds (List ls) = mapM fn ls
         rhs' <- parseExpr rhs
         return (uv,rhs')
 
-parseLetrecBinds :: LispVal -> PassM [(UVar, [UVar], Expr)]
+parseLetrecBinds :: LispVal -> PassM [(Label, [UVar], Expr)]
 parseLetrecBinds (List ls) = mapM fn ls
   where 
     fn (List [label,List [Symbol "lambda", List formals, bod]]) = do
-      label' <- parseUVar label
+      label' <- parseLabel label
       formals' <- mapM parseUVar formals
       bod' <- parseExpr bod
       return (label', formals', bod')
@@ -66,8 +66,8 @@ parseExpr (List (op:rst)) = do
   return $ firstItem exprs
 
 parseExpr sym@(Symbol _) =
-  (UVar  <$> parseUVar sym) -- `orPassM`
---  (Label <$> parseLabel sym)
+  (UVar  <$> parseUVar sym)  `orPassM`
+  (Label <$> parseLabel sym)
 
 parseImmediate :: LispVal -> PassM Immediate
 parseImmediate x =
