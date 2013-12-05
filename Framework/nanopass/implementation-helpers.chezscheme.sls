@@ -1,7 +1,7 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
 #!chezscheme
-(library (nanopass implementation-helpers)
+(library (Framework nanopass implementation-helpers)
   (export
     ;; formatting
     format printf pretty-print

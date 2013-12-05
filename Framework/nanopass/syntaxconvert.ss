@@ -1,9 +1,9 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
 
-(library (nanopass syntaxconvert)
+(library (Framework nanopass syntaxconvert)
   (export convert-pattern)
-  (import (rnrs) (nanopass helpers)) 
+  (import (rnrs) (Framework nanopass helpers)) 
 
   (define convert-pattern
     ; accepts pattern & keys
