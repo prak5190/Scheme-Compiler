@@ -1,12 +1,12 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
-(library (nanopass parser)
+(library (Framework nanopass parser)
   (export define-parser trace-define-parser)
   (import (rnrs)
-          (nanopass helpers)
-          (nanopass records)
-          (nanopass syntaxconvert)
-          (nanopass nano-syntax-dispatch))
+          (Framework nanopass helpers)
+          (Framework nanopass records)
+          (Framework nanopass syntaxconvert)
+          (Framework nanopass nano-syntax-dispatch))
 
   (define-syntax parse-or
     (syntax-rules (on-error)

@@ -1,7 +1,7 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for detatils
 
-(library (nanopass records)
+(library (Framework nanopass records)
   (export find-spec nonterminal-meta? nano-alt->ntspec 
           nonterm-id->ntspec? nonterm-id->ntspec id->spec term-id->tspec?
 
@@ -55,7 +55,7 @@
           #;define-nanopass-record-types
 
           exists-alt?)
-  (import (rnrs) (nanopass helpers) (nanopass syntaxconvert))
+  (import (rnrs) (Framework nanopass helpers) (Framework nanopass syntaxconvert))
 
   (define-nanopass-record)
 
