@@ -81,6 +81,7 @@ data EffectPrim = SetCar | SetCdr | VectorSet | ProcedureSet
 data ValPrim = Times | Plus | Minus | Car | Cdr | Cons
              | MakeVector | VectorLength | VectorRef | Void
              | MakeProcedure | ProcedureCode | ProcedureRef
+
      deriving (Read, Show, Eq, Ord)
               
 valPrimArity :: ValPrim -> Int
