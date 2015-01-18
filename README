@@ -1,0 +1,8 @@
+Status : Code is working, All test cases pass
+         Realized much later that verify and generate should be in separate files, Will refractor in a2	 
+
+Environment : Emacs on Windows
+	      Headless Linux VM 
+	      VBox Shared folder
+
+Quirks : aux is a keyword in windows, so even a compile on linux is not possible if the folder is in a windows drive . So keeping the folder in VBox shared folder is not possible which I required to use emacs. Found it after a lot of time and used a stupid hack for it. TODO : Possibly to need to get it renamed or do it myself.
