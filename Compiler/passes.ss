@@ -64,12 +64,12 @@
     
     (define (convert exp)
         (match exp         
-          [(begin ,x) (convertStatement x) (emit 'ret)]
+          [(begin ,x) (convertStatement x)]
           [(begin ,x ,y) (convertStatement x) (convert `(begin ,y))]
           [(begin ,x ,y ...) (convertStatement x) (convert `(begin ,y ...))]
           [,else (errorf who "unexpected statemen222222t ~S" else) else]
           ))
-    (printf "~s" exp)
+;    (printf "~s" exp)
     (emit-program (convert exp))))
 
 
