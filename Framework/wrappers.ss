@@ -46,6 +46,7 @@
         [(_ x expr) (set! x (handle-overflow expr))])))
   (reset-machine-state!)
 ;  ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
+   ,x ;; NEW!!! 
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)
