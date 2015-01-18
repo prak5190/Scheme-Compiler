@@ -47,7 +47,7 @@
   ;; Generate x86-64 Code
   (define-who (generate-x86-64 exp)
     (define (binop->instr binop)
-      (match binop
+      (match binop 
         [+ 'addq]
         [- 'subq]
         [* 'imulq]        
