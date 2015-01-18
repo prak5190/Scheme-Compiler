@@ -38,11 +38,10 @@
     (define (validate exp)
       (match exp
         ;;(begin Statement*)
-        [(begin ,x ,y ...) (Effect x) (validate `(begin ,y ...))]
-        [(begin ,x ,y) (Effect x) (validate `(begin ,y))]
         [(begin ,x) (Effect x)]
-        [(begin) #f]
-        [,else #f]
+        [(begin ,x ,y) (Effect x) (validate `(begin ,y))]
+        [(begin ,x ,y ...) (Effect x) (validate `(begin ,y ...))]
+        [,else (errorf who "invalid exp: ~s" exp)]
         ))
     (validate program))
   ;; Generate x86-64 Code
@@ -53,26 +52,26 @@
         [- 'subq]
         [* 'imulq]        
         [,x (errorf who "unexpected binop ~s" x)]))
-    
     (define (convertStatement code)
       (match code
         ;; (set! Var1 (Binop Var1 int32 ))
         ;; (set! Var1 (Binop Var1 Var2))
-        [(set! ,dst ,src) (emit 'movq (rand->x86-64-arg src) (rand->x86-64-arg dst))]
+        [(set! ,dst (,b ,t1 ,src)) (emit (binop->instr b) (rand->x86-64-arg src) (rand->x86-64-arg dst))]
         ;; (set! Var1 (Binop Var1 int32 ))
         ;; (set! Var1 (Binop Var1 Var2))
-        [(set! ,dst (,b ,t1 ,src)) (emit (binop->instr b) (rand->x86-64-arg src) (rand->x86-64-arg dst))]
-        [,else (errorf who "unexpected statement ~S" else) else]))
+        [(set! ,dst ,src) (emit 'movq (rand->x86-64-arg src) (rand->x86-64-arg dst))]
+        [,else (errorf who "unexpected expression ~S" else) else]))
     
     (define (convert exp)
-        (match exp
-        ;;(begin Statement*)
-          [(begin ,x ,y ...) (convertStatement x) (convert `(begin ,y ...))]
-          [(begin ,x ,y) (convertStatement x) (convert `(begin ,y))]
-          [(begin ,x) (convertStatement x)]
-          [(begin) (emit 'ret)]
-          [,else (errorf who "unexpected statement ~S" else) else]))    
-    (emit-program (convert exp))))
+        (match exp         
+          ;;(begin Statement*)
+          [(,code ,code* ...) (convertStatement code) (convert code*)]          
+          ;; [(begin ,x) (convertStatement x) (emit 'ret)]
+          ;; [(begin ,x ,y) (convertStatement x) (convert `(begin ,y))]
+          ;; [(begin ,x ,y ...) (convertStatement x) (convert `(begin ,y ...))]
+          [,else (errorf who "unexpected statemen222222t ~S" else) else]
+          ))    
+    (emit-program (convertStatement exp))))
 
 
 
