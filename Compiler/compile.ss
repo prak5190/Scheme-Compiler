@@ -1,4 +1,4 @@
-(library (compiler compile)
+(library (Compiler compile)
   (export p423-compile)
   (import 
     ;; Load Chez Scheme primitives:

@@ -42,50 +42,38 @@
         [(begin ,x ,y) (Effect x) (validate `(begin ,y))]
         [(begin ,x) (Effect x)]
         [(begin) #f]
+        [,else #f]
         ))
+    (validate program))
+  ;; Generate x86-64 Code
+  (define-who (generate-x86-64 exp)
+    (define (binop->instr binop)
+      (match binop
+        [+ 'addq]
+        [- 'subq]
+        [* 'imulq]        
+        [,x (errorf who "unexpected binop ~s" x)]))
     
-    (validate program)
-    ;; #| Tail : exp --> void
-    ;; | Tail takes an expression and throws an error
-    ;; | unless the expression qualifies as a tail.
-    ;; |
-    ;; | Tail --> (,Triv)
-    ;; |       |  (begin ,Effect* ,Tail)
-    ;; |#
-    ;; (define (Tail env)
-    ;;   (lambda (exp)
-    ;;     (match exp
-    ;;       [(begin ,[Effect -> e*] ... ,[(Tail env) -> t]) exp]
-    ;;       [(,t) (guard
-    ;;              (if (label? t) (and (member t env) #t))
-    ;;              (not (integer? t)) ; architectural nuance.  Jump must be to label, not address.
-    ;;              )
-    ;;        (values)]
-    ;;       [,x (errorf who "invalid tail: ~s" x)]
-    ;;       )
-    ;;     )
-    ;;   )
+    (define (convertStatement code)
+      (match code
+        ;; (set! Var1 (Binop Var1 int32 ))
+        ;; (set! Var1 (Binop Var1 Var2))
+        [(set! ,dst ,src) (emit 'movq (rand->x86-64-arg src) (rand->x86-64-arg dst))]
+        ;; (set! Var1 (Binop Var1 int32 ))
+        ;; (set! Var1 (Binop Var1 Var2))
+        [(set! ,dst (,b ,t1 ,src)) (emit (binop->instr b) (rand->x86-64-arg src) (rand->x86-64-arg dst))]
+        [,else (errorf who "unexpected statement ~S" else) else]))
+    
+    (define (convert exp)
+        (match exp
+        ;;(begin Statement*)
+          [(begin ,x ,y ...) (convertStatement x) (convert `(begin ,y ...))]
+          [(begin ,x ,y) (convertStatement x) (convert `(begin ,y))]
+          [(begin ,x) (convertStatement x)]
+          [(begin) (emit 'ret)]
+          [,else (errorf who "unexpected statement ~S" else) else]))    
+    (emit-program (convert exp))))
 
-    ;; #| This block acts as the heartbeat of verify-scheme
-    ;; | by doing the work naturally expected to be within
-    ;; | some helper 'verify-program'.
-    ;; |
-    ;; | Program --> (letrec ([<label> (lambda () ,Tail)]*) ,Tail)
-    ;; |#
-    ;; (match program
-    ;;   [(letrec ([,lbl (lambda () ,t*)] ...) ,t)
-    ;;    (let ([env (cons 'r15 lbl)])
-    ;;      (for-each (Tail env) t*)
-    ;;      ((Tail env) t)
-    ;;      (if (set? (map string->number (map extract-suffix lbl)))
-    ;;          program
-    ;;          (errorf who "Label suffixes must be unique: ~s" lbl)))]
-    ;;   [,x (errorf who "invalid syntax for Program: expected (letrec ([<label> (lambda () ,Tail)]*) ,Tail) but received ~s" program)]
-      )
-  (define-who (generate-x86-64 program)
-    'blahfasjdhajusd)
-  (verify-scheme  '(begin (set! r11 5) (set! rax r11)))
-  )
 
 
 
