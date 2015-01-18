@@ -2,7 +2,7 @@
   (export pass->wrapper source/wrapper verify-scheme/wrapper generate-x86-64/wrapper)
   (import
     (chezscheme)
-    (Framework GenGrammars l01-verify-scheme)
+;    (Framework GenGrammars l01-verify-scheme)
     (Framework helpers)
     (Framework driver))
 
@@ -45,7 +45,7 @@
       (syntax-rules ()
         [(_ x expr) (set! x (handle-overflow expr))])))
   (reset-machine-state!)
-  ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
+;  ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)

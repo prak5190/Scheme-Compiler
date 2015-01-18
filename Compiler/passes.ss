@@ -42,7 +42,7 @@
         [(begin ,x ,y) (Effect x) (validate `(begin ,y))]
         [(begin ,x) (Effect x)]
         [(begin) #f]
-        [,else #f]
+        [,else (errorf who "invalid exp: ~s" exp)]
         ))
     (validate program))
   ;; Generate x86-64 Code
@@ -53,7 +53,6 @@
         [- 'subq]
         [* 'imulq]        
         [,x (errorf who "unexpected binop ~s" x)]))
-    
     (define (convertStatement code)
       (match code
         ;; (set! Var1 (Binop Var1 int32 ))
@@ -65,8 +64,9 @@
         [,else (errorf who "unexpected statement ~S" else) else]))
     
     (define (convert exp)
+        (printf "expppppppppppp")
         (match exp
-        ;;(begin Statement*)
+          ;;(begin Statement*)
           [(begin ,x ,y ...) (convertStatement x) (convert `(begin ,y ...))]
           [(begin ,x ,y) (convertStatement x) (convert `(begin ,y))]
           [(begin ,x) (convertStatement x)]
