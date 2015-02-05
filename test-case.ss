@@ -1,10 +1,13 @@
-(letrec ([kk$12 (lambda() (r11))]
-         [kk$1(lambda() (kk$12))])
-  (locate ([f.1 rcx])
-          (if (true)
-              (if (false)
-                  (< f.1 1)
-                  (begin
-                    (nop)
-                    (f.1)))
-              (false))))                         
+(letrec ([kk$12 (lambda()
+                  (locals (f.1)
+                          (kk$12 rax)))]
+         [kk$1(lambda() (locals (f.1)
+                                (kk$12 rax)))])
+  (locals (f.1 f.2)         
+          (begin
+            (set! rax 1)                    
+            (r15 rax))))
+
+
+
+
