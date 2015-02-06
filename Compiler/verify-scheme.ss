@@ -19,6 +19,9 @@
   (define (relop? exp)                   ;get-trace-define
     (define relops '(< > = <= >=))
     (and (memq exp relops) #t))
+
+  (define (Register? x)
+    (or (register? x) (uvar? x)))
   
   ;; A variable is a either a register or a frame variable 
   (define (var? exp)                   ;get-trace-define
@@ -29,23 +32,35 @@
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
     ;; Writing a function for each part
     ;; Trivial is Var | int | label  -- No int? so putting int64?
+
+    (define (Loc x)
+      (if (or (register? x) (frame-var? x))
+          x
+          (errorf who "Not a Loc ~s" x)))
+    
+    (define (Var x)
+      (if (or (uvar? x) (Loc x))
+          x
+          (errorf who "Not a Var ~s" x)))
     
     ;; making triv? into Triv which will now take list of label and uvar to check for unbounded vars
     ;; Returns true or false - throws error for unbounded variable    
     (define (Triv exp labells uvarls)                   ;get-trace-define      
-      (or (int64? exp)
+      (if (or (int64? exp)
           (if (label? exp)
-              (cond
-               ((assv exp labells) => (lambda(l)  #t))
-               (else (errorf who "unbound label name ~s" exp)))
+              (if (assv exp labells)
+                  #t
+                  (errorf who "unbound label name ~s , With list as ~s" exp labells))
               #f)
           (if (uvar? exp)
               (cond
-               ((assv exp uvarls)  #t)
+               ((memq exp uvarls)  #t)
                (else (errorf who "unbound uvar name ~s" exp)))
               #f)
           ;; unbound vars err out before var?
-          (var? exp)))
+          (var? exp))
+          exp
+          (errorf who "Not a Triv ~s" exp)))
 
     ;;    (define (verify-labels ls)
 
@@ -61,16 +76,8 @@
     ;; Validate Body locate exp
     (define (BodyExp exp)                   ;get-trace-define
       (match exp
-        ((,x ,y) (guard (and (or (register? y) (frame-var? y)) (uvar? x)))
-         `((,x . ,y) . ,(string->number (extract-suffix x))))
-        (,else (errorf who "invalid body exp ~s" exp))))
-    
-    ;; Find location and substitute if uvar otherwise return oldval
-    ;; Assumes assq will always find which is preset in Triv
-    (define (substituteLocation x ls)
-      (if (uvar? x) 
-          (cdr (assq x ls))
-          x))
+        (,x (guard (uvar? x)) x)
+        (,else (errorf who "invalid body exp ~s" exp))))        
     
     ;; Validate Effect
     (define (Effect exp ls locls)                   ;get-trace-define
@@ -80,27 +87,23 @@
         [(nop) #t]
         [(if ,x ,y ,z) (Pred x ls locls) (Effect y ls locls) (Effect z ls locls)]
         [(begin ,x ... ,y) (for-each (lambda(x) (Effect x ls locls)) x) (Effect y ls locls)]
-        [(set! ,v ,t) (guard (and (var? v) (Triv v ls locls) (Triv t ls locls)
-                                  (let ((v (substituteLocation v locls))
-                                                  (t (substituteLocation t locls)))
-                                    (and
-                                     (not (and (frame-var? v) (frame-var? t)))
-                                     (if (and (int64? t) (not (int32? t))) (register? v) #t)
-                                     (if (label? t) (register? v) #t))))) exp]
-        ;; (set! Var1 (Binop Var1 int32 ))
-        ;; (set! Var1 (Binop Var1 Var2))
         [(set! ,v (,b ,t1 ,t2)) (guard (and (var? v) (Triv v ls locls) (binop? b)
                                             (Triv t1 ls locls) (Triv t2 ls locls)
-                                            (let ((v (substituteLocation v locls))
-                                                  (t1 (substituteLocation t1 locls))
-                                                  (t2 (substituteLocation t2 locls)))
+                                            (let ((v v)
+                                                  (t1 t1)
+                                                  (t2 t2))
                                               (and 
                                                (not (and (label? t1) (label? t2)))
                                                (not (and (frame-var? t1) (frame-var? t2)))
-                                               (if (eqv? b '*) (register? v) #t)
+                                               (if (eqv? b '*) (Register? v) #t)
                                                (if (int64? t2) (int32? t2) #t)
                                                (if (eqv? b 'sra) (or (int32? t1) (uint6? t2)) #t)
                                                (eqv? v t1))))) exp]
+        [(set! ,v ,t) (guard (and (var? v) (Triv v ls locls) (Triv t ls locls)
+                                    (and
+                                     (not (and (frame-var? v) (frame-var? t)))
+                                     (if (and (int64? t) (not (int32? t))) (Register? v) #t)
+                                     (if (label? t) (Register? v) #t)))) exp]        
         [,x (errorf who "invalid effect: ~s" x)]))
 
     
@@ -117,8 +120,8 @@
                            (Triv y ls locls) (Triv z ls locls)
                            (not (label? y)) (not (label? z))
                            (not (int32? y))
-                           (let ((y (substituteLocation y locls))
-                                 (z (substituteLocation z locls)))
+                           (let ((y y)
+                                 (z z))
                              (and                              
                               (if (int64? z) (int32? z) #t)                              
                               (not (and (frame-var? y) (frame-var? z)))))) #t)
@@ -127,11 +130,12 @@
     ;; Validate Body
     (define (Body exp ls)
       (match exp
-        ((locate (,[BodyExp -> x] ...) ,y)
-         (checkAllUnique (map (lambda(x) (cdr x)) (append x '())))
-         (Tail y ls (map (lambda(x) (car x)) (append x '()))))
+        ((locals (,[BodyExp -> x] ...) ,y)
+         (checkAllUnique x)
+         (Tail y ls x))
         (,x (errorf who "invalid Body: ~s" x))))
-    
+
+       
     ;; Validate Tail
     (define (Tail exp ls locls)                   ;get-trace-define
       (match exp
@@ -139,8 +143,7 @@
          (for-each (lambda(x) (Effect x ls locls)) x)
          (Tail t ls locls))
         ((if ,x ,y ,z) (Pred x ls locls) (Tail y ls locls) (Tail z ls locls))
-        ((,x ,y ,z) (guard (relop? x)) (Triv y ls locls) (Triv z ls locls))
-        ((,x) (guard (and (Triv x ls locls) (not (int64? x)))) #t)
+        ((,x ,y ...) (guard (and (Triv x ls locls) (not (int64? x)) (map Loc y))) #t)
         (,else (errorf who "invalid Tail ~s" exp))))
 
     
