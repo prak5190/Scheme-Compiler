@@ -50,7 +50,7 @@
           (if (label? exp)
               (if (assv exp labells)
                   #t
-                  (errorf who "unbound label name ~s , With list as ~s" exp labells))
+                  (errorf who "unbound label name ~s" exp))
               #f)
           (if (uvar? exp)
               (cond
@@ -88,23 +88,25 @@
         [(if ,x ,y ,z) (Pred x ls locls) (Effect y ls locls) (Effect z ls locls)]
         [(begin ,x ... ,y) (for-each (lambda(x) (Effect x ls locls)) x) (Effect y ls locls)]
         [(set! ,v (,b ,t1 ,t2)) (guard (and (var? v) (Triv v ls locls) (binop? b)
-                                            (Triv t1 ls locls) (Triv t2 ls locls)
-                                            (let ((v v)
-                                                  (t1 t1)
-                                                  (t2 t2))
-                                              (and 
-                                               (not (and (label? t1) (label? t2)))
-                                               (not (and (frame-var? t1) (frame-var? t2)))
-                                               (if (eqv? b '*) (Register? v) #t)
-                                               (if (int64? t2) (int32? t2) #t)
-                                               (if (eqv? b 'sra) (or (int32? t1) (uint6? t2)) #t)
-                                               (eqv? v t1))))) exp]
-        [(set! ,v ,t) (guard (and (var? v) (Triv v ls locls) (Triv t ls locls)
-                                    (and
-                                     (not (and (frame-var? v) (frame-var? t)))
-                                     (if (and (int64? t) (not (int32? t))) (Register? v) #t)
-                                     (if (label? t) (Register? v) #t)))) exp]        
-        [,x (errorf who "invalid effect: ~s" x)]))
+                                            (Triv t1 ls locls) (Triv t2 ls locls)))
+         (if (and 
+              (not (and (label? t1) (label? t2)))
+              (not (and (frame-var? t1) (frame-var? t2)))
+              (if (eqv? b '*) (Register? v) #t)
+              (if (int64? t2) (int32? t2) #t)
+              (if (eqv? b 'sra) (or (int32? t1) (uint6? t2)) #t)
+              (eqv? v t1))
+             exp
+             (errorf who "Violates Machine constraints : ~s" exp))]
+        [(set! ,v ,t) (guard (and (var? v) (Triv v ls locls)
+                                  (Triv t ls locls)))
+         (if (and
+              (not (and (frame-var? v) (frame-var? t)))
+              (if (and (int64? t) (not (int32? t))) (Register? v) #t)
+              (if (label? t) (Register? v) #t))
+             exp
+             (errorf who "Violates Machine constraints : ~s" exp))]       
+      [,x (errorf who "invalid effect: ~s" x)]))
 
     
     ;; Validate Pred
