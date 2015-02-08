@@ -25,7 +25,6 @@
   ;; extract-suffix name -> use this to enforce unique name
   ;; Using define-who macro 
   (define-who (assign-registers program)
-
     (define (map-to-reg ls s)
       (cond
        ((null? s) '())
