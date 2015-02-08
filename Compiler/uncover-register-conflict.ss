@@ -67,7 +67,7 @@
             (add-conflict-others ls v cg)
             (set-box! x (union b ls))
             cg)
-          cg))
+          (add-conflict-others ls v cg)))
 
     
     ;; Validate Pred

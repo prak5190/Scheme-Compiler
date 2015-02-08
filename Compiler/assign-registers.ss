@@ -38,7 +38,7 @@
        ((null? cg) (reverse s))
        ((null? regls) (errorf who "No registers left, Have to spill !!! ~s" cg))
        (else (let* ((k (cdar cg))
-                    (aregls (difference regls (union (cdr k) (map-to-reg (cdr k) s)))))
+                    (aregls (difference regls (union k (map-to-reg k s)))))
                (if (null? regls)
                    (errorf who "Cannot allocate register for ~s" (car k))
                    (assign (cdr cg) regls
