@@ -51,6 +51,12 @@
             [,e (guard (not [Reg e])) #f]
             [,e (guard (not [Disp e])) #f]
             [,e (invalid-expr 'Loc e)])))
+      (define Conflict
+        (lambda (x)
+          (match x
+            [,e (guard (not [Reg e])) #f]
+            [,e (guard (not [UVar e])) #f]
+            [,e (invalid-expr 'Conflict e)])))
       (define Prog
         (lambda (x)
           (match x

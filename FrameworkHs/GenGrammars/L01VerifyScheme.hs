@@ -12,11 +12,11 @@ import Blaze.ByteString.Builder (fromByteString)
 data Prog
   = Letrec [(Label,Body)] Body
 data Body
-  = Locate [(UVar,Loc)] Tail
+  = Locals [UVar] Tail
 data Tail
   = IfT Pred Tail Tail
   | BeginT [Effect] Tail
-  | AppT Triv
+  | AppT Triv [Loc]
 data Pred
   = TrueP
   | FalseP
@@ -44,15 +44,15 @@ instance PP Prog where
   pp (Letrec l b) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,b) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp b)])])) l)),(pp b)])
   ppp (Letrec l b) = (pppSexp [text "letrec",(pppSexp (map (\(l,b) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp b)])])) l)),(ppp b)])
 instance PP Body where
-  pp (Locate l t) = (ppSexp [fromByteString "locate",(ppSexp (map (\(u,l) -> (ppSexp [(pp u),(pp l)])) l)),(pp t)])
-  ppp (Locate l t) = (pppSexp [text "locate",(pppSexp (map (\(u,l) -> (pppSexp [(ppp u),(ppp l)])) l)),(ppp t)])
+  pp (Locals l t) = (ppSexp [fromByteString "locals",(ppSexp (map pp l)),(pp t)])
+  ppp (Locals l t) = (pppSexp [text "locals",(pppSexp (map ppp l)),(ppp t)])
 instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
   pp (BeginT l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
-  pp (AppT t) = (ppSexp [(pp t)])
+  pp (AppT t l) = (ppSexp ((pp t) : (map pp l)))
   ppp (IfT p t t2) = (pppSexp [text "if",(ppp p),(ppp t),(ppp t2)])
   ppp (BeginT l t) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp t)])))
-  ppp (AppT t) = (pppSexp [(ppp t)])
+  ppp (AppT t l) = (pppSexp ((ppp t) : (map ppp l)))
 instance PP Pred where
   pp (TrueP) = (ppSexp [fromByteString "true"])
   pp (FalseP) = (ppSexp [fromByteString "false"])
@@ -96,25 +96,33 @@ instance PP Loc where
 deriving instance Eq Prog
 deriving instance Read Prog
 deriving instance Show Prog
+deriving instance Ord Prog
 deriving instance Eq Body
 deriving instance Read Body
 deriving instance Show Body
+deriving instance Ord Body
 deriving instance Eq Tail
 deriving instance Read Tail
 deriving instance Show Tail
+deriving instance Ord Tail
 deriving instance Eq Pred
 deriving instance Read Pred
 deriving instance Show Pred
+deriving instance Ord Pred
 deriving instance Eq Effect
 deriving instance Read Effect
 deriving instance Show Effect
+deriving instance Ord Effect
 deriving instance Eq Triv
 deriving instance Read Triv
 deriving instance Show Triv
+deriving instance Ord Triv
 deriving instance Eq Var
 deriving instance Read Var
 deriving instance Show Var
+deriving instance Ord Var
 deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc
+deriving instance Ord Loc
 

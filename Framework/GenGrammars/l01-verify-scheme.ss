@@ -22,8 +22,7 @@
       (define Body
         (lambda (x)
           (match x
-            [(locate ((,(UVar -> x1) ,(Loc -> x2)) ...) ,(Tail -> x3))
-             (any x3 x2 x1)]
+            [(locals (,(UVar -> x1) ...) ,(Tail -> x2)) (any x2 x1)]
             [,e (invalid-expr 'Body e)])))
       (define Tail
         (lambda (x)
@@ -31,7 +30,7 @@
             [(if ,(Pred -> x1) ,(Tail -> x2) ,(Tail -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Tail -> x2)) (any x2 x1)]
-            [(,(Triv -> x1)) (any x1)]
+            [(,(Triv -> x1) ,(Loc -> x2) ...) (any x2 x1)]
             [,e (invalid-expr 'Tail e)])))
       (define Pred
         (lambda (x)

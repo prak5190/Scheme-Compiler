@@ -9,6 +9,7 @@
     ;; Load your passes from the files you wrote them in:
     (Compiler verify-scheme)
     (Compiler uncover-register-conflict)
+    (Compiler discard-call-live)
     (Compiler assign-registers)
     (Compiler finalize-locations)
     (Compiler expose-frame-var)
@@ -98,9 +99,17 @@
           (set! rax f.6)
           (r15 rax rcx rdx rbx rbp rsi rdi r8 r9 r10 r11)))))
 
+(define t4 '(letrec ()
+      (locals (x.1)
+        (begin
+          (set! x.1 10)
+          (set! rax -10)
+          (set! rax (* rax x.1))
+          (r15 rax)))))
 (pretty-print
+ (discard-call-live
 (assign-registers
  (uncover-register-conflict
-  (verify-scheme t55))))
+  (verify-scheme t4)))))
 
 

@@ -32,8 +32,11 @@ data Triv
   | Integer Integer
   | Label Label
 data Loc
-  = Reg Reg
+  = RegL Reg
   | Disp Disp
+data Conflict
+  = RegC Reg
+  | UVar UVar
 
 instance PP Prog where
   pp (Letrec l t) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,t) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp t)])])) l)),(pp t)])
@@ -75,27 +78,42 @@ instance PP Triv where
   ppp (Integer i) = (ppp i)
   ppp (Label l) = (ppp l)
 instance PP Loc where
-  pp (Reg r) = (pp r)
+  pp (RegL r) = (pp r)
   pp (Disp d) = (pp d)
-  ppp (Reg r) = (ppp r)
+  ppp (RegL r) = (ppp r)
   ppp (Disp d) = (ppp d)
+instance PP Conflict where
+  pp (RegC r) = (pp r)
+  pp (UVar u) = (pp u)
+  ppp (RegC r) = (ppp r)
+  ppp (UVar u) = (ppp u)
 
 deriving instance Eq Prog
 deriving instance Read Prog
 deriving instance Show Prog
+deriving instance Ord Prog
 deriving instance Eq Tail
 deriving instance Read Tail
 deriving instance Show Tail
+deriving instance Ord Tail
 deriving instance Eq Pred
 deriving instance Read Pred
 deriving instance Show Pred
+deriving instance Ord Pred
 deriving instance Eq Effect
 deriving instance Read Effect
 deriving instance Show Effect
+deriving instance Ord Effect
 deriving instance Eq Triv
 deriving instance Read Triv
 deriving instance Show Triv
+deriving instance Ord Triv
 deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc
+deriving instance Ord Loc
+deriving instance Eq Conflict
+deriving instance Read Conflict
+deriving instance Show Conflict
+deriving instance Ord Conflict
 
