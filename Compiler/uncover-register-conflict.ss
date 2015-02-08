@@ -30,13 +30,7 @@
     ;; difference intersection union
     
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
-    ;; Writing a function for each part
-    ;; Trivial is Var | int | label  -- No int? so putting int64?  
-    (define (Triv exp labells uvarls)                   ;get-trace-define      
-      (or (int64? exp)
-          (label? exp)
-          (uvar? exp)              
-          (var? exp)))
+    ;; Writing a function for each part    
                      
     ;; Combine two conflict graph
     (define (combine-cg x y ig)
@@ -57,10 +51,20 @@
                                        (combine-cg (cdr x) y (cons (caar x) ig)))))
               (else (cons (car x) (combine-cg (cdr x) y ig)))))))
 
+    (define (add-conflict-others ls v cg)      
+      (cond
+       ((null? ls) cg)
+       ((uvar? (car ls)) (let* ((x (cdr (assq (car ls) cg)))
+                                (b (unbox x)))
+                           (set-box! x (union b `(,v)))
+                           (add-conflict-others (cdr ls) v cg)))
+       (else (add-conflict-others (cdr ls) v cg))))
+                                   
     (define (add-conflict v ls cg)
       (if (uvar? v)
           (let* ((x (cdr (assq v cg)))
                  (b (unbox x)))
+            (add-conflict-others ls v cg)
             (set-box! x (union b ls))
             cg)
           cg))
