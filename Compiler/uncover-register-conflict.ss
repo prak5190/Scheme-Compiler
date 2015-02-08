@@ -112,7 +112,7 @@
         ((if ,x ,y ,z) (let*-values (((l1 cg1) (Tail y ls cg))
                                      ((l2 cg2) (Tail z ls cg)))
                          (Pred x (union l1 l2) (combine-cg cg1 cg2 '()))))
-        ((,x ,y ...) (values (union ls (cons x y)) cg))))
+        ((,x ,y ...) (values (filter Register? (union ls (cons x y))) cg))))
 
     (define (init-cg ls)
       (map (lambda(x) `(,x . ,(box '()))) ls))
