@@ -46,9 +46,17 @@
        (else (cond
               ;; Ignore items in y present in ignore list
               ((memq (caar y) ig) (combine-cg x (cdr y) ig))
-              ((assq (caar x) y) => (lambda(l) (append
-                                               (cons (car l) (union (cdr x) (cdr l)))
-                                               (combine-cg (cdr x) y (cons (car x) ig)))))
+              ((assq (caar x) y) => (lambda(l)
+                                      ;; (display "*****")
+                                      ;; (display (cdr l))
+                                      ;; (display "\n")
+                                      ;; (display (unbox (cdar x))) 
+                                      ;; (display "\n")  
+                                      
+                                      (cons
+                                                (cons (car l) (box (union (unbox (cdar x))
+                                                                          (unbox (cdr l)))))
+                                                (combine-cg (cdr x) y (cons (caar x) ig)))))
               (else (cons (car x) (combine-cg (cdr x) y ig)))))))
 
     (define (add-conflict v ls cg)
@@ -95,11 +103,12 @@
       (match ex
         ((,x ... ,y) (let-values (((l g) (Effect y ls cg)))
                        (Effect* x l g)))
-        (,else cg)))
+        (,else (values ls cg))))
     ;; Validate Tail
     (define (Tail exp ls)                   ;get-trace-define
       (match exp
-        ((begin ,x ... ,t) (let ((cg (Effect* x t (map (lambda(x) `(,x . ,(box '()))) ls))))
+        ((begin ,x ... ,t) (let-values (((ls cg) (Effect* x t
+                                                          (map (lambda(x) `(,x . ,(box '()))) ls))))
                              (map (lambda(x) `(,(car x) . ,(unbox (cdr x)))) cg)))
         ((if ,x ,y ,z) (let* ((cg1 (Tail y ls))
                               (cg2 (Tail z ls)))
