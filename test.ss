@@ -8,118 +8,99 @@
     (Framework helpers)
     ;; Load your passes from the files you wrote them in:
     (Compiler verify-scheme)
+    (Compiler uncover-register-conflict)
+    (Compiler assign-registers)
     (Compiler finalize-locations)
     (Compiler expose-frame-var)
     (Compiler expose-basic-blocks)
     (Compiler flatten-program)
     (Compiler generate-x86-64))
-(define t27 '(letrec ([if-test$1 (lambda ()
-                       (locate ()
-                               (begin
-                                 (if (begin (set! rax 5) (= rax 5))
-                                     (set! rax (+ rax 10))
-                                     (set! rax (- rax 10)))
-                                 (set! rax (* rax 10))
-                                 (r15))))])
-   (locate () (if-test$1))))
-(define t1 '(letrec ([fib$0 (lambda ()
-                   (locate ([n.1 rax] [a.2 rbx] [b.3 rcx])
-                           (begin
-                             (set! a.2 0)
-                             (set! b.3 1)
-                             (fib$1))))]
-          [fib$1 (lambda ()
-                   (locate ([n.1 rax] [a.2 rbx] [b.3 rcx] [t.4 fv1]
-                            [return.5 rax])
-                           (if (= n.1 0)
-                               (begin
-                                 (set! return.5 a.2)
-                                 (fv0))
-                               (begin
-                                 (set! n.1 (- n.1 1))
-                                 (set! t.4 a.2)
-                                 (set! a.2 b.3)
-                                 (set! b.3 (+ b.3 t.4))
-                                 (fib$1)))
-                           ))])
-   (locate ([n.1 rax])
-           (begin
-             (set! fv0 r15)
-             (set! n.1 5)
-             (fib$0)))))
-(define asd '(letrec ([f$1 (lambda ()
-                 (locate ([x.1 r8] [y.2 r9])
-                         (if (if (= x.1 1) (true) (> y.2 1000))
-                             (begin (set! rax y.2) (r15))
-                             (begin
-                               (set! y.2 (* y.2 2))
-                               (set! rax x.1)
-                               (set! rax (logand rax 1))
-                               (if (= rax 0) (set! y.2 (+ y.2 1)) (set! rax 11))
-                               (set! x.1 (sra x.1 1))
-                               (f$1)))))]
-          [g$2 (lambda () (locate () (f$1)))]
-          [h$3 (lambda () (locate () (g$2)))]
-          [s$4 (lambda () (locate () (t$5)))]
-          [t$5 (lambda () (locate () (s$4)))])
-   (locate ()
-           (begin
-             (set! r8 3)
-             (set! r9 10)
-             (f$1)))))
 
-(define a1 '(letrec ()
-              (locate ()
-                      (begin
-                        (if (< rax 10) (set! rax 1) (nop))
-                        (r15)))))
+(define t1 '(letrec ()
+      (locals (a.1 b.2)
+        (begin
+          (set! a.1 5)
+          (set! b.2 1)
+          (set! b.2 (* b.2 a.1))
+          (set! a.1 (- a.1 1))
+          (set! b.2 (* b.2 a.1))
+          (set! a.1 (- a.1 1))
+          (set! b.2 (* b.2 a.1))
+          (set! a.1 (- a.1 1))
+          (set! b.2 (* b.2 a.1))
+          (set! rax b.2)
+          (r15 rax)))))
+(define t32 '(letrec ([if-test$5 (lambda ()
+                          (locals (n.1 x.2 y.3)
+                            (begin
+                              (set! n.1 rdi)
+                              (set! x.2 1)
+                              (set! y.3 1)
+                              (if (= n.1 0)
+                                  (set! x.2 (+ x.2 y.3))
+                                  (set! y.3 (+ y.3 x.2)))
+                              (set! x.2 n.1)
+                              (if (if (= n.1 y.3) (false) (true))
+                                  (set! n.1 (+ n.1 x.2))
+                                  (set! n.1 (+ n.1 y.3)))
+                              (set! x.2 n.1)
+                              (set! rax x.2)
+                              (r15 rax))))])
+      (locals ()
+        (begin (set! rdi 1) (if-test$5 rdi r15)))))
+(define t14 '(letrec ()
+      (locals (c.1)
+        (begin
+          (set! rax 5)
+          (set! c.1 10)
+          (if (< rax c.1)
+              (r15 rax)
+              (begin (set! rax c.1)
+                     (r15 rax)))))))
+(define t22 '(letrec ([div$0 (lambda ()
+                      (locals ()
+                        (begin 
+                          (set! fv2 (sra fv2 1)) 
+                          (div$1 fv2 fv0 rbp))))]
+             [div$1 (lambda ()
+                      (locals ()
+                        (begin 
+                          (set! rax fv2) 
+                          (fv0 rax rbp))))])
+      (locals (label-temp.1)
+        (begin
+          (set! fv0 r15)
+          (set! label-temp.1 div$0)
+          (set! fv1 label-temp.1)
+          (set! fv2 64)
+          (fv1 fv0 fv2 rbp)))))
+(define t55 '(letrec ()
+      (locals (b.2 g.7 c.3 d.4 e.5 a.1 f.6)
+        (begin
+          (set! fv0 77)
+          (set! fv1 88)
+          (set! fv2 99)
+          (set! fv3 111)
+          (set! a.1 1)
+          (set! b.2 2)
+          (set! c.3 a.1)
+          (set! d.4 4)
+          (set! e.5 5)
+          (set! f.6 b.2)
+          (set! f.6 (+ f.6 c.3))
+          (set! f.6 (+ f.6 d.4))
+          (set! f.6 (+ f.6 e.5))
+          (set! g.7 7)
+          (set! f.6 (+ f.6 g.7))
+          (set! f.6 (+ f.6 fv1))
+          (set! f.6 (+ f.6 fv2))
+          (set! f.6 (+ f.6 fv3))
+          (set! rax f.6)
+          (r15 rax rcx rdx rbx rbp rsi rdi r8 r9 r10 r11)))))
 
-(define t29 '(letrec ([if-test$3 (lambda ()
-                       (locate ()
-                               (begin
-                                 (set! rax 2)
-                                 (if (if (= rax 0)
-                                         (true)
-                                         (if (= rax 1)
-                                             (true)
-                                             (= rax 2)))
-                                     (begin
-                                       (set! rax (* rax 5))
-                                       (r15))
-                                     (begin
-                                       (set! rax (- rax 5))
-                                       (r15))))))])
-   (locate () (if-test$3))))
-(define t32 '(letrec ([if-test$6 (lambda ()
-                       (locate ([n.1 rdi] [x.2 rax] [y.3 rbx])
-                               (begin
-                                 (set! x.2 1)
-                                 (begin
-                                   (set! y.3 1)
-                                   (if (= n.1 0)
-                                       (set! x.2 (+ x.2 y.3))
-                                       (set! y.3 (+ y.3 x.2)))
-                                   (set! x.2 n.1))
-                                 (if (if (= n.1 y.3) (false) (true))
-                                     (set! n.1 (+ n.1 x.2))
-                                     (set! n.1 (+ n.1 y.3)))
-                                 (set! x.2 n.1)
-                                 (r15))))])
-   (locate ([n.1 rdi])
-           (begin
-             (set! n.1 1)
-             (if-test$6)))))
-(define t15 '(letrec ()
-   (locate ()
-           (begin
-             (set! rax 5)
-             (if (< rax 10) (set! rax (* rax 10)) (nop))
-             (r15)))))
 (pretty-print
- (flatten-program
- (expose-basic-blocks
- (expose-frame-var
-                                     (finalize-locations(verify-scheme t29))
-                                     ))))
+(assign-registers
+ (uncover-register-conflict
+  (verify-scheme t55))))
 
 

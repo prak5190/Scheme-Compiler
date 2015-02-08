@@ -26,22 +26,28 @@
   ;; Using define-who macro 
   (define-who (assign-registers program)
 
-    ;; Get a sorted list by degree
-    (trace-define (assign cg regls)
+    (define (map-to-reg ls s)
       (cond
-       ((null? cg) '())
-       ((null? regls) '());(errorf who "No registers left, Have to spill !!! ~s" cg))
+       ((null? s) '())
+       ((memq (caar s) ls) (cons (cadar s) (map-to-reg ls (cdr s))))
+       (else (map-to-reg ls (cdr s)))))
+    
+    ;; Gets a sorted list by degree
+    (define (assign cg regls s)
+      (cond
+       ((null? cg) (reverse s))
+       ((null? regls) (errorf who "No registers left, Have to spill !!! ~s" cg))
        (else (let* ((k (cdar cg))
-                    (aregls (difference regls (cdr k))))
+                    (aregls (difference regls (union (cdr k) (map-to-reg (cdr k) s)))))
                (if (null? regls)
                    (errorf who "Cannot allocate register for ~s" (car k))
-                   (cons `(,(caar cg) ,(car aregls)) (assign (cdr cg) (intersection
-                                                                     (cdr aregls) regls))))))))
+                   (assign (cdr cg) regls
+                           (cons `(,(caar cg) ,(car aregls)) s)))))))
 
     (define (Body exp)
       (match exp
         ((locals (,x ...) (register-conflict ,cg ,y))
-         (let ((ar (assign (sort (lambda(x y) (< (length x) (length y))) cg) registers)))
+         (let ((ar (assign (sort (lambda(x y) (< (length x) (length y))) cg) registers '())))
            `(locate ,ar ,y)))))
 
 
