@@ -57,7 +57,7 @@
         ((,x (lambda () ,tail)) `(,x (lambda () ,(Body tail))))))
 
     ;; Validate Program
-    (define (Program exp)                   ;get-trace-define
+    (trace-define (Program exp)                   ;get-trace-define
       (match exp
         ((letrec (,[Exp -> x] ...) ,y) `(letrec (,x ...) ,(Body y)))))
     (Program program)))
