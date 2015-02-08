@@ -41,22 +41,20 @@
     ;; Combine two conflict graph
     (define (combine-cg x y ig)
       (cond
-       ((null? x) y)
+       ((null? x)
+        ;; Hacky code caused due to cons in else assq part
+        (if (null? y)
+                      y
+                      (if (memq (caar y) ig) (combine-cg x (cdr y) ig))))
        ((null? y) x)
        (else (cond
               ;; Ignore items in y present in ignore list
               ((memq (caar y) ig) (combine-cg x (cdr y) ig))
               ((assq (caar x) y) => (lambda(l)
-                                      ;; (display "*****")
-                                      ;; (display (cdr l))
-                                      ;; (display "\n")
-                                      ;; (display (unbox (cdar x))) 
-                                      ;; (display "\n")  
-                                      
                                       (cons
-                                                (cons (car l) (box (union (unbox (cdar x))
-                                                                          (unbox (cdr l)))))
-                                                (combine-cg (cdr x) y (cons (caar x) ig)))))
+                                       (cons (car l) (box (union (unbox (cdar x))
+                                                                 (unbox (cdr l)))))
+                                       (combine-cg (cdr x) y (cons (caar x) ig)))))
               (else (cons (car x) (combine-cg (cdr x) y ig)))))))
 
     (define (add-conflict v ls cg)
@@ -104,23 +102,29 @@
         ((,x ... ,y) (let-values (((l g) (Effect y ls cg)))
                        (Effect* x l g)))
         (,else (values ls cg))))
-    ;; Validate Tail
-    (define (Tail exp ls)                   ;get-trace-define
-      (match exp
-        ((begin ,x ... ,t) (let-values (((ls cg) (Effect* x t
-                                                          (map (lambda(x) `(,x . ,(box '()))) ls))))
-                             (map (lambda(x) `(,(car x) . ,(unbox (cdr x)))) cg)))
-        ((if ,x ,y ,z) (let* ((cg1 (Tail y ls))
-                              (cg2 (Tail z ls)))
-                         (combine-cg cg1 cg2 '())))
-        ((,x ,y ...) exp)))
-
     
+    ;; Validate Tail
+    (define (Tail exp ls cg)                   ;get-trace-define
+      (match exp
+        ((begin ,x ... ,t) (let*-values
+                               (((ls cg) (Tail t ls cg)))
+                             (Effect* x ls cg)))
+        ((if ,x ,y ,z) (let*-values (((l1 cg1) (Tail y ls cg))
+                                     ((l2 cg2) (Tail z ls cg)))
+                         (Pred x (union l1 l2) (combine-cg cg1 cg2 '()))))
+        ((,x ,y ...) (values (union ls (cons x y)) cg))))
+
+    (define (init-cg ls)
+      (map (lambda(x) `(,x . ,(box '()))) ls))
+    (define (unbox-cg cg)
+      (map (lambda(x) `(,(car x) . ,(unbox (cdr x)))) cg))
+      
     ;; Validate Body
     (define (Body exp)
       (match exp
-        ((locals (,x ...) ,y) `(locals (,x ...)                   
-                                       (register-conflict ,(Tail y x) ,y)))))
+        ((locals (,x ...) ,y) (let*-values (((ls cg) (Tail y '() (init-cg x))))
+                                `(locals (,x ...)                   
+                                         (register-conflict ,(unbox-cg cg) ,y))))))
 
     ;; Validate letrec label exp :   [label (lambda() Tail)]
     (define (Exp exp)                   ;get-trace-define
