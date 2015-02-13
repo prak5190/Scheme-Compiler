@@ -9,11 +9,15 @@
     (Framework match)
     (Framework helpers)
     (Compiler common))
-
+  
+  (define (var? exp)                   ;get-trace-define
+    (or (register? exp) (frame-var? exp) (uvar? exp)))
+  
   (define-who (select-instructions program)
     ;; Is it a tranisitive binary operator ?
     (define (is-commu-binop? x)
       (memq x '(+ *)))
+    ;; Gets a unique unspillable
     ;; (define (get-unique-name ls c)
     ;;   (let ((n (unique-label c)))      
     ;;     (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
@@ -42,7 +46,7 @@
                  (and (frame-var? v) (frame-var? t))
                  (and (frame-var? v) (is-int64? t)))) (e-frame exp ls tls))
         ;; If it does not violate any machine constraint then just return it        
-        (,else (values exp ls))))
+        (,else (values ls exp))))
     
     (define (enforce-mc-s2 exp ls tls)
       (match exp
@@ -58,12 +62,33 @@
                  (and (frame-var? v) (frame-var? t))
                  (and (frame-var? v) (is-int64? t)))) (e-frame exp ls tls))        
         ;; If it does not violate any machine constraint then just return it        
-        (,else (values exp ls))))
+        (,else (values ls exp))))
+
+    ;; Returns inverse of operator
+    (define (inverse x)
+      (car (assq x '((< >=) (> <=) (>= <) (<= >) (= =)))))
+    
+    ;; Pred enforcers
+    (define (e-x5 exp ls tls)
+      (values ls exp))
+    (define (e-x6 exp ls tls)
+      (values ls exp))
+    (define (e-x7 exp ls tls)
+      (values ls exp))
     
     (define (enforce-mc-p exp ls tls)
       (match exp                        
-        ;; If it does not violate any machine constraint then just return it        
-        (,else (values exp ls))))                      
+        ;; If it does not violate any machine constraint then just return it
+        ((,x ,y ,z) (cond
+                     ;; X4                     
+                     ((and (int32? y) (var? z)) (values ls `(,(inverse x) ,z ,y)))
+                     ;; X5
+                     ((or (and (is-int64? y) (not (is-int64? z)))
+                          (and (int32? y) (int32? z))
+                          (and (frame-var? y) (frame-var? z))) (e-x5 exp ls tls))
+                     ((and (is-int64? z) (int32? y)) (e-x6 exp ls tls))
+                     ((and (is-int64? y) (is-int64? z)) (e-x7 exp ls tls))
+                     (else (values ls exp))))))                      
 
     
     ;; Validate Pred
