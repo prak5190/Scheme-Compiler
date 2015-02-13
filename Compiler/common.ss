@@ -1,6 +1,7 @@
 (library (Compiler common)
   (export
    get-conflict
+   is-int64?
   )
   (import
     ;; Load Chez Scheme primitives:
@@ -13,6 +14,10 @@
   ;; A variable is a either a register or a frame variable 
   (define (var? exp)                   ;get-trace-define
                 (or (register? exp) (frame-var? exp) (uvar? exp)))
+  
+  ;; Matches only 64 bit and not 32 bit
+  (define (is-int64? exp)
+    (and (int64? exp) (not (int32? exp))))
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
