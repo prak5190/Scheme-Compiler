@@ -73,8 +73,8 @@ test:
 	$(MAKE) haskell
 
 clean :
-	rm -f t.s t $(HS_EXE)
 	rm -rf Framework{,Hs}/GenGrammars
+	rm -f t.s t $(HS_EXE)
 	find FrameworkHs -name "*.o" -exec rm -f {} \;
 	find FrameworkHs -name "*.hi" -exec rm -f {} \;
 	find CompilerHs  -name "*.o" -exec rm -f {} \;
