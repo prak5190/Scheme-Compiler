@@ -72,6 +72,8 @@ test:
 #	runghc $(SCRIPT_DIR)/$(HS_FILE)
 	$(MAKE) haskell
 
+mytest:
+	petite test.ss
 clean :
 	rm -rf Framework{,Hs}/GenGrammars
 	rm -f t.s t $(HS_EXE)

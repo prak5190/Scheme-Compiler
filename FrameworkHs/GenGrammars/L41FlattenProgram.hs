@@ -21,11 +21,8 @@ data Triv
   | Integer Integer
   | LabelT Label
 data Loc
-  = RegL Reg
+  = Reg Reg
   | Disp Disp
-data Conflict
-  = RegC Reg
-  | UVar UVar
 data Prog
   = Code [Statement] Statement
 
@@ -50,15 +47,10 @@ instance PP Triv where
   ppp (Integer i) = (ppp i)
   ppp (LabelT l) = (ppp l)
 instance PP Loc where
-  pp (RegL r) = (pp r)
+  pp (Reg r) = (pp r)
   pp (Disp d) = (pp d)
-  ppp (RegL r) = (ppp r)
+  ppp (Reg r) = (ppp r)
   ppp (Disp d) = (ppp d)
-instance PP Conflict where
-  pp (RegC r) = (pp r)
-  pp (UVar u) = (pp u)
-  ppp (RegC r) = (ppp r)
-  ppp (UVar u) = (ppp u)
 instance PP Prog where
   pp (Code l s) = (ppSexp (fromByteString "code" : ((map pp l) ++ [(pp s)])))
   ppp (Code l s) = (pppSexp (text "code" : ((map ppp l) ++ [(ppp s)])))
@@ -75,10 +67,6 @@ deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc
 deriving instance Ord Loc
-deriving instance Eq Conflict
-deriving instance Read Conflict
-deriving instance Show Conflict
-deriving instance Ord Conflict
 deriving instance Eq Prog
 deriving instance Read Prog
 deriving instance Show Prog
