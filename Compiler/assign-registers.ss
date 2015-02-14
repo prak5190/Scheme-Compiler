@@ -57,13 +57,13 @@
     
     (define (Body exp)
       (match exp
-        ((locals (,x ...) (ulocals ,ul (locate ,z (frame-conflict ,fc (register-conflict ,cg ,y)))))
+        ((locals ,x (ulocals ,ul (locate ,z (frame-conflict ,fc (register-conflict ,cg ,y)))))
          (let ((sort-cg (sort-graph cg ul)))
            (let-values (((ar spills) (assign sort-cg registers '() '())))
              (if (null? spills)
                  `(locate ,(append ar z) ,y)
-                 `(locals (,x ...) (ulocals ,ul (spills ,spills
-                                                        (locate ,(append ar z) (frame-conflict ,fc ,y)))))))))
+                 `(locals ,(difference x spills) (ulocals ,ul (spills ,spills
+                                                        (locate ,z (frame-conflict ,fc ,y)))))))))
         ((locate (,x ...) ,y) exp)))
 
 

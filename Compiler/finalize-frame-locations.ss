@@ -55,7 +55,7 @@
       (match exp
         ((locals ,uv (ulocals ,uv2 (locate (,x ...) (frame-conflict ,cg ,y))))
          (let ((fls (filter (lambda(x) (frame-var? (cadr x))) x)))
-           (Tail y fls)))        
+           `(locals ,uv (ulocals ,uv2 (locate (,x ...) (frame-conflict ,cg ,(Tail y fls)))))))        
         ((locate (,x ...) ,y) exp)))
     
     ;; Validate Tail

@@ -58,7 +58,10 @@
             (add-conflict-others ls v cg)
             (set-box! x (union b ls))
             cg)
-          (add-conflict-others ls v cg)))
+          (if (cgvar? v)
+          (add-conflict-others ls v cg)
+          ;; Don't add - just return the same cg
+          cg)))
 
     
     ;; Validate Pred
