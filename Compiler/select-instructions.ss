@@ -10,33 +10,34 @@
     (Framework helpers)
     (Compiler common))
   
-  (define (var? exp)                   ;get-trace-define
+  (define (var? exp)                   ;get-define
     (or (register? exp) (frame-var? exp) (uvar? exp)))
   
   (define-who (select-instructions program)
     ;; Is it a tranisitive binary operator ?
     (define (is-commu-binop? x)
       (memq x '(+ *)))
+    
+    (define (labelLs->suffx ls)
+      (map (lambda(x) (string->number (extract-suffix x))) ls))
     ;; Gets a unique unspillable
-    ;; (define (get-unique-name ls c)
-    ;;   (let ((n (unique-label c)))      
-    ;;     (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
-    ;;         (begin
-    ;;           (get-unique-name ls c))              
-    ;;         n)))
+    (define (get-unique-name ls)
+      (let ((n (unique-name 't)))      
+        (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
+            (begin
+              (get-unique-name ls))              
+            n)))
 
     ;; All e- method swap exp with new instructions when it violates machine constraints
     ;; Handle frame var and int64 constraint
-    (define (e-frame exp ls tls)
-      (values ls exp))
     
     ;; make v=t1 (set! v (b t1 t2))
     (define (e-equ exp ls tls)
-      (values ls exp))
+     (values ls `(,exp))) 
     
     ;; Handle Multiplication case for frame-vars i.e * v t
     (define (e-mult exp ls tls)
-      (values ls exp))
+      (values ls `(,exp)))
 
     
     (define (enforce-mc-s1 exp ls tls)
@@ -44,25 +45,32 @@
         ((set! ,v ,t)
          (guard (or
                  (and (frame-var? v) (frame-var? t))
-                 (and (frame-var? v) (is-int64? t)))) (e-frame exp ls tls))
+                 (and (frame-var? v) (is-int64? t))))
+         (let ((n (get-unique-name (append ls tls))))
+           (values (cons n ls) `((set! ,n ,t) (set! ,v ,n)))))
         ;; If it does not violate any machine constraint then just return it        
-        (,else (values ls exp))))
+        (,else (values ls `(,exp)))))
     
     (define (enforce-mc-s2 exp ls tls)
       (match exp
         ((set! ,v (,b ,t1 ,t2))
          (guard (not (eqv? v t1))) (if (and (is-commu-binop? b) (eqv? v t2))
                                        (enforce-mc-s2 `(set! ,v (,b ,t2 ,t1)) ls tls)
-                                       (e-equ exp ls tls)))        
+                                       (let ((n (get-unique-name (append ls tls))))
+                                         (values (cons n ls) `((set! ,n ,t1)
+                                                               (set! ,n (,b ,n ,t2))
+                                                               (set! ,v ,n))))))
         ;; V = t1 now                
         ((set! ,v (sra ,t1 ,t)) (values ls exp))
         ((set! ,v (* ,t1 ,t)) (guard (frame-var? v))  (e-mult exp ls tls))
         ((set! ,v (,b ,t1 ,t))
          (guard (or
                  (and (frame-var? v) (frame-var? t))
-                 (and (frame-var? v) (is-int64? t)))) (e-frame exp ls tls))        
+                 (and (frame-var? v) (is-int64? t))))
+         (let ((u (get-unique-name (append ls tls))))
+           (values (cons u ls) `((set! ,u ,t) (set! ,v (,b ,v ,u))))))        
         ;; If it does not violate any machine constraint then just return it        
-        (,else (values ls exp))))
+        (,else (values ls `(,exp)))))
 
     ;; Returns inverse of operator
     (define (inverse x)
@@ -88,7 +96,7 @@
                           (and (frame-var? y) (frame-var? z))) (e-x5 exp ls tls))
                      ((and (is-int64? z) (int32? y)) (e-x6 exp ls tls))
                      ((and (is-int64? y) (is-int64? z)) (e-x7 exp ls tls))
-                     (else (values ls exp))))))                      
+                     (else (values ls `(,exp)))))))                      
 
     
     ;; Validate Pred
@@ -104,26 +112,26 @@
                              (values ls `(begin ,xls ... ,p))))
         ((,x ,y ,z) (enforce-mc-p exp ls tls))
         ;; The else case - applies to true, false - Do nothing
-        (,x (values ls exp))))
+        (,x (values ls `(,exp)))))
     
-    (define (Effect exp ls tls)                   ;get-trace-define
+    (define (Effect exp ls tls)                   ;get-define
       (match exp
         [(if ,x ,y ,z) (let*-values (((ls x) (Pred x ls tls))
                                      ((ls y) (Effect y ls tls))
                                      ((ls z) (Effect z ls tls)))
-                         (values ls `(if ,x ,y ,z)))]
+                         (values ls `((if ,x ,y ,z))))]
         [(begin ,x ...) (Effect* x ls tls)]
         [(set! ,v (,b ,t1 ,t2)) (enforce-mc-s2 exp ls tls)]
         [(set! ,v ,t) (enforce-mc-s1 exp ls tls)]
-        [,else (values ls exp)]))
+        [,else (values ls `(,exp))]))
 
     
     (define (Effect* ex ls tls)
       (match ex
         ((,x ,y ...) (let*-values
-                         (((ls x) (Effect x ls tls))
-                          ((ls yls) (Effect* y ls tls)))                       
-                      (values ls `(,x ,yls ...))))
+                         (((ls xl) (Effect x ls tls))
+                          ((ls yls) (Effect* y ls tls)))                      
+                      (values ls `(,xl ... ,yls ...))))
         (,else (values ls ex))))
     
     (define (Tail exp ls tls)                   ;get-trace-define
