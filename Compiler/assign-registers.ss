@@ -22,9 +22,10 @@
   ;; A variable is a either a register or a frame variable 
   (define (var? exp)                   ;get-trace-define
                 (or (register? exp) (frame-var? exp) (uvar? exp)))  
-  ;; extract-suffix name -> use this to enforce unique name
+
   ;; Using define-who macro 
   (define-who (assign-registers program)
+    ;;
     (define (map-to-reg ls s)
       (cond
        ((null? s) '())
@@ -35,18 +36,31 @@
     (define (assign cg regls s spill)
       (cond
        ((null? cg) (values (reverse s) spill))
-       ((null? regls) (errorf who "No registers left, Have to spill !!! ~s" cg))
+       ;; 
+;;       ((null? regls) (values s (append (map car cg) spill)))
+;        (errorf who "No registers left, Have to spill !!! ~s" cg))
        (else (let* ((k (cdar cg))
-                    (aregls (difference regls (union k (map-to-reg k s)))))
-               (if (null? regls)
-                   (errorf who "Cannot allocate register for ~s" (car k))                   
+                    (cg-assigned-reg (union k (map-to-reg k s)))
+                    (aregls (difference regls cg-assigned-reg)))
+               (if (null? aregls)
+                   (assign (cdr cg) regls
+                           s (cons (caar cg) spill))
+;                   (errorf who "Cannot allocate register for ~s" (car k))                   
                    (assign (cdr cg) regls
                            (cons `(,(caar cg) ,(car aregls)) s) spill))))))
 
+    (define (sort-graph cg ul)
+      (let-values (((ul-cg cg2) (partition (lambda (x) (memq (car x) ul)) cg)))
+        (display ul-cg)
+        (display cg2)
+       (append
+        (sort (lambda(x y) (< (length x) (length y))) cg2)
+        (sort (lambda(x y) (< (length x) (length y))) ul-cg))))
+    
     (define (Body exp)
       (match exp
         ((locals (,x ...) (ulocals ,ul (locate ,z (frame-conflict ,fc (register-conflict ,cg ,y)))))
-         (let ((sort-cg (sort (lambda(x y) (< (length x) (length y))) cg)))
+         (let ((sort-cg (sort-graph cg ul)))
            (let-values (((ar spills) (assign sort-cg registers '() '())))
              (if (null? spills)
                  `(locate ,(append ar z) ,y)
