@@ -181,7 +181,7 @@
       (match exp
         ((locals ,x (ulocals ,a (locate ,b (frame-conflict ,c ,y))))
          (let-values (((ls exp) (Tail y '() x)))
-           `(locals ,x (ulocals ,(union ls a) (locate ,b (frame-conflict ,c ,exp))))))
+           `(locals ,(union ls x) (ulocals ,(union ls a) (locate ,b (frame-conflict ,c ,exp))))))
         ((locate (,x ...) ,y) exp)))
 
     ;; Validate letrec label exp :   [label (lambda() Tail)]

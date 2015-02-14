@@ -52,7 +52,8 @@
                                    
     (define (add-conflict v ls cg)
       (if (uvar? v)
-          (let* ((x (cdr (assq v cg)))
+          (let* ((ax (assq v cg))
+                 (x (if ax (cdr ax) (box '())))
                  (b (unbox x)))
             (add-conflict-others ls v cg)
             (set-box! x (union b ls))
