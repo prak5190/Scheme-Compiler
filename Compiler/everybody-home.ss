@@ -10,23 +10,19 @@
     (Framework helpers)
     (Compiler common))
     
-  (define-who (everybody-home? program)
-    (define (Body exp)
-      (match exp
-        ((locals (,x ...) ,y)  `(locals (,x ...)
-                                        (ulocals()
-                                                (locate ()
-                                                        ,y))))))
-    
-    (define (Exp exp)                   ;get-trace-define
-      (match exp
-        ((,x (lambda () ,tail)) `(,x (lambda () ,(Body tail))))))
-
-    (define (Program exp)                   ;get-trace-define
-      (match exp
-        ((letrec (,[Exp -> x] ...) ,y) `(letrec (,x ...) ,(Body y)))))
-
-    (define (everybody-home exp)                   ;get-trace-define
-      (Program exp))
-    
-    (everybody-home program)))
+  (define-who everybody-home?
+  (define all-home?
+    (lambda (body)
+      (match body
+        [(locals (,local* ...)
+           (ulocals (,ulocal* ...)
+             (spills (,spill* ...)
+               (locate (,home* ...)
+                 (frame-conflict ,ct ,tail))))) #f]
+        [(locate (,home* ...) ,tail) #t]
+        [,x (error who "invalid Body ~s" x)])))
+  (lambda (x)
+    (match x
+       [(letrec ([,label* (lambda () ,body*)] ...) ,body)
+        (andmap all-home? `(,body ,body* ...))]
+       [,x (error who "invalid Program ~s" x)]))))
