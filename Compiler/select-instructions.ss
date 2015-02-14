@@ -20,7 +20,7 @@
   (define-who (select-instructions program)
     ;; Is it a tranisitive binary operator ?
     (define (is-commu-binop? x)
-      (memq x '(+ *)))
+      (memq x '(+ * logand logor)))
     
     (define (labelLs->suffx ls)
       (map (lambda(x) (string->number (extract-suffix x))) ls))
@@ -181,7 +181,8 @@
       (match exp
         ((locals ,x (ulocals ,a (locate ,b (frame-conflict ,c ,y))))
          (let-values (((ls exp) (Tail y '() x)))
-           `(locals ,x (ulocals ,(union ls a) (locate ,b (frame-conflict ,c ,exp))))))))
+           `(locals ,x (ulocals ,(union ls a) (locate ,b (frame-conflict ,c ,exp))))))
+        ((locate (,x ...) ,y) exp)))
 
     ;; Validate letrec label exp :   [label (lambda() Tail)]
     (define (Exp exp)                   ;get-trace-define

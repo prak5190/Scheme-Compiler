@@ -25,9 +25,12 @@
     ;; Validate Body
     (define (Body exp)
       (match exp
-        ((locals (,x ...) ,y) `(locals (,x ...)                   
-                                       (register-conflict ,(get-conflict y x register-or-uvar?) ,y)))))
-
+        ((locals (,x ...) (ulocals ,ul (locate ,z (frame-conflict ,fc ,y))))
+         `(locals (,x ...)
+                  (ulocals ,ul (locate ,z (frame-conflict ,fc ,y))
+                           (register-conflict ,(get-conflict y x register-or-uvar?) ,y))))
+        ((locate (,x ...) ,y) exp)))
+      
     ;; Validate letrec label exp :   [label (lambda() Tail)]
     (define (Exp exp)                   ;get-trace-define
       (match exp
