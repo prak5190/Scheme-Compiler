@@ -13,6 +13,10 @@
   (define (var? exp)                   ;get-define
     (or (register? exp) (frame-var? exp) (uvar? exp)))
   
+  (define (relop? exp)                   ;get-trace-define
+    (define relops '(< > = <= >=))
+    (and (memq exp relops) #t))
+  
   (define-who (select-instructions program)
     ;; Is it a tranisitive binary operator ?
     (define (is-commu-binop? x)
@@ -28,9 +32,11 @@
               (get-unique-name ls))              
             n)))
     
-    (define (add-begin x)
-      (match x
+    (define (add-begin ex)
+      (match ex
+        ((,x ,y ,z) (guard (relop? x)) ex)
         ((,x) x)
+        ((if ,x ,y ,z) `(if ,x ,y ,z))
         ((begin ,x ...) `(begin ,x ...))
         ((,x ,y ...) `(begin ,x ,y ...))))
         
@@ -134,7 +140,7 @@
         ((begin ,x ... ,p) (let*-values
                                (((ls xls) (Effect* x ls tls))
                                 ((ls p) (Pred p ls tls)))                       
-                             (values ls `(begin ,xls ... ,p))))
+                             (values ls `(begin ,xls ... ,p ...))))
         ((,x ,y ,z) (enforce-mc-p exp ls tls))
         ;; The else case - applies to true, false - Do nothing
         (,x (values ls `(,exp)))))
@@ -168,7 +174,7 @@
         ((if ,x ,y ,z) (let*-values (((ls x) (Pred x ls tls))
                                      ((ls y) (Tail y ls tls))
                                      ((ls z) (Tail z ls tls)))
-                         (values ls `(if ,(add-begin x) ,(add-begin y) ,(add-begin z)))))
+                         (values ls `(if ,(add-begin x) ,y ,z))))
         ((,x ,y ...) (values ls exp))))
     ;; Validate Body
     (define (Body exp)
