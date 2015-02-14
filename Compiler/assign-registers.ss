@@ -32,22 +32,27 @@
        (else (map-to-reg ls (cdr s)))))
     
     ;; Gets a sorted list by degree
-    (define (assign cg regls s)
+    (define (assign cg regls s spill)
       (cond
-       ((null? cg) (reverse s))
+       ((null? cg) (values (reverse s) spill))
        ((null? regls) (errorf who "No registers left, Have to spill !!! ~s" cg))
        (else (let* ((k (cdar cg))
                     (aregls (difference regls (union k (map-to-reg k s)))))
                (if (null? regls)
-                   (errorf who "Cannot allocate register for ~s" (car k))
+                   (errorf who "Cannot allocate register for ~s" (car k))                   
                    (assign (cdr cg) regls
-                           (cons `(,(caar cg) ,(car aregls)) s)))))))
+                           (cons `(,(caar cg) ,(car aregls)) s) spill))))))
 
     (define (Body exp)
       (match exp
-        ((locals (,x ...) (register-conflict ,cg ,y))
-         (let ((ar (assign (sort (lambda(x y) (< (length x) (length y))) cg) registers '())))
-           `(locate ,ar ,y)))))
+        ((locals (,x ...) (ulocals ,ul (locate ,z (frame-conflict ,fc (register-conflict ,cg ,y)))))
+         (let ((sort-cg (sort (lambda(x y) (< (length x) (length y))) cg)))
+           (let-values (((ar spills) (assign sort-cg registers '() '())))
+             (if (null? spills)
+                 `(locate ,(append ar z) ,y)
+                 `(locals (,x ...) (ulocals ,ul (spills ,spills
+                                                        (locate ,(append ar z) (frame-conflict ,fc ,y)))))))))
+        ((locate (,x ...) ,y) exp)))
 
 
     ;; Validate letrec label exp :   [label (lambda() Tail)]

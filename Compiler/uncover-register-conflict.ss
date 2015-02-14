@@ -27,8 +27,8 @@
       (match exp
         ((locals (,x ...) (ulocals ,ul (locate ,z (frame-conflict ,fc ,y))))
          `(locals (,x ...)
-                  (ulocals ,ul (locate ,z (frame-conflict ,fc ,y))
-                           (register-conflict ,(get-conflict y x register-or-uvar?) ,y))))
+                  (ulocals ,ul (locate ,z (frame-conflict ,fc 
+                                                          (register-conflict ,(get-conflict y x register-or-uvar?) ,y))))))
         ((locate (,x ...) ,y) exp)))
       
     ;; Validate letrec label exp :   [label (lambda() Tail)]
