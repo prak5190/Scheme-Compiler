@@ -32,11 +32,10 @@
     (define (Effect exp)                   ;get-trace-define
       (match exp
         [(begin ,[Effect -> x] ... ,[Effect -> t]) `(begin ,x ... ,t)]
-        [`(if ,x ,y ,z) `(if ,(Pred x) ,(Effect y) ,(Effect z))]
+        [(if ,x ,y ,z) `(if ,(Pred x) ,(Effect y) ,(Effect z))]
         [(set! ,[convertFrameVar -> v] (,b ,[convertFrameVar -> t1] ,[convertFrameVar -> t2]))
          `(set! ,v (,b ,t1 ,t2))]
-        [(set! ,[convertFrameVar -> v] ,[convertFrameVar -> t]) `(set! ,v ,t)]
-        [,else else]))
+        [(set! ,[convertFrameVar -> v] ,[convertFrameVar -> t]) `(set! ,v ,t)]))
     
     ;; Validate Tail
     (define (Tail exp)                   ;get-trace-define
