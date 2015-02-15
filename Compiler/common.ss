@@ -17,7 +17,7 @@
   
   ;; Matches only 64 bit and not 32 bit
   (define (is-int64? exp)
-    (and (int64? exp) (not (int32? exp))))
+    (or (and (int64? exp) (not (int32? exp))) (label? exp)))
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
