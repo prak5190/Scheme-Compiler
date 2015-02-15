@@ -51,7 +51,7 @@
         ;; If it does not violate any machine constraint then just return it        
         (,else (values ls `(,exp)))))
     
-    (trace-define (enforce* f expls ls tls)
+    (define (enforce* f expls ls tls)
       (match expls
         ((,x ,y ...) (let*-values
                          (((ls xl) (f x ls tls))
@@ -99,6 +99,12 @@
          (let ((u (get-unique-name (append ls tls))))
            (enforce* enforce-mc-s2 
                    `((set! ,u ,t) (set! ,v (,b ,v ,u))) (cons u ls) tls)))
+        ((set! ,v ,t)
+         (guard (or
+                 (and (frame-var? v) (frame-var? t))
+                 (and (frame-var? v) (is-int64? t))))
+         (let ((n (get-unique-name (append ls tls))))
+           (enforce* enforce-mc-s2  `((set! ,n ,t) (set! ,v ,n)) (cons n ls) tls)))
         
         ;; If it does not violate any machine constraint then just return it        
         (,else (values ls `(,exp)))))
@@ -213,7 +219,7 @@
       (match exp
         ((letrec (,[Exp -> x] ...) ,y) `(letrec (,x ...) ,(Body y)))))
 
-    (trace-define (select-instructions exp)                   ;get-trace-define
+    (define (select-instructions exp)                   ;get-trace-define
       (Program exp))
     
     (select-instructions program)))

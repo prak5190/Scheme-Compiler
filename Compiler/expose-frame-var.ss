@@ -18,14 +18,14 @@
 
     (define (convertFrameVar x)
       (if (frame-var? x) (make-disp-opnd 'rbp (* 8 (frame-var->index x))) x))
-
+    
     (define (Pred exp)
       (match exp
         ((true) exp)
         ((false) exp)
         ((if ,x ,y ,z) `(if ,(Pred x) ,(Pred y) ,(Pred z)))
         ((begin ,x ... ,p)
-         `(begin ,(map (lambda(x) (Effect x)) x) ,(Pred p)))
+         `(begin ,(map (lambda(x) (Effect x)) x) ... ,(Pred p)))
         ((,x ,y ,z) `(,x ,(convertFrameVar y) ,(convertFrameVar z)))))
     
     ;; Parse and convert frameVar
