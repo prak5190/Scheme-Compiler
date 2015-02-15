@@ -51,6 +51,14 @@
         ;; If it does not violate any machine constraint then just return it        
         (,else (values ls `(,exp)))))
     
+    (trace-define (enforce* f expls ls tls)
+      (match expls
+        ((,x ,y ...) (let*-values
+                         (((ls xl) (f x ls tls))
+                          ((ls yls) (enforce* f y ls tls)))                      
+                      (values ls `(,xl ... ,yls ...))))
+        (,else (values ls expls))))
+    
     (define (enforce-mc-s2 exp ls tls)
       (match exp
         ((set! ,v (,b ,t1 ,t2))
@@ -59,27 +67,38 @@
          (if (and (is-commu-binop? b) (eqv? v t2))
              (enforce-mc-s2 `(set! ,v (,b ,t2 ,t1)) ls tls)
              (let ((n (get-unique-name (append ls tls))))
-               (values (cons n ls) `((set! ,n ,t1)
+               (enforce* enforce-mc-s2   `((set! ,n ,t1)
                                      (set! ,n (,b ,n ,t2))
-                                     (set! ,v ,n))))))
+                                     (set! ,v ,n)) (cons n ls) tls))))
         ;; V = t1 now                
         ((set! ,v (sra ,t1 ,t)) (values ls `(,exp)))
         ;; X2
-        ((set! ,v (* ,t1 ,t))
+        ((set! ,v (,* ,t1 ,t)) 
          (guard (frame-var? v))
          (let ((u (get-unique-name (append ls tls))))
-           (values (cons u ls)
-                   `((set! ,u ,v)
-                     (set! ,u (* ,u ,t))
-                     (set! ,v ,u)))))
+           (enforce* enforce-mc-s2 `((set! ,u ,v)
+                                     (set! ,u (* ,u ,t))
+                                     (set! ,v ,u)) (cons u ls) tls)))
+           ;; (if (is-int64? t)
+               ;; (let ((u2 (get-unique-name (cons u (append ls tls)))))
+               ;;   (values (cons u2 (cons u ls))
+               ;;           `((set! ,u ,v)
+               ;;             (set! ,u2 ,t)
+               ;;             (set! ,u (* ,u ,u2))
+               ;;             (set! ,v ,u))))
+
+               ;; (values (cons u ls)
+               ;;         `((set! ,u ,v)
+               ;;           (set! ,u (* ,u ,t))
+               ;;           (set! ,v ,u)))))
         ;; X1
         ((set! ,v (,b ,t1 ,t))
          (guard (or
                  (and (frame-var? v) (frame-var? t))
-                 (and (or (frame-var? v) (eqv? b '*)) (is-int64? t))))
+                 (is-int64? t)))
          (let ((u (get-unique-name (append ls tls))))
-           (values (cons u ls)
-                   `((set! ,u ,t) (set! ,v (,b ,v ,u))))))
+           (enforce* enforce-mc-s2 
+                   `((set! ,u ,t) (set! ,v (,b ,v ,u))) (cons u ls) tls)))
         
         ;; If it does not violate any machine constraint then just return it        
         (,else (values ls `(,exp)))))
@@ -194,7 +213,7 @@
       (match exp
         ((letrec (,[Exp -> x] ...) ,y) `(letrec (,x ...) ,(Body y)))))
 
-    (define (select-instructions exp)                   ;get-trace-define
+    (trace-define (select-instructions exp)                   ;get-trace-define
       (Program exp))
     
     (select-instructions program)))
