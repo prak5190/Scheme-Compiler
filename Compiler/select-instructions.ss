@@ -123,7 +123,7 @@
 
     ;; Returns inverse of operator
     (define (inverse x)
-      (cadr (assq x '((< >=) (> <=) (>= <) (<= >) (= =)))))
+      (cadr (assq x '((< >) (> <) (>= <=) (<= >=) (= =)))))
     
     ;; (define (enforce-mc-s2 exp ls tls)
     ;;   (match exp                        
