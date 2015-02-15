@@ -14,10 +14,12 @@
     (define (get-conflict-fvs ls s)
       (map frame-var->index
            (filter frame-var? (map (lambda(x)
-                                     (let ((k (assq x s)))
-                                       (if k
-                                           (car (cdr k))
-                                           k))) ls))))
+                                     (if (uvar? x)
+                                         (let ((k (assq x s)))
+                                           (if k
+                                               (car (cdr k))
+                                               k))
+                                         x)) ls))))
     
     ;; Gets a sorted list
     (define (find-free-ind i ls)
@@ -46,6 +48,7 @@
       (match exp
         ((locals (,x ...) (ulocals ,ul (spills ,sp (locate ,z (frame-conflict ,cg ,y)))))
          (let* ((cg (sort (lambda(x y) (< (length x) (length y))) cg))
+                
                 (frame-loc (filter (lambda(x) (frame-var? (cadr x))) z))
                 (ar (assign* sp cg frame-loc)))
            `(locals (,x ...) (ulocals ,ul (locate ,(union ar z) (frame-conflict ,cg ,y))))))
