@@ -26,7 +26,7 @@
        ((< i (car ls)) i)
        ((eqv? i (car ls)) (find-free-ind (add1 i) ls))
        (else (find-free-ind i (cdr ls)))))
-      
+    
     (define (assign x cg s)
       (let ((c (assq x cg)))
         (if c
@@ -48,7 +48,7 @@
          (let* ((cg (sort (lambda(x y) (< (length x) (length y))) cg))
                 (frame-loc (filter (lambda(x) (frame-var? (cadr x))) z))
                 (ar (assign* sp cg frame-loc)))
-           `(locals (,x ...) (ulocals ,ul (locate ,(append ar z) (frame-conflict ,cg ,y))))))
+           `(locals (,x ...) (ulocals ,ul (locate ,(union ar z) (frame-conflict ,cg ,y))))))
         ((locate (,x ...) ,y) exp)))
 
 

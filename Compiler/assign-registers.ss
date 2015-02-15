@@ -52,8 +52,9 @@
     (define (sort-graph cg ul)
       (let-values (((ul-cg cg2) (partition (lambda (x) (memq (car x) ul)) cg)))
         (append
+         (sort (lambda(x y) (< (length x) (length y))) ul-cg)
          (sort (lambda(x y) (< (length x) (length y))) cg2)
-         (sort (lambda(x y) (< (length x) (length y))) ul-cg))))
+         )))
     
     (define (Body exp)
       (match exp
