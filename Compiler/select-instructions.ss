@@ -91,7 +91,7 @@
         ;; Pred Cases 
         ((,x ,y ,z) (guard (relop? x)) (cond
                                         ;; X4                     
-                                        ((and (int32? y) (var? z)) (values ls `(,(inverse x) ,z ,y)))
+                                        ((and (int32? y) (var? z)) (enforce* enforce-mc-s2 `(,(inverse x) ,z ,y) ls tls))
                                         ;; X5
                                         ((or (and (is-int64? y) (not (is-int64? z)))
                                              (and (int32? y) (int32? z))
@@ -123,7 +123,7 @@
 
     ;; Returns inverse of operator
     (define (inverse x)
-      (car (assq x '((< >=) (> <=) (>= <) (<= >) (= =)))))
+      (cadr (assq x '((< >=) (> <=) (>= <) (<= >) (= =)))))
     
     ;; (define (enforce-mc-s2 exp ls tls)
     ;;   (match exp                        
