@@ -80,7 +80,6 @@
 
     (define (Effect exp ls cg)                   ;get-trace-define
       (match exp
-        [(nop) (values ls cg)]
         [(if ,x ,y ,z) (let*-values (((l1 g1) (Effect z ls cg))
                                      ((l2 g2) (Effect y ls cg)))
                          (Pred x (union l1 l2) (combine-cg g1 g2 '())))]
@@ -93,7 +92,9 @@
         [(set! ,v ,t) (let* ((l (difference ls `(,v)))
                              (g (add-conflict v l cg))
                              (l (if (cgvar? t) (union `(,t) l) l)))                             
-                        (values l g))]))
+                        (values l g))]
+        [,x (values ls cg)]
+        ))
     
     (define (Effect* ex ls cg)
       (match ex

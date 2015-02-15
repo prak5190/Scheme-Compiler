@@ -165,11 +165,11 @@
         ((if ,x ,y ,z) (let*-values (((ls x) (Pred x ls tls))
                                      ((ls y) (Pred y ls tls))
                                      ((ls z) (Pred z ls tls)))                         
-                         (values ls `(if ,(add-begin x) ,(add-begin y) ,(add-begin z)))))
+                         (values ls `((if ,(add-begin x) ,(add-begin y) ,(add-begin z))))))
         ((begin ,x ... ,p) (let*-values
                                (((ls xls) (Effect* x ls tls))
                                 ((ls p) (Pred p ls tls)))                       
-                             (values ls `(begin ,xls ... ,p ...))))
+                             (values ls `((begin ,xls ... ,p ...)))))
         ((,x ,y ,z) (enforce-mc-s2 exp ls tls))
         ;; The else case - applies to true, false - Do nothing
         (,x (values ls `(,exp)))))
