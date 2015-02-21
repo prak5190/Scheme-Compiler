@@ -2,6 +2,10 @@
   (export
    get-conflict
    is-int64?
+   triv?
+   binop?
+   relop?
+   get-unique-name
   )
   (import
     ;; Load Chez Scheme primitives:
@@ -10,7 +14,14 @@
     (Framework match)
     (Framework helpers))
 
+  (define (binop? exp)                   ;get-trace-define
+    (define binops '(+ - * logand logor sra))
+    (and (memq exp binops) #t))
   
+  ;; If it is a relational operator or not
+  (define (relop? exp)                   ;get-trace-define
+    (define relops '(< > = <= >=))
+    (and (memq exp relops) #t))
   ;; A variable is a either a register or a frame variable 
   (define (var? exp)                   ;get-trace-define
                 (or (register? exp) (frame-var? exp) (uvar? exp)))
@@ -18,6 +29,21 @@
   ;; Matches only 64 bit and not 32 bit
   (define (is-int64? exp)
     (or (and (int64? exp) (not (int32? exp))) (label? exp)))
+
+  (define (triv? exp)
+    (or (uvar? exp) (int64? exp) (label? exp)))
+
+  
+  (define (labelLs->suffx ls)
+    (map (lambda(x) (string->number (extract-suffix x))) ls))
+
+  ;; Gets a unique unspillable
+  (define (get-unique-name ls)
+    (let ((n (unique-name 't)))      
+      (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
+          (begin
+            (get-unique-name ls))              
+          n)))
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv

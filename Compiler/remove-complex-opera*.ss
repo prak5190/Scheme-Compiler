@@ -17,7 +17,7 @@
     (define (Value exp ls)
       (match exp
         ((if ,x ,y ,z) (let ((n (get-unique-name ls)))                         
-                         (values `(set! ,n (if ,x ,(Tail y) ,(Tail z))) `(,n))))
+                         (values `(set! ,n (if ,x ,(Tail y ls) ,(Tail z ls))) `(,n))))
         ((begin ,x ... ,z) (let ((n (get-unique-name ls)))                         
                          (values `(set! ,n (begin ,x ... ,z)) `(,n))))
         ((,x ,y ,z) (guard (binop? x)) (let ((n (get-unique-name ls)))
@@ -41,17 +41,17 @@
         ((begin ,x ... ,y) (let-values (((y l1) (Tail y ls)))
                              (values `(begin ,x ... ,y) (append l1 ls))))
         ((,x ...) (let-values (((exp l1) (Value* x ls)))
-                    (values (append exp `(,l1)) (append l1 ls))))                   
+                    (values (append exp l1) (append l1 ls))))                   
         (,x (guard triv? x) (values exp '()))))
     
     (define (Body exp)
       (match exp
         ((locals (,x ...) ,y)  (let-values (((y ls) (Tail y x)))
-                                 `(locals ,(append x ls)  (Tail y x))))))
+                                 `(locals ,(append x ls) ,y)))))
 
     (define (Exp exp)                   ;get-trace-define
       (match exp
-        ((,x (lambda () ,tail)) `(,x (lambda () ,(Body tail))))))
+        ((,x (lambda (,y ...) ,tail)) `(,x (lambda (,y ...) ,(Body tail))))))
 
     
     (define (Program exp)                   ;get-trace-define

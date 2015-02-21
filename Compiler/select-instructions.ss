@@ -12,25 +12,11 @@
   
   (define (var? exp)                   ;get-define
     (or (register? exp) (frame-var? exp) (uvar? exp)))
-  
-  (define (relop? exp)                   ;get-trace-define
-    (define relops '(< > = <= >=))
-    (and (memq exp relops) #t))
-  
+    
   (define-who (select-instructions program)
     ;; Is it a tranisitive binary operator ?
     (define (is-commu-binop? x)
-      (memq x '(+ * logand logor)))
-    
-    (define (labelLs->suffx ls)
-      (map (lambda(x) (string->number (extract-suffix x))) ls))
-    ;; Gets a unique unspillable
-    (define (get-unique-name ls)
-      (let ((n (unique-name 't)))      
-        (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
-            (begin
-              (get-unique-name ls))              
-            n)))
+      (memq x '(+ * logand logor)))   
     
     (define (add-begin ex)
       (match ex
