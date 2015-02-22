@@ -49,7 +49,10 @@
                             (nop)
                             (set! a.1 (+ a.1 a.1)))
                         a.1))))
+(define t11 '(letrec ([double$0 (lambda (a.1)
+                       (locals () (+ a.1 a.1)))])
+    (locals () (double$0 10))))
 (pretty-print
-;(impose-calling-conventions
+;(impose-calling-conventions    
 ;(flatten-set!
- (remove-complex-opera* t5))
+ (remove-complex-opera* t11))

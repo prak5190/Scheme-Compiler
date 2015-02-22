@@ -20,9 +20,9 @@
                          (let*-values (((x l) (Pred x ls))
                                        ((e1 l1 y) (Value y (append ls l)))
                                        ((e2 l2 z) (Value z (append ls (append l1 l)))))                                                      
-                           (values `(set! ,n (if ,(make-begin x) ,(make-begin e1) ,(make-begin e2))) `(,n ,l ... ,l1 ... ,l2 ...) n))))
+                           (values `((set! ,n (if ,(make-begin x) ,(make-begin e1) ,(make-begin e2)))) `(,n ,l ... ,l1 ... ,l2 ...) n))))
         ((begin ,x ... ,z) (let ((n (get-unique-name ls)))
-                         (values `(set! ,n (begin ,x ... ,z)) `(,n) n)))
+                         (values `((set! ,n (begin ,x ... ,z))) `(,n) n)))
         ((,x ,y ,z) (guard (binop? x)) (let ((n (get-unique-name ls)))
                                          (let*-values (((e1 l1 y) (Value y ls))
                                                        ((e2 l2 z) (Value z (append ls l1))))                                           
@@ -31,10 +31,10 @@
 
     (define (Value* exp ls)
       (cond
-       ((null? exp) (values '() '()))
+       ((null? exp) (values '() '() '()))
        (else (let*-values (((exls l x) (Value (car exp) ls))
-                           ((expls l2) (Value* (cdr exp) (append l ls))))
-               (values (cons exls expls) (append l l2))))))
+                           ((expls l2 xls) (Value* (cdr exp) (append l ls))))
+               (values (append exls expls) (append l l2) (cons x xls))))))
 
     (define (Effect exp ls)
       (match exp
@@ -45,7 +45,7 @@
         ((begin ,x ... ,y) (let*-values (((x l) (Effect* x ls))
                                         ((y l1) (Pred y (append l ls))))
                              (values `((begin ,x ... ,y)) (append l1 l))))
-        ((set! ,x ,y) (let*-values (((e l y) (Value x ls)))
+        ((set! ,x ,y) (let*-values (((e l y) (Value y ls)))
                         (values `(,e ... (set! ,x ,y)) l)))
         (,x (values `(,x) '()))))
     
@@ -71,7 +71,7 @@
         ((begin ,x ... ,y) (let*-values (((x l) (Effect* x ls))
                                         ((y l1) (Pred y (append l ls))))
                              (values `(begin ,x ... ,y) (append l1 l))))
-        (,x (values '(,x) '())))) 
+        (,x (values `(,x) '())))) 
         
         
     ;; Returns expression and list of vars to be added 
@@ -87,8 +87,8 @@
         ((begin ,x ... ,y) (let*-values (((x l) (Effect* x ls))
                                         ((y l1) (Tail y (append l ls))))
                              (values `(begin ,x ... ,y) (append l1 l))))
-        ((,x ...) (let-values (((exp l1) (Value* x ls)))
-                    (values (append exp l1) l1)))                   
+        ((,x ...)  (let-values (((pre l ex) (Value* x ls)))
+                     (values (make-begin (append pre `(,ex))) l)))
         (,x (guard triv? x) (values exp '()))))
     
     (define (Body exp)
