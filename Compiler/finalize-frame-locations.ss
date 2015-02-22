@@ -10,10 +10,6 @@
     (Framework helpers)
     (Compiler common))
   
-  (define (relop? exp)                   ;get-trace-define
-    (define relops '(< > = <= >=))
-    (and (memq exp relops) #t))
-  
   (define-who (finalize-frame-locations program)
     (define (Exp exp)                   ;get-trace-define
       (match exp

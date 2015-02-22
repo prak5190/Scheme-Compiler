@@ -51,16 +51,16 @@
     ;; Returns a list of exps
     (define (substitute-proc-vars params rp)
       (match params
+        ((,x ,y ,z) (guard (binop? x)) `((set! ,return-value-register ,params)
+                                         (,rp ,frame-pointer-register ,return-value-register)))
         ((,x ,y ...) (let*-values
                          (((exp1 params l1) (assign-val-reg params '() parameter-registers '()))
                           ((exp2 params l2) (assign-val-frames params '() 0 '())))
-                       (let ((rpset `(set! ,return-address-register ,rp)))
+                       (let ((rpset `(set! ,return-value-register ,rp)))
                          `(,exp2 ... ,exp1 ... ,rpset
-                                 (,x ,return-address-register ,frame-pointer-register ,l1 ... ,l2 ...)))))
-        ((,x ,y ,z) (guard (binop? x)) `((set! ,return-address-register ,exp)
-                                         (,rp ,frame-pointer-register ,return-address-register)))
-        (,x (guard (triv? x)) `((set! ,return-address-register ,x)
-                               (,rp ,frame-pointer-register ,return-address-register)))))
+                                 (,x ,return-value-register ,frame-pointer-register ,l1 ... ,l2 ...)))))
+        (,x (guard (triv? x)) `((set! ,return-value-register ,x)
+                                (,rp ,frame-pointer-register ,return-value-register)))))
           
       
     ;;parameter-registers, frame-pointer-register,
@@ -70,7 +70,7 @@
             ((if ,x ,y ,z) `(begin ,prep-exp ... (if ,x ,(Tail y ls '() rp) ,(Tail z ls '() rp)))) 
             ((,x ,y ,z) (guard (binop? x)) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
             ((begin ,x ... ,y) `(begin ,prep-exp ... ,x ... ,(Tail y ls '() rp)))
-            ((,x ,y ...) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
+            ((,x ,y ...)  `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
             (,x (guard triv? x) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))))
   
     ;;frame-pointer-register, return-address-register, and return-value-register    

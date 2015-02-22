@@ -14,11 +14,6 @@
     (define binops '(+ - * logand logor sra))
     (and (memq exp binops) #t))
   
-  ;; If it is a relational operator or not
-  (define (relop? exp)                   ;get-trace-define
-    (define relops '(< > = <= >=))
-    (and (memq exp relops) #t))
-  
   ;; A variable is a either a register or a frame variable 
   (define (var? exp)                   ;get-trace-define
                 (or (register? exp) (frame-var? exp) (uvar? exp)))  
