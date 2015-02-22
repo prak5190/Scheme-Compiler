@@ -29,7 +29,7 @@
         ((if ,x ,y ,z) (let*-values (((x ls) (Pred x ls))                                     
                                      ((yls ls) (Value xorig y ls))
                                      ((zls ls) (Value xorig z ls)))
-                         (values `((if ,x ,(add-begin yls) ,(add-begin zls))) ls)))
+                         (values `((if ,x ,(make-begin yls) ,(make-begin zls))) ls)))
         ((begin ,x ... ,z) (let*-values (((expls ls) (Effect* x ls))
                                          ((exp2 ls) (Value xorig z ls)))
                              (values `((begin ,expls ... ,exp2 ...)) ls)))
@@ -43,7 +43,7 @@
         ((if ,x ,y ,z) (let*-values (((x ls) (Pred x ls))
                                      ((yls ls) (Effect y ls))
                                      ((zls ls) (Effect z ls)))
-                         (values `((if ,x ,(add-begin y) ,(add-begin z))) ls)))
+                         (values `((if ,x ,y ,z)) ls)))
         (,else (values `(,exp) ls))))
     
     ;;  Returns exp list and list of vars 
