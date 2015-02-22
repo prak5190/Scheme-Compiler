@@ -6,6 +6,7 @@
    binop?
    relop?
    get-unique-name
+   get-unique-name-p
   )
   (import
     ;; Load Chez Scheme primitives:
@@ -38,12 +39,15 @@
     (map (lambda(x) (string->number (extract-suffix x))) ls))
 
   ;; Gets a unique unspillable
-  (define (get-unique-name ls)
-    (let ((n (unique-name 't)))      
+  (define (get-unique-name-p ls p)
+    (let ((n (unique-name p)))      
       (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
           (begin
             (get-unique-name ls))              
           n)))
+  (define (get-unique-name ls)
+    (get-unique-name-p ls 't))
+
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
