@@ -9,7 +9,7 @@
     ;; Load your passes from the files you wrote them in:
     (Compiler remove-complex-opera*)
     (Compiler flatten-set!)
-    ;; (Compiler impose-calling-conventions)
+    (Compiler impose-calling-conventions)
     (Compiler verify-scheme)
     (Compiler uncover-frame-conflict)
     (Compiler select-instructions)
@@ -35,7 +35,21 @@
                      (begin
                        (set! label-temp.1 div$0)
                        (label-temp.1 64)))))
-
+(define t2 '(letrec () (locals () (+ 7 (* 5 7)))))
+(define t4 '(letrec ()
+    (locals ()
+      (if (= (+ 7 (* 2 4)) (- 20 (+ (+ 1 1) (+ (+ 1 1) 1))))
+          (+ 1 (+ 1 (+ 1 (+ 1 (+ 1 10)))))
+          0))))
+(define t5 '(letrec ()
+              (locals (a.1)
+                      (begin
+                        (set! a.1 10)
+                        (if (< 7 a.1)
+                            (nop)
+                            (set! a.1 (+ a.1 a.1)))
+                        a.1))))
 (pretty-print
+;(impose-calling-conventions
 ;(flatten-set!
- (remove-complex-opera* t))
+ (remove-complex-opera* t5))
