@@ -68,17 +68,17 @@
     (define (Tail exp ls prep-exp rp)      
           (match exp
             ((if ,x ,y ,z) `(begin ,prep-exp ... (if ,x ,(Tail y ls '() rp) ,(Tail z ls '() rp)))) 
-            ((,x ,y ,z) (guard (binop? x)) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp)))
+            ((,x ,y ,z) (guard (binop? x)) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
             ((begin ,x ... ,y) `(begin ,prep-exp ... ,x ... ,(Tail y ls '() rp)))
-            ((,x ,y ...) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp)))
-            (,x (guard triv? x) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp)))))
+            ((,x ,y ...) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
+            (,x (guard triv? x) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))))
   
     ;;frame-pointer-register, return-address-register, and return-value-register    
     (define (Body exp params)
       (match exp
         ((locals (,x ...) ,y)
-         (let*-values (((exp1 params) (assign-params-reg params '() parameter-registers))
-                       ((exp2 params) (assign-params-frames params '() 0)))
+         (let*-values (((exp1 params1) (assign-params-reg params '() parameter-registers))
+                       ((exp2 params2) (assign-params-frames params1 '() 0)))
            (let* ((rp (get-unique-name-p x 'rp))
                   (rpset `(set! ,rp ,return-address-register))
                   (fexp (cons rpset (append exp1 exp2))))

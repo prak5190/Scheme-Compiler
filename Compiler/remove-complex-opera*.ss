@@ -36,12 +36,12 @@
       (match exp
         ((if ,x ,y ,z) (let*-values (((e1 l1) (Tail y ls))
                                     ((e2 l2) (Tail z (append ls l1))))
-                         (values `(if ,x ,e1 ,e2) (append l2 (append l1 ls)))))        
+                         (values `(if ,x ,e1 ,e2) (append l2 l1))))        
         ((,x ,y ,z) (guard (binop? x)) (values exp '()))
         ((begin ,x ... ,y) (let-values (((y l1) (Tail y ls)))
-                             (values `(begin ,x ... ,y) (append l1 ls))))
+                             (values `(begin ,x ... ,y) l1)))
         ((,x ...) (let-values (((exp l1) (Value* x ls)))
-                    (values (append exp l1) (append l1 ls))))                   
+                    (values (append exp l1) l1)))                   
         (,x (guard triv? x) (values exp '()))))
     
     (define (Body exp)
