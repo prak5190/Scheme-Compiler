@@ -36,7 +36,7 @@
                (assign-val-frames (cdr params) (append expls `(,exp)) (add1 ind) (cons f l2))))))
     
     ;; Returns list of set! exps , set of params not assigned
-    (define (assign-params-reg params expls regls)     
+    (define (assign-params-reg params expls regls)   
       (cond
        ((or (null? regls) (null? params)) (values expls params))
        (else (let ((exp `(set! ,(car params) ,(car regls))))
@@ -54,8 +54,8 @@
         ((,x ,y ,z) (guard (binop? x)) `((set! ,return-value-register ,params)
                                          (,rp ,frame-pointer-register ,return-value-register)))
         ((,x ,y ...) (let*-values
-                         (((exp1 params l1) (assign-val-reg params '() parameter-registers '()))
-                          ((exp2 params l2) (assign-val-frames params '() 0 '())))
+                         (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
+                          ((exp2 params l2) (assign-val-frames y '() 0 '())))
                        (let ((rpset `(set! ,return-value-register ,rp)))
                          `(,exp2 ... ,exp1 ... ,rpset
                                  (,x ,return-value-register ,frame-pointer-register ,l1 ... ,l2 ...)))))
@@ -70,8 +70,8 @@
             ((if ,x ,y ,z) `(begin ,prep-exp ... (if ,x ,(Tail y ls '() rp) ,(Tail z ls '() rp)))) 
             ((,x ,y ,z) (guard (binop? x)) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
             ((begin ,x ... ,y) `(begin ,prep-exp ... ,x ... ,(Tail y ls '() rp)))
-            ((,x ,y ...)  `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
-            (,x (guard triv? x) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))))
+            (,x (guard triv? x) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
+            ((,x ,y ...)  `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))))
   
     ;;frame-pointer-register, return-address-register, and return-value-register    
     (define (Body exp params)
