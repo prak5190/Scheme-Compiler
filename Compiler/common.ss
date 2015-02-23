@@ -53,6 +53,10 @@
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
     ;; Writing a function for each part                         
     ;; Combine two conflict graph
+     (define (s-cdr ls)
+      (cond
+       ((or (null? ls) (not ls)) (error who "Null cdr in frame" ls))
+       (else (cdr ls))))
     (define (combine-cg x y ig)
       (cond
        ((null? x)
@@ -74,9 +78,9 @@
     (define (add-conflict-others ls v cg)      
       (cond
        ((null? ls) cg)
-       ((uvar? (car ls)) (let* ((x (cdr (assq (car ls) cg)))
-                                (b (unbox x)))
-                           (set-box! x (union b `(,v)))
+       ((uvar? (car ls)) (let* ((xc (assq (car ls) cg)))
+                           (if xc
+                               (set-box! (cdr xc) (union (unbox (cdr xc)) `(,v))))
                            (add-conflict-others (cdr ls) v cg)))
        (else (add-conflict-others (cdr ls) v cg))))
                                    
