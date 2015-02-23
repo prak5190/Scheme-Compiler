@@ -77,7 +77,7 @@
         ;; Pred Cases 
         ((,x ,y ,z) (guard (relop? x)) (cond
                                         ;; X4                     
-                                        ((and (int32? y) (var? z)) (enforce* enforce-mc-s2 `(,(inverse x) ,z ,y) ls tls))
+                                        ((and (int32? y) (var? z)) (enforce* enforce-mc-s2 `((,(inverse x) ,z ,y)) ls tls))
                                         ;; X5
                                         ((or (and (is-int64? y) (not (is-int64? z)))
                                              (and (int32? y) (int32? z))
