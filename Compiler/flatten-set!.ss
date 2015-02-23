@@ -44,6 +44,8 @@
                                      ((yls ls) (Effect y ls))
                                      ((zls ls) (Effect z ls)))
                          (values `((if ,x ,y ,z)) ls)))
+        ((begin ,x ...) (let*-values (((x ls) (Effect* x ls)))
+                          (values `((begin ,x ...)) ls)))
         (,else (values `(,exp) ls))))
     
     ;;  Returns exp list and list of vars 
