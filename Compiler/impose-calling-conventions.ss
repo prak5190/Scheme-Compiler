@@ -55,10 +55,10 @@
                                          (,rp ,frame-pointer-register ,return-value-register)))
         ((,x ,y ...) (let*-values
                          (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
-                          ((exp2 params l2) (assign-val-frames y '() 0 '())))
+                          ((exp2 params l2) (assign-val-frames params '() 0 '())))
                        (let ((rpset `(set! ,return-value-register ,rp)))
                          `(,exp2 ... ,exp1 ... ,rpset
-                                 (,x ,return-value-register ,frame-pointer-register ,l1 ... ,l2 ...)))))
+                                 (,x ,return-value-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
         (,x (guard (triv? x)) `((set! ,return-value-register ,x)
                                 (,rp ,frame-pointer-register ,return-value-register)))))
           
