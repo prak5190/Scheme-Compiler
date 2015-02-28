@@ -34,9 +34,9 @@
                                          ((exp2 ls) (Value xorig z ls)))
                              (values `((begin ,expls ... ,exp2 ...)) ls)))
         ((,x ,y ,z) (guard (binop? x)) (values `((set! ,xorig (,x ,y ,z))) ls))
-        ((,x ...) (values `((set! ,xorig (,x ...))) ls))
-        (,x (guard triv? x) (values `((set! ,xorig ,x)) ls))))        
-    
+        ((,x ,y ...) (values `((set! ,xorig (,x ,y ...))) ls))
+        (,x (guard triv? x) (values `((set! ,xorig ,x)) ls))))
+        
     ;;  Returns exp list and list of variable
     (define (Effect exp ls)
       (match exp       
@@ -58,7 +58,6 @@
        (else (let*-values (((exl ls) (Effect (car exp) ls))
                            ((ex2 ls) (Effect* (cdr exp) ls)))
                (values (append exl ex2) ls)))))
-
                ;;   (((exl1 ls) (Effect (car exp) ls))
                ;;            ((exl2 ls) (Effect* (cdr exp) ls)))
                ;; (values `((append exl1 exl2)) ls)))))
