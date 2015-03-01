@@ -26,9 +26,10 @@
     (define (Body exp)
       (match exp
         ((locals (,x ...) (ulocals ,ul (locate ,z (frame-conflict ,fc ,y))))
-         `(locals (,x ...)
-                  (ulocals ,ul (locate ,z (frame-conflict ,fc 
-                                                          (register-conflict ,(get-conflict y (append x ul) register-or-uvar?) ,y))))))
+         (let-values (((cg cl-live) (get-conflict y (append x ul) register-or-uvar?)))
+           `(locals (,x ...)
+                    (ulocals ,ul (locate ,z (frame-conflict ,fc 
+                                                            (register-conflict ,cg ,y)))))))
         ((locate (,x ...) ,y) exp)))
       
     ;; Validate letrec label exp :   [label (lambda() Tail)]

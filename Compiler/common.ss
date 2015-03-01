@@ -137,8 +137,8 @@
                              (l (if (cgvar? t) (union `(,t) l) l)))                             
                         (values l g s))]
         [(return-point ,lab ,t) (let*-values
-                                       (((ls cg s) (Tail t ls cg s)))
-                                  (values ls cg (union ls s)))]
+                                       (((l1 cg s) (Tail t ls cg s)))
+                                  (values l1 cg (union ls s)))]
         [,x (values ls cg s)]))
     
     (define (Effect* ex ls cg s)

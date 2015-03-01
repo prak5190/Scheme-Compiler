@@ -17,7 +17,7 @@
     (define (Body exp)
       (match exp
         ((locals (,x ...) ,y)  `(locals (,x ...)                   
-                                        (frame-conflict ,(get-conflict y x frame-var-or-uvar?) ,y)))))
+                                        (frame-conflict da ,y)))))
 
     (define (Exp exp)                   ;get-trace-define
       (match exp
