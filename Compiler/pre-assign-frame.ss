@@ -40,7 +40,6 @@
               (cons `(,x ,(index->frame-var ind)) s))
             (cons `(,x ,(index->frame-var 0)) s))))
     
-    ;; Gets a sorted list by degree
     (define (assign* ls cg s)
       (cond
        ((null? ls) s)
