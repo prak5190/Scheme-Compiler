@@ -35,6 +35,13 @@
                     (exp `(set! ,f ,(car params))))
                (assign-val-frames (cdr params) (append expls `(,exp)) (add1 ind) (cons f l2))))))
     
+    (define (assign-val-vars params ls expls fls)
+      (cond
+       ((null? params) (values expls params fls))
+       (else (let* ((n (get-unique-name-p (append ls fls) 'nfv))
+                    (exp `(set! ,n ,(car params))))
+               (assign-val-vars (cdr params) ls (append expls `(,exp)) (cons n fls))))))
+    
     ;; Returns list of set! exps , set of params not assigned
     (define (assign-params-reg params expls regls)   
       (cond
@@ -61,17 +68,76 @@
                                  (,x ,return-value-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
         (,x (guard (triv? x)) `((set! ,return-value-register ,x)
                                 (,rp ,frame-pointer-register ,return-value-register)))))
-          
+    
+    ;; Return pre , value and fls 
+    (define (Value exp ls fls)
+      (match exp
+        ((,x ,y ...) (guard (not (binop? x)))
+         (let ((n (get-unique-label-p ls 'rp)))
+           (let*-values
+               (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
+                ((exp2 params l2) (assign-val-vars params ls '() '())))
+             (let ((rpset `(set! ,return-value-register ,n)))
+               (values `(return-point ,n (begin
+                                           ,exp2 ... ,exp1 ... ,rpset
+                                           (,x ,return-value-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))
+                       `(,l2 ,fls ...))))))
+        (,else (values '() exp fls))))
       
+    (define (Pred exp ls fls)
+      (match exp
+        ((if ,x ,y ,z) (let*-values (((x fls) (Pred x ls fls))
+                                     ((y fls) (Pred y ls fls))
+                                     ((z fals) (Pred z ls fls)))
+                         (values `(if ,x ,y ,z) fls)))
+        ((begin ,x ... ,y) (let*-values (((x fls) (Effect* x ls fls))
+                                         ((y fls) (Pred y ls fls)))
+                             (values `(begin ,x ... ,y) fls)))
+        ;; Not possible
+        ;; ((,x ,y ,z) (guard (binop? x)) (let*-values (((pre e1 fls) (Value y ls fls))
+        ;;                                              ((pre e2 fls) (Value z ls fls)))
+        ;;                                  (values (make-begin (append (append e1 e2) `((,x ,y ,z)))) fls)))
+        (,else (values exp fls))))
+
+    (define (Effect* exp ls fls)
+      (cond
+       ((null? exp) (values '() fls))
+       (else (let*-values (((exl fls) (Effect (car exp) ls fls))
+                           ((ex2 fls) (Effect* (cdr exp) ls fls)))
+               (values (cons exl ex2) fls)))))
+    
+    (define (Effect exp ls fls)
+      (match exp       
+        ((if ,x ,y ,z) (let*-values (((x fls) (Pred x ls fls))
+                                     ((y ls) (Effect y ls fls))
+                                     ((z ls) (Effect z ls fls)))
+                         (values `(if ,x ,y ,z) fls)))
+        ((begin ,x ...) (let*-values (((x ls) (Effect* x ls fls)))
+                          (values `(begin ,x ...) fls)))
+        ;; Apparently this case is not poosible
+        ;; ((,x ,y ,z) (guard (binop? x)) (let*-values (((pre1 e1 fls) (Value y ls fls))
+        ;;                                              ((pre2 e2 fls) (Value z ls fls)))
+        ;;                                  (values (append (append e1 e2) `((,x ,e1 ,e2))) fls)))
+        ((,x ,y ...) (Value exp ls fls))                     
+        ((set! ,u (,x ,y ...)) (guard (not (binop? x))) (let*-values (((exp fls) (Value `(,x ,y ...) ls fls)))
+                                                          (values (make-begin `(,exp (set! ,u ,return-value-register))) fls)))
+        (,else (values exp fls))))
+    
     ;;parameter-registers, frame-pointer-register,
-    ;;return-value-register, and return-address-register. 
-    (define (Tail exp ls prep-exp rp)      
-          (match exp
-            ((if ,x ,y ,z) `(begin ,prep-exp ... (if ,x ,(Tail y ls '() rp) ,(Tail z ls '() rp)))) 
-            ((,x ,y ,z) (guard (binop? x)) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
-            ((begin ,x ... ,y) `(begin ,prep-exp ... ,x ... ,(Tail y ls '() rp)))
-            (,x (guard triv? x) `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))
-            ((,x ,y ...)  `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...))))
+    ;;return-value-register, and return-address-register.
+    ;; Returns -> exp , list of frame vars
+    (define (Tail exp ls prep-exp rp fls)      
+      (match exp
+        ((if ,x ,y ,z) (let*-values (((x fls) (Pred x ls fls))
+                                     ((y fls) (Tail y ls '() rp fls))
+                                     ((z fls) (Tail z ls '() rp fls)))
+                         (values (make-begin `(,prep-exp ... (if ,x ,y ,z))) fls)))
+        ((begin ,x ... ,y) (let*-values (((x fls) (Effect* x ls fls))
+                                         ((y fls) (Tail y ls '() rp fls)))
+                             (values `(begin ,prep-exp ... ,x ... ,y) fls)))
+        ((,x ,y ,z) (guard (binop? x)) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))
+        (,x (guard triv? x) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))
+        ((,x ,y ...) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))))
   
     ;;frame-pointer-register, return-address-register, and return-value-register    
     (define (Body exp params)
@@ -81,9 +147,10 @@
                        ((exp2 params2) (assign-params-frames params1 '() 0)))
            (let* ((rp (get-unique-name-p x 'rp))
                   (rpset `(set! ,rp ,return-address-register))
-                  (fexp (cons rpset (append exp1 exp2))))
-             (let ((y (Tail y x fexp rp)))
-               `(locals (,x ... ,rp ,params ...) ,y)))))))
+                  (fexp (cons rpset (append exp1 exp2)))
+                  (ls `(,x ... ,rp ,params ...)))
+             (let-values (((y fls) (Tail y ls fexp rp '())))
+               `(locals (,ls ... ,(fold-right append '() fls) ...) (new-frames ,fls ,y))))))))
     
     (define (Exp exp)                   ;get-trace-define
       (match exp

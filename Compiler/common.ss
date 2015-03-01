@@ -7,6 +7,7 @@
    relop?
    get-unique-name
    get-unique-name-p
+   get-unique-label-p
   )
   (import
     ;; Load Chez Scheme primitives:
@@ -39,15 +40,23 @@
     (map (lambda(x) (string->number (extract-suffix x))) ls))
 
   ;; Gets a unique unspillable
+
   (define (get-unique-name-p ls p)
-    (let ((n (unique-name p)))      
-      (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
-          (begin
-            (get-unique-name ls))              
-          n)))
+    (get-unique-name-main ls p #f))
+  
+  (define (get-unique-label-p ls p)
+    (get-unique-name-main ls p #t))
+  
   (define (get-unique-name ls)
     (get-unique-name-p ls 't))
 
+  ;; Fix -- Super badddd
+  (define (get-unique-name-main ls p isLabel)
+    (let ((n (if isLabel (unique-label p) (unique-name p))))      
+      (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
+          (begin
+            (get-unique-name-main ls p isLabel))              
+          n)))  
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
