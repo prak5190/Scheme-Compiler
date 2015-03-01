@@ -77,12 +77,12 @@
            (let*-values
                (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
                 ((exp2 params l2) (assign-val-vars params ls '() '())))
-             (let ((rpset `(set! ,return-value-register ,n)))
+             (let ((rpset `(set! ,return-address-register ,n)))
                (values `(return-point ,n (begin
                                            ,exp2 ... ,exp1 ... ,rpset
-                                           (,x ,return-value-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))
+                                           (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))
                        `(,l2 ,fls ...))))))
-        (,else (values '() exp fls))))
+        (,else (values exp fls))))
       
     (define (Pred exp ls fls)
       (match exp
@@ -114,13 +114,15 @@
                          (values `(if ,x ,y ,z) fls)))
         ((begin ,x ...) (let*-values (((x ls) (Effect* x ls fls)))
                           (values `(begin ,x ...) fls)))
+        ((set! ,u (,x ,y ...)) (guard (not (binop? x))) (let*-values (((exp fls) (Value `(,x ,y ...) ls fls)))
+                                                          (values (make-begin `(,exp (set! ,u ,return-value-register))) fls)))
+        ((set! ,x ,y) (values exp fls))
         ;; Apparently this case is not poosible
         ;; ((,x ,y ,z) (guard (binop? x)) (let*-values (((pre1 e1 fls) (Value y ls fls))
         ;;                                              ((pre2 e2 fls) (Value z ls fls)))
         ;;                                  (values (append (append e1 e2) `((,x ,e1 ,e2))) fls)))
         ((,x ,y ...) (Value exp ls fls))                     
-        ((set! ,u (,x ,y ...)) (guard (not (binop? x))) (let*-values (((exp fls) (Value `(,x ,y ...) ls fls)))
-                                                          (values (make-begin `(,exp (set! ,u ,return-value-register))) fls)))
+
         (,else (values exp fls))))
     
     ;;parameter-registers, frame-pointer-register,

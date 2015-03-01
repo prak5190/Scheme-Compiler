@@ -22,37 +22,25 @@
     (Compiler expose-basic-blocks)
     (Compiler flatten-program)
     (Compiler generate-x86-64))
-(define t '(letrec ([div$0 (lambda (x.1)
-                             (locals ()
-                                     (begin
-                                       (set! x.1 (sra x.1 1))
-                                       (div$1 x.1))))]
-                    [div$1 (lambda (result.1)
-                             (locals () result.1))]
-                    [div$2 (lambda ()
-                             (locals () 1))])
-             (locals (label-temp.1)
-                     (begin
-                       (set! label-temp.1 div$0)
-                       (label-temp.1 64)))))
-(define t2 '(letrec () (locals () (+ 7 (* 5 7)))))
-(define t4 '(letrec ()
-    (locals ()
-      (if (= (+ 7 (* 2 4)) (- 20 (+ (+ 1 1) (+ (+ 1 1) 1))))
-          (+ 1 (+ 1 (+ 1 (+ 1 (+ 1 10)))))
-          0))))
-(define t5 '(letrec ()
-              (locals (a.1)
+(define t '(letrec ([f$0 (lambda (x.1) (locals () (+ x.1 1)))]
+             [g$1 (lambda (y.2) (locals () (f$0 (f$0 y.2))))])
+      (locals () (+ (f$0 1) (g$1 1)))))
+(define t1 '(letrec ([f$1 (lambda (n.2 a.3 b.4 c.5 x.6)
+                    (locals ()
                       (begin
-                        (set! a.1 10)
-                        (if (< 7 a.1)
-                            (nop)
-                            (set! a.1 (+ a.1 a.1)))
-                        a.1))))
-(define t11 '(letrec ([double$0 (lambda (a.1)
-                       (locals () (+ a.1 a.1)))])
-    (locals () (double$0 10))))
+                        (f$1 1 2 3 4 5)
+                      (if (= n.2 0)
+                          (+ (* a.3 (* x.6 x.6)) (+ (* b.4 x.6) c.5))
+                          (+ (f$1 (sra n.2 3)
+                                  (+ a.3 (logand n.2 4))
+                                  (+ b.4 (logand n.2 2))
+                                  (+ c.5 (logand n.2 1))
+                                  x.6)
+                             1))
+                      )))])
+      (locals () (f$1 16434824 1 0 -1 7))))
 (pretty-print
-;(impose-calling-conventions    
-;(flatten-set!
- (remove-complex-opera* t11))
+(impose-calling-conventions    
+(flatten-set!
+ (remove-complex-opera*
+  (verify-scheme t1)))))
