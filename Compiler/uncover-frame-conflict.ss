@@ -16,9 +16,15 @@
     
     (define (Body exp)
       (match exp
-        ((locals (,x ...) ,y)  `(locals (,x ...)                   
-                                        (frame-conflict ,(get-conflict y x frame-var-or-uvar?) ,y)))))
-
+        ((locals (,x ...) (new-frames ,fls ,y))
+         (let-values (((cg call-live) (get-conflict y x frame-var-or-uvar?)))
+           (let* ((spills (filter uvar? call-live)))
+             `(locals (,x ...)
+                      (new-frames ,fls
+                                  (spills ,spills
+                                          (frame-conflict ,cg
+                                                          (call-live ,call-live
+                                                                     ,y))))))))))
     (define (Exp exp)                   ;get-trace-define
       (match exp
         ((,x (lambda () ,tail)) `(,x (lambda () ,(Body tail))))))

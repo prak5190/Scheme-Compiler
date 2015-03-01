@@ -84,7 +84,7 @@
                                        (combine-cg (cdr x) y (cons (caar x) ig)))))
               (else (cons (car x) (combine-cg (cdr x) y ig)))))))
 
-    (define (add-conflict-others ls v cg)      
+    (define (add-conflict-others ls v cg)
       (cond
        ((null? ls) cg)
        ((uvar? (car ls)) (let* ((xc (assq (car ls) cg)))
@@ -92,7 +92,7 @@
                                (set-box! (cdr xc) (union (unbox (cdr xc)) `(,v))))
                            (add-conflict-others (cdr ls) v cg)))
        (else (add-conflict-others (cdr ls) v cg))))
-                                   
+
     (define (add-conflict v ls cg)
       (if (uvar? v)
           (let* ((ax (assq v cg))
@@ -102,64 +102,66 @@
             (set-box! x (union b ls))
             cg)
           (if (cgvar? v)
-          (add-conflict-others ls v cg)
-          ;; Don't add - just return the same cg
-          cg)))
+              (add-conflict-others ls v cg)
+              ;; Don't add - just return the same cg
+              cg)))
 
     
     ;; Validate Pred
-    (define (Pred exp ls cg)
+    (define (Pred exp ls cg s)
       (match exp
-        ((true) (values ls cg))
-        ((false) (values ls cg))
-        ((if ,x ,y ,z) (let*-values (((l1 g1) (Pred z ls cg))
-                                     ((l2 g2) (Pred y ls cg)))
-                         (Pred x (union l1 l2) (combine-cg g1 g2 '()))))
-        ((begin ,x ... ,p) (let-values (((l g) (Pred p ls cg)))
-                             (Effect* x l g)))                                      
+        ((true) (values ls cg s))
+        ((false) (values ls cg s))
+        ((if ,x ,y ,z) (let*-values (((l1 g1 s) (Pred z ls cg s))
+                                     ((l2 g2 s) (Pred y ls cg s)))
+                         (Pred x (union l1 l2) (combine-cg g1 g2 '()) s)))
+        ((begin ,x ... ,p) (let-values (((l g s) (Pred p ls cg s)))
+                             (Effect* x l g s)))                                      
         ((,x ,y ,z) (let* ((l (if (cgvar? y) (union `(,y) ls) ls))
                            (l (if (cgvar? z) (union `(,z) l) l)))
-                        (values l cg)))))
+                        (values l cg s)))))
 
-    (define (Effect exp ls cg)                   ;get-trace-define
+    (define (Effect exp ls cg s)                   ;get-trace-define
       (match exp
-        [(if ,x ,y ,z) (let*-values (((l1 g1) (Effect z ls cg))
-                                     ((l2 g2) (Effect y ls cg)))
-                         (Pred x (union l1 l2) (combine-cg g1 g2 '())))]
-        [(begin ,x ...) (Effect* x ls cg)]
+        [(if ,x ,y ,z) (let*-values (((l1 g1 s) (Effect z ls cg s))
+                                     ((l2 g2 s) (Effect y ls cg s)))
+                         (Pred x (union l1 l2) (combine-cg g1 g2 '()) s))]
+        [(begin ,x ...) (Effect* x ls cg s)]
         [(set! ,v (,b ,t1 ,t2)) (let* ((l (difference ls `(,v)))
                                        (g (add-conflict v l cg))
                                        (l (if (cgvar? t1) (union `(,t1) l) l))
                                        (l (if (cgvar? t2) (union `(,t2) l) l)))
-                                  (values l g))]
+                                  (values l g s))]
         [(set! ,v ,t) (let* ((l (difference ls `(,v)))
                              (g (add-conflict v l cg))
                              (l (if (cgvar? t) (union `(,t) l) l)))                             
-                        (values l g))]
-        [,x (values ls cg)]
-        ))
+                        (values l g s))]
+        [(return-point ,lab ,t) (let*-values
+                                       (((ls cg s) (Tail t ls cg s)))
+                                  (values ls cg (union ls s)))]
+        [,x (values ls cg s)]))
     
-    (define (Effect* ex ls cg)
+    (define (Effect* ex ls cg s)
       (match ex
-        ((,x ... ,y) (let-values (((l g) (Effect y ls cg)))
-                       (Effect* x l g)))
-        (,else (values ls cg))))
+        ((,x ... ,y) (let-values (((l g s) (Effect y ls cg s)))
+                       (Effect* x l g s)))
+        (,else (values ls cg s))))
     
     ;; Validate Tail
-    (define (Tail exp ls cg)                   ;get-trace-define
+    (define (Tail exp ls cg s)                   ;get-trace-define
       (match exp
         ((begin ,x ... ,t) (let*-values
-                               (((ls cg) (Tail t ls cg)))
-                             (Effect* x ls cg)))
-        ((if ,x ,y ,z) (let*-values (((l1 cg1) (Tail y ls cg))
-                                     ((l2 cg2) (Tail z ls cg)))
-                         (Pred x (union l1 l2) (combine-cg cg1 cg2 '()))))
-        ((,x ,y ...) (values (filter cgvar? (union ls (cons x y))) cg))))
+                               (((ls cg s) (Tail t ls cg s)))
+                             (Effect* x ls cg s)))
+        ((if ,x ,y ,z) (let*-values (((l1 cg1 s) (Tail y ls cg s))
+                                     ((l2 cg2 s) (Tail z ls cg s)))
+                         (Pred x (union l1 l2) (combine-cg cg1 cg2 '()) s)))
+        ((,x ,y ...) (values (filter cgvar? (union ls (cons x y))) cg s))))
     
     (define (init-cg ls)
       (map (lambda(x) `(,x . ,(box '()))) ls))
     (define (unbox-cg cg)
       (map (lambda(x) `(,(car x) . ,(unbox (cdr x)))) cg))
     (let-values
-        (((ls cg) (Tail program '() (init-cg list))))
-      (unbox-cg cg))))
+        (((ls cg s) (Tail program '() (init-cg list) '())))
+      (values (unbox-cg cg) s))))
