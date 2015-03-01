@@ -47,8 +47,7 @@
     (define (Body exp)
       (match exp
         ((locals (,x ...) (ulocals ,ul (spills ,sp (locate ,z (frame-conflict ,cg ,y)))))
-         (let* ((cg (sort (lambda(x y) (< (length x) (length y))) cg))
-                
+         (let* ((cg (sort (lambda(x y) (< (length x) (length y))) cg))                
                 (frame-loc (filter (lambda(x) (frame-var? (cadr x))) z))
                 (ar (assign* sp cg frame-loc)))
            `(locals (,x ...) (ulocals ,ul (locate ,(union ar z) (frame-conflict ,cg ,y))))))

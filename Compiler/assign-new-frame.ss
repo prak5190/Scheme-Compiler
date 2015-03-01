@@ -69,7 +69,7 @@
                                      `(begin
                                         (set! ,fp (+ ,fp ,nb))
                                         (return-point ,x ,y)
-                                        (set! ,fp (- ,fp ,nb)))))                                        
+                                        (set! ,fp (- ,fp ,nb)))))             
         (,else exp)))
     
     (define (Pred exp ind)

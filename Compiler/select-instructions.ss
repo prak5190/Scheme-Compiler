@@ -160,6 +160,7 @@
         ;; The else case - applies to true, false - Do nothing
         (,x (values ls `(,exp)))))
 
+    ;; Returns ls and exp
     (define (Effect exp ls tls)                   ;get-define
       (match exp
         [(if ,x ,y ,z) (let*-values (((ls x) (Pred x ls tls))
@@ -169,6 +170,8 @@
         [(begin ,x ...) (Effect* x ls tls)]
         [(set! ,v (,b ,t1 ,t2)) (enforce-mc-s2 exp ls tls)]
         [(set! ,v ,t) (enforce-mc-s2 exp ls tls)]
+        [(return-point ,x ,y) (let-values (((ls y) (Effect y ls tls)))
+                                (values ls `(return-point ,x ,y)))]
         [,else (values ls `(,exp))]))
 
     

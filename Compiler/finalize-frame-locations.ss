@@ -23,20 +23,22 @@
             (if v (cadr v) x))
           x))
     
-    ;; Validate Effect
     (define (Effect exp locls)                   ;get-trace-define
       (let ((q (lambda(x) (substituteLocation x locls))))
         (match exp        
           [(nop) exp]
           [(if ,x ,y ,z) `(if ,(Pred x locls) ,(Effect y locls) ,(Effect z locls))]
           [(begin ,x ... ,y) `(begin ,(map (lambda(x) (Effect x locls)) x) ... ,(Effect y locls))]
+          [(return-point ,x ,y) `(return-point ,x ,(Effect y locls))]
           [(set! ,v (,b ,t1 ,t2)) `(set! ,(q v) (,b ,(q t1) ,(q t2)))]
           [(set! ,v ,t) (let ((v (q v)) (t (q t)))
                           (if (eqv? v t)
                               '(nop)
-                              `(set! ,v ,t)))])))
+                              `(set! ,v ,t)))]
+          [(,x ,y ...) (guard (triv? x)) (let ((y (map q y)))
+                                           `(,x ,y ...))]
+          [,else else])))
   
-    ;; Validate Pred
     (define (Pred exp locls)
       (match exp
         ((true) exp)
@@ -46,7 +48,6 @@
          `(begin ,(map (lambda(x) (Effect x locls)) x) ... ,(Pred p locls)))
         ((,x ,y ,z) `(,x ,(substituteLocation y locls) ,(substituteLocation z locls)))))
     
-    ;; Validate Body
     (define (Body exp)
       (match exp
         ((locals ,uv (ulocals ,uv2 (locate (,x ...) (frame-conflict ,cg ,y))))
@@ -54,7 +55,6 @@
            `(locals ,uv (ulocals ,uv2 (locate (,x ...) (frame-conflict ,cg ,(Tail y fls)))))))        
         ((locate (,x ...) ,y) exp)))
     
-    ;; Validate Tail
     (define (Tail exp locls)                   ;get-trace-define
       (match exp
         ((begin ,x ... ,t)
@@ -62,8 +62,7 @@
         ((if ,x ,y ,z) `(if ,(Pred x locls) ,(Tail y locls) ,(Tail z locls)))
         ((,x ,y ,z) (guard (relop? x)) `(,x ,(Tail y locls) ,(Tail z locls)))
         ((,x ...) exp)))    
-    
-    ;; Validate Program
+
     (define (Program exp)                   ;get-trace-define
       (match exp
         ((letrec (,x ...) ,y)         
