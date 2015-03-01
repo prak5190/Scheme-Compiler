@@ -111,9 +111,10 @@
                                   (append s (assign* nf fgraph '() frame-size)))
                                 '() new-frames)))
            `(locals ,(difference x new-frames)
+                    (ulocals ()
                     (locate ,(append locate loc)
                             (frame-conflict ,fgraph
-                                            ,(Tail y frame-size))))))))
+                                            ,(Tail y frame-size)))))))))
 
     (define (Exp exp)                   ;get-trace-define
       (match exp
