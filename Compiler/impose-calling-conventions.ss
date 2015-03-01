@@ -63,9 +63,9 @@
         ((,x ,y ...) (let*-values
                          (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
                           ((exp2 params l2) (assign-val-frames params '() 0 '())))
-                       (let ((rpset `(set! ,return-value-register ,rp)))
+                       (let ((rpset `(set! ,return-address-register ,rp)))
                          `(,exp2 ... ,exp1 ... ,rpset
-                                 (,x ,return-value-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
+                                 (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
         (,x (guard (triv? x)) `((set! ,return-value-register ,x)
                                 (,rp ,frame-pointer-register ,return-value-register)))))
     
@@ -81,7 +81,7 @@
                (values `(return-point ,n (begin
                                            ,exp2 ... ,exp1 ... ,rpset
                                            (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))
-                       `(,l2 ,fls ...))))))
+                       `(,(reverse l2) ,fls ...))))))
         (,else (values exp fls))))
       
     (define (Pred exp ls fls)
@@ -121,7 +121,7 @@
         ;; ((,x ,y ,z) (guard (binop? x)) (let*-values (((pre1 e1 fls) (Value y ls fls))
         ;;                                              ((pre2 e2 fls) (Value z ls fls)))
         ;;                                  (values (append (append e1 e2) `((,x ,e1 ,e2))) fls)))
-        ((,x ,y ...) (Value exp ls fls))                     
+        ((,x ,y ...) (guard (triv? x)) (Value exp ls fls))                     
 
         (,else (values exp fls))))
     

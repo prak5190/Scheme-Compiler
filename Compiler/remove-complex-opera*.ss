@@ -94,23 +94,23 @@
         ((begin ,x ... ,y) (let*-values (((x l) (Effect* x ls))
                                         ((y l1) (Tail y (append l ls))))
                              (values `(begin ,x ... ,y) (append l1 l))))
-        ;; ((,x ...)  (let-values (((pre l ex) (Value exp ls)))
-        ;;              (values (make-begin (append pre `(,ex))) l)))
+        ((,x ...)  (let-values (((pre l ex) (Value exp ls)))
+                     (values (make-begin (append pre `(,ex))) l)))
         (,x (guard triv? x) (values exp '()))))
     
-    (define (Body exp)
+    (define (Body exp ls)
       (match exp
-        ((locals (,x ...) ,y)  (let-values (((y ls) (Tail y x)))
+        ((locals (,x ...) ,y)  (let-values (((y ls) (Tail y (append x ls))))
                                  `(locals ,(append x ls) ,y)))))
 
     (define (Exp exp)                   ;get-trace-define
       (match exp
-        ((,x (lambda (,y ...) ,tail)) `(,x (lambda (,y ...) ,(Body tail))))))
+        ((,x (lambda (,y ...) ,tail)) `(,x (lambda (,y ...) ,(Body tail y))))))
 
     
     (define (Program exp)                   ;get-trace-define
       (match exp
-        ((letrec (,[Exp -> x] ...) ,y) `(letrec (,x ...) ,(Body y)))))
+        ((letrec (,[Exp -> x] ...) ,y) `(letrec (,x ...) ,(Body y '())))))
 
     (define (remove-complex-opera* exp)                   ;get-trace-define
       (Program exp))
