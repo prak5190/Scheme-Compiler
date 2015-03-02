@@ -40,7 +40,7 @@
       ;; if exp and fls are null then just return empty
       (if (and (null? exp) (null? fls))
           (values ls '())
-          (let ((n (get-unique-name ls c)))
+          (let ((n (if (label? c) c (get-unique-name ls c))))
             (let-values (((list xp) (parser exp fls ls)))
               (values (cons (match xp
                               ((begin ,x ... ,y) `(,n (lambda() ,xp)))
@@ -91,7 +91,12 @@
                          (values xl xexp))]         
         ;;                    (values zl `(if ,x ,yexp ,zexp)))]        
         [(set! ,v (,b ,t1 ,t2)) (values ls `((set! ,v (,b ,t1 ,t2)) ,fls ...))]
-        [(set! ,v ,t) (values ls `((set! ,v ,t) ,fls ...))]))
+        [(set! ,v ,t) (values ls `((set! ,v ,t) ,fls ...))]
+        [(return-point ,x ,y) (let*-values (((ls exp) (create-label (make-begin fls) Effect  ls '() x))
+                                            ((ls y) (Effect y fls ls)))
+                                (values ls `(,(make-begin y))))]
+        ((,x) (values ls `((,x))))
+        ))
     ;; Validate Tail
     ;; Returns values list exp where the labelList car is passed on 
     (define (Tail exp fls ls)                   ;get-trace-define

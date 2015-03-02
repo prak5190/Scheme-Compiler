@@ -7,23 +7,39 @@
     (chezscheme)
     ;; Load compiler framework:
     (Framework match)
-    (Framework helpers))
-  ;;;; TODO Need to add machine constraints error 
-  ;; If it is a binary operator or not
-  (define (binop? exp)                   ;get-trace-define
-    (define binops '(+ - * logand logor sra))
-    (and (memq exp binops) #t)) 
-  
-  ;; A variable is a either a register or a frame variable 
-  (define (var? exp)                   ;get-trace-define
-                (or (register? exp) (frame-var? exp) (uvar? exp)))  
-  ;; extract-suffix name -> use this to enforce unique name
+    (Framework helpers)
+    (Compiler common))
+   
   ;; Using define-who macro 
   (define-who (discard-call-live program)
+    
+    (define (Effect exp)
+      (match exp       
+        ((if ,x ,y ,z) (let ((x (Pred x))
+                             (y (Effect y))
+                             (z (Effect z)))
+                         `(if ,x ,y ,z)))
+        ((begin ,x ...) (let*((x (map (lambda(x) (Effect x)) x)))
+                          `(begin ,x ...)))
+        ((return-point ,x ,y)  `(return-point ,x ,(Effect y)))
+        ((,x ,y ...) (guard (triv? x)) `(,x))
+        (,else exp)))
+    
+    (define (Pred exp)
+      (match exp
+        ((if ,x ,y ,z) (let ((x (Pred x))
+                             (y (Pred y))
+                             (z (Pred z)))
+                         `(if ,x ,y ,z)))
+        ((begin ,x ... ,y) (let*((x (map (lambda(x) (Effect x)) x))
+                                 (y (Pred y)))
+                             `(begin ,x ... ,y)))
+        (,else exp)))
+    
     (define (Tail exp)                   ;get-trace-define
       (match exp
-        ((begin ,x ... ,t) `(begin ,x ... ,(Tail t)))
-        ((if ,x ,y ,z) `(if ,x ,(Tail y) ,(Tail z)))
+        ((begin ,[Effect -> x] ... ,t) `(begin ,x ... ,(Tail t)))
+        ((if ,x ,y ,z) `(if ,(Pred x) ,(Tail y) ,(Tail z)))
         ((,x ,y ...) `(,x))))
     
     (define (Body exp)

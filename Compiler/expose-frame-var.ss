@@ -10,14 +10,15 @@
     (Framework helpers))   
   
   (define-who (expose-frame-var program)
-
+    (define fp-offset 0)
     ;; Validate letrec label exp :   [label (lambda() Tail)]
     (define (Exp exp)                   ;get-trace-define
       (match exp
         ((,x (lambda () ,(Tail -> y)))  `(,x (lambda () ,y)))))
 
     (define (convertFrameVar x)
-      (if (frame-var? x) (make-disp-opnd 'rbp (* 8 (frame-var->index x))) x))
+      (if (frame-var? x) (make-disp-opnd frame-pointer-register
+                                         (+ (* 8 (frame-var->index x)) fp-offset)) x))
     
     (define (Pred exp)
       (match exp
@@ -34,9 +35,13 @@
         [(nop) '(nop)]
         [(begin ,[Effect -> x] ... ,[Effect -> t]) `(begin ,x ... ,t)]
         [(if ,x ,y ,z) `(if ,(Pred x) ,(Effect y) ,(Effect z))]
+        [(return-point ,x ,y) `(return-point ,x ,(Effect y))]
+        [(set! ,fp (+ ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (+ fp-offset off)) exp]
+        [(set! ,fp (- ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (- fp-offset off)) exp]
         [(set! ,[convertFrameVar -> v] (,b ,[convertFrameVar -> t1] ,[convertFrameVar -> t2]))
          `(set! ,v (,b ,t1 ,t2))]
-        [(set! ,[convertFrameVar -> v] ,[convertFrameVar -> t]) `(set! ,v ,t)]))
+        [(set! ,[convertFrameVar -> v] ,[convertFrameVar -> t]) `(set! ,v ,t)]
+        [(,x)  `(,(convertFrameVar x)) `(,x)]))
     
     ;; Validate Tail
     (define (Tail exp)                   ;get-trace-define

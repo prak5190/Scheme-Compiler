@@ -46,11 +46,13 @@
           [(nop) exp]
           [(if ,x ,y ,z) `(if ,(Pred x locls) ,(Effect y locls) ,(Effect z locls))]
           [(begin ,x ... ,y) `(begin ,(map (lambda(x) (Effect x locls)) x) ... ,(Effect y locls))]
+          [(return-point ,x ,y) `(return-point ,x ,(Effect y locls))]
           [(set! ,v (,b ,t1 ,t2)) `(set! ,(q v) (,b ,(q t1) ,(q t2)))]
           [(set! ,v ,t) (let ((v (q v)) (t (q t)))
                           (if (eqv? v t)
                               '(nop)
-                              `(set! ,v ,t)))])))
+                              `(set! ,v ,t)))]
+          ((,x) `(,(substituteLocation x locls))))))
   
     ;; Validate Pred
     (define (Pred exp locls)

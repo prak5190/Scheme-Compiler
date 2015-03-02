@@ -171,7 +171,7 @@
         [(set! ,v (,b ,t1 ,t2)) (enforce-mc-s2 exp ls tls)]
         [(set! ,v ,t) (enforce-mc-s2 exp ls tls)]
         [(return-point ,x ,y) (let-values (((ls y) (Effect y ls tls)))
-                                (values ls `(return-point ,x ,y)))]
+                                (values ls `((return-point ,x ,(make-begin y)))))]
         [,else (values ls `(,exp))]))
 
     
