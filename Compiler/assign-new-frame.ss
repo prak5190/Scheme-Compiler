@@ -64,7 +64,7 @@
         ((begin ,x ...) (let*((x (map (lambda(x) (Effect x ind)) x)))
                              `(begin ,x ...)))
         ;; Verify value of nb
-        ((return-point ,x ,y) (let* ((nb (+ (* word-shift 8) (* ind 8)))
+        ((return-point ,x ,y) (let* ((nb (ash ind word-shift));(+ (* word-shift 8) (* ind 8)))
                                      (fp frame-pointer-register))
                                      `(begin
                                         (set! ,fp (+ ,fp ,nb))
@@ -110,7 +110,7 @@
                 (loc (fold-left (lambda(s nf)
                                   (append s (assign* nf fgraph '() frame-size)))
                                 '() new-frames)))
-           `(locals ,(difference x new-frames)
+           `(locals ,(difference x (fold-right append '() new-frames))
                     (ulocals ()
                     (locate ,(append locate loc)
                             (frame-conflict ,fgraph
