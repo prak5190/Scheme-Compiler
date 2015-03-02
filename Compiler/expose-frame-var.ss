@@ -18,7 +18,7 @@
 
     (define (convertFrameVar x)
       (if (frame-var? x) (make-disp-opnd frame-pointer-register
-                                         (+ (* 8 (frame-var->index x)) fp-offset)) x))
+                                         (+ (ash (frame-var->index x) word-shift) fp-offset)) x))
     
     (define (Pred exp)
       (match exp
