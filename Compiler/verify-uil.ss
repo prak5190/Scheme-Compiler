@@ -10,67 +10,114 @@
     (Framework helpers)
     (Compiler common))
   
-  (define-who (verify-uil program)  
-    (define (Value exp)
-      (match exp
-        ((if ,[Pred -> x] ,[Effect -> y] ,[Effect -> z]) exp)
-        ((begin ,[Effect -> x] ... ,[Value -> y]) exp)
-        ((alloc ,[Value -> x]) exp)
-        ((mref ,[Value -> x]) exp)
-        ((,x ,y ,z) (guard (binop? x)) (let ((y (Value y))
-                                             (z (Value z))) exp))
-        ((,[Value -> x] ,[Value -> y] ...) (guard (triv? x)) exp)        
-        (,x (guard triv? x) exp)
-        (,x (error who "invalid Value ~a" x))))
-
-    (define (Effect exp)
-      (match exp
-        ((nop) exp)
-        ((if ,[Pred -> x] ,[Effect -> y] ,[Effect -> z]) exp)
-        ((begin ,[Effect -> x] ... ,[Effect -> y]) exp)
-        ((mset! ,[Value -> x] ,[Value -> y] ,[Value -> z]) exp)
-        ((set! ,x ,[Value -> y]) (guard (uvar? x)) exp)
-        (,x (error who "invalid Effect ~a" x))))    
-        
-        
-    (define (Pred exp)
-      (match exp
-        ((true) exp)
-        ((false) exp)
-        ((if ,[Pred -> x] ,[Pred -> y] ,[Pred -> z]) exp)
-        ((begin ,[Effect -> x] ... ,[Pred -> y]) exp)
-        ((,x ,y ,z) (guard (relop? x))  (let ((y (Value y))
-                                              (z (Value z))) exp))
-        (,x (error who "invalid Pred ~a" x))))
-                
-    (define (Tail exp)
-      (match exp
-        ((if ,[Pred -> x] ,[Tail -> y] ,[Tail -> z]) exp)
-        ((begin ,[Effect -> x] ... ,[Tail -> y]) exp)
-        ((alloc ,[Value -> x]) exp)
-        ((mref ,[Value -> x]) exp)
-        ((,x ,y ,z) (guard (binop? x)) (let ((y (Value y))
-                                             (z (Value z))) exp))
-        ((,[Value -> x] ,[Value -> y] ...) (guard (triv? x)) exp)
-        (,x (guard triv? x) exp)
-        (,x (error who "invalid Tail ~a" x))))
-    
-    (define (Body exp)
-      (match exp
-        ((locals (,x ...) ,y)  (let ((y (Tail y))) exp))
-        (,x (error who "invalid Locals ~a" x))))
-
-    (define (Exp exp)                   ;get-trace-define
-      (match exp
-        ((,x (lambda (,y ...) ,[Body -> tail])) exp)
-        (,x (error who "invalid lambda ~a" x))))
-
-    
-    (define (Program exp)                   ;get-trace-define
-      (match exp
-        ((letrec (,[Exp -> x] ...) ,y) `(letrec (,x ...) ,(Body y '())))))
-
-    (define (verify-uil exp)                   ;get-trace-define
-      (Program exp))
-    
-    (verify-uil program)))
+  (define-who verify-uil
+  (define binops '(+ - * logand logor sra))
+  (define relops '(< > <= >= =))
+  (define verify-x-list
+    (lambda (x* x? what)
+      (let loop ([x* x*] [idx* '()])
+        (unless (null? x*)
+          (let ([x (car x*)] [x* (cdr x*)])
+            (unless (x? x)
+              (error who "invalid ~s ~s found" what x))
+            (let ([idx (extract-suffix x)])
+              (when (member idx idx*)
+                (error who "non-unique ~s suffix ~s found" what idx))
+              (loop x* (cons idx idx*))))))))
+  (define Triv
+    (lambda (label* uvar*)
+      (lambda (t)
+        (unless (or (label? t) (uvar? t) (and (integer? t) (exact? t)))
+          (error who "invalid Triv ~s" t))
+        (when (and (integer? t) (exact? t))
+          (unless (int64? t)
+            (error who "integer out of 64-bit range ~s" t)))
+        (when (uvar? t)
+          (unless (memq t uvar*)
+            (error who "reference to unbound uvar ~s" t)))
+        (when (label? t)
+          (unless (memq t label*)
+            (error who "unbound label ~s" t)))
+        (values))))
+  (define Value
+    (lambda (label* uvar*)
+      (lambda (val)
+        (match val
+          [(if ,[(Pred label* uvar*) ->] ,[] ,[]) (values)]
+          [(begin ,[(Effect label* uvar*) ->] ... ,[]) (values)]
+          [(sra ,[] ,y)
+           (unless (uint6? y)
+             (error who "invalid sra operand ~s" y))
+           (values)]
+          [(mref ,[] ,[]) (values)]
+          [(alloc ,[]) (values)]
+          [(,binop ,[] ,[])
+           (guard (memq binop binops))
+           (values)]
+          [(,[] ,[] ...) (values)]
+          [,[(Triv label* uvar*) ->] (values)]))))
+  (define Effect
+    (lambda (label* uvar*)
+      (lambda (ef)
+        (match ef
+          [(nop) (values)]
+          [(if ,[(Pred label* uvar*) ->] ,[] ,[]) (values)]
+          [(begin ,[] ... ,[]) (values)]
+          [(mset! ,[(Value label* uvar*) ->] ,[(Value label* uvar*) ->] ,[(Value label* uvar*) ->]) (values)]
+          [(set! ,var ,[(Value label* uvar*) ->])
+           (unless (memq var uvar*)
+             (error who "assignment to unbound var ~s" var))
+           (values)]
+          [(,[(Value label* uvar*) ->] ,[(Value label* uvar*) ->] ...) (values)]
+          [,ef (error who "invalid Effect ~s" ef)]))))
+  (define Pred
+    (lambda (label* uvar*)
+      (lambda (pr)
+        (match pr
+          [(true) (values)]
+          [(false) (values)]
+          [(if ,[] ,[] ,[]) (values)]
+          [(begin ,[(Effect label* uvar*) ->] ... ,[]) (values)]
+          [(,relop ,[(Value label* uvar*) ->] ,[(Value label* uvar*) ->])
+           (guard (memq relop relops))
+           (values)]
+          [,pr (error who "invalid Pred ~s" pr)]))))
+  (define Tail
+    (lambda (label* uvar*)
+      (lambda (tail)
+        (match tail
+          [(if ,[(Pred label* uvar*) ->] ,[] ,[]) (values)]
+          [(begin ,[(Effect label* uvar*) ->] ... ,[]) (values)]
+          [(sra ,[(Value label* uvar*) ->] ,y)
+           (unless (uint6? y)
+             (error who "invalid sra operand ~s" y))
+           (values)]
+          [(mref ,[(Value label* uvar*) ->] ,[(Value label* uvar*) ->]) (values)]
+          [(alloc ,[(Value label* uvar*) ->]) (values)]
+          [(,binop ,[(Value label* uvar*) ->] ,[(Value label* uvar*) ->])
+           (guard (memq binop binops))
+           (values)]
+          [(,[(Value label* uvar*) ->] ,[(Value label* uvar*) ->] ...) (values)]
+          [,[(Triv label* uvar*) ->] (values)]))))
+  (define Body
+    (lambda (label* fml*)
+      (lambda (x)
+        (match x
+          [(locals (,local* ...) ,tail)
+           (let ([uvar* `(,fml* ... ,local* ...)])
+             (verify-x-list uvar* uvar? 'uvar)
+             ((Tail label* uvar*) tail)
+             (values))]
+          [,x (error who "invalid Body ~s" x)]))))
+  (define Lambda
+    (lambda (label*)
+      (lambda (x)
+        (match x
+          [(lambda (,fml* ...) ,[(Body label* fml*) ->]) (values)]
+          [,x (error who "invalid Lambda ~a" x)]))))
+  (lambda (x)
+    (match x
+      [(letrec ([,label* ,[(Lambda label*) ->]] ...) ,[(Body label* '()) ->])
+       (verify-x-list label* label? 'label)]
+      [,x (error who "invalid Program ~s" x)])
+    x)))
