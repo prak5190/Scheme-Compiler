@@ -49,8 +49,9 @@
 
 
 (pretty-print
-(expose-allocation-pointer 
+;(uncover-frame-conflict
+;; (expose-allocation-pointer 
 (impose-calling-conventions    
 (flatten-set!
  (remove-complex-opera*
-  (verify-uil t1))))))
+  (verify-uil t1)))))

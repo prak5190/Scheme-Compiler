@@ -58,7 +58,7 @@
     ;; Returns a list of exps
     (define (substitute-proc-vars params rp)
       (match params
-        ((alloc ,x)  `((set! ,return-value-register ,params)
+     ((alloc ,x)  `((set! ,return-value-register ,params)
                          (,rp ,frame-pointer-register ,return-value-register)))
         ((mref ,x ,y)  `((set! ,return-value-register ,params)
                          (,rp ,frame-pointer-register ,return-value-register)))
@@ -76,8 +76,8 @@
     ;; Return pre , value and fls 
     (define (Value exp ls fls)
       (match exp
-        ((alloc ,x) (values exp fls))   
-        ((mref ,x ,y) (values exp fls))
+        ;; ((alloc ,x) (values exp fls))   
+        ;; ((mref ,x ,y) (values exp fls))
         ((,x ,y ...) (guard (triv? x))
          (let ((n (get-unique-label-p ls 'rp)))
            (let*-values
@@ -116,7 +116,7 @@
                          (values `(if ,x ,y ,z) fls)))
         ((begin ,x ...) (let*-values (((x ls) (Effect* x ls fls)))
                           (values `(begin ,x ...) fls)))
-        ((set! ,u (,x ,y ...)) (guard (not (binop? x))) (let*-values (((exp fls) (Value `(,x ,y ...) ls fls)))
+        ((set! ,u (,x ,y ...)) (guard (triv? x)) (let*-values (((exp fls) (Value `(,x ,y ...) ls fls)))
                                                           (values (make-begin `(,exp (set! ,u ,return-value-register))) fls)))
         ((set! ,x ,y) (values exp fls))
         ((mset! ,x ,y) (values exp fls))        

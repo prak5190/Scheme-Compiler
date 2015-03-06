@@ -33,8 +33,7 @@
         ((set! ,x (alloc ,y)) `((set! ,x ,allocation-pointer-register)
                                 (set! ,allocation-pointer-register (+ ,allocation-pointer-register ,y))))
         ((set! ,x ,y) `((set! ,x ,y)))
-        ((,x ,[Value -> y] ...) `((,x ,y ...)))
-        (,else else)))
+        ((,x ,[Value -> y] ...) `((,x ,y ...)))))
     
     (define (Tail exp)      
       (match exp
