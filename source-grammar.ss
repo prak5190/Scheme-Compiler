@@ -134,6 +134,7 @@
      (Frame (UVar *))))
 
 ;; Hmm... when are you going to get rid of that 'alloc' form? -RRN [2013.02.25]
+(l26-expose-allocation-pointer)
 
  (l27-uncover-frame-conflict
     (%remove 

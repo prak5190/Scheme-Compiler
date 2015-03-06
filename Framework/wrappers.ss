@@ -236,6 +236,7 @@
     remove-complex-opera*/wrapper
     flatten-set!/wrapper
     impose-calling-conventions/wrapper
+    expose-allocation-pointer/wrapper
     uncover-frame-conflict/wrapper
     pre-assign-frame/wrapper
     assign-new-frame/wrapper
@@ -284,6 +285,7 @@
       ((remove-complex-opera*) remove-complex-opera*/wrapper)
       ((flatten-set!) flatten-set!/wrapper)
       ((impose-calling-conventions) impose-calling-conventions/wrapper)
+      ((expose-allocation-pointer) expose-allocation-pointer/wrapper)
       ((uncover-frame-conflict) uncover-frame-conflict/wrapper)
       ((pre-assign-frame) pre-assign-frame/wrapper)
       ((assign-new-frame) assign-new-frame/wrapper)
@@ -368,6 +370,28 @@
   (call/cc (lambda (k) (set! ,return-address-register k) 
 		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
   ,return-value-register)
+
+;;-----------------------------------
+;; expose-allocation-pointer/wrapper
+;;-----------------------------------
+(define-language-wrapper (expose-allocation-pointer/wrapper)
+  (x)
+  (environment env)
+  (define frame-size ,(compute-frame-size x))
+  ,return-point-complex
+  ,new-frames
+  ,set!
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow letrec locals true false nop))
+  
+  #;(call/cc (lambda (k) (set! ,return-address-register k)
+                   ;;,x
+                     ;; ,(if (grammar-verification) (verify-grammar:l24-flatten-set x) x)                     
+                     ;;,(if (grammar-verification) (verify-grammar:l26-expose-allocation-pointer x) x)
+                     ))
+  ,return-value-register
+  )
 
 ;;-----------------------------------
 ;; uncover-frame-conflict/wrapper
