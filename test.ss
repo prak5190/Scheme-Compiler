@@ -8,9 +8,10 @@
     (Framework helpers)
     ;; Load your passes from the files you wrote them in:
     (Compiler remove-complex-opera*)
+    (Compiler expose-allocation-pointer)
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
-    (Compiler verify-scheme)
+    (Compiler verify-uil)
     (Compiler uncover-frame-conflict)
     (Compiler select-instructions)
     (Compiler introduce-allocation-forms)
@@ -22,25 +23,34 @@
     (Compiler expose-basic-blocks)
     (Compiler flatten-program)
     (Compiler generate-x86-64))
-(define t '(letrec ([f$0 (lambda (x.1) (locals () (+ x.1 1)))]
-             [g$1 (lambda (y.2) (locals () (f$0 (f$0 y.2))))])
-      (locals () (+ (f$0 1) (g$1 1)))))
-(define t1 '(letrec ([f$1 (lambda (n.2 a.3 b.4 c.5 x.6)
-                    (locals ()
+
+(define t1 '(letrec ([get$0 (lambda (x.1 ls.2)
+                              (locals (size.4 ls.3)
+                                      (begin
+                                        (set! size.4 (mref ls.2 0))
+                                        (if (> x.1 size.4)
+                                            -1
+                                            (mref ls.2 (* 8 x.1))))))]
+                     [a$2 (lambda() (locals() (alloc 10)))]
+                     [a$3 (lambda() (locals() (mref 10 10)))])
+              (locals (ls.1 x.2)
                       (begin
-                        (f$1 1 2 3 4 5)
-                      (if (= n.2 0)
-                          (+ (* a.3 (* x.6 x.6)) (+ (* b.4 x.6) c.5))
-                          (+ (f$1 (sra n.2 3)
-                                  (+ a.3 (logand n.2 4))
-                                  (+ b.4 (logand n.2 2))
-                                  (+ c.5 (logand n.2 1))
-                                  x.6)
-                             1))
-                      )))])
-      (locals () (f$1 16434824 1 0 -1 7))))
+                        (set! ls.1 (alloc 48))
+                        (set! x.2 (alloc (begin (set! x.2 10) x.2)))
+                        (mset! (get$0 4 (alloc (get$0 4 ls.1))) 1 1)
+                        (mset! ls.1 0 5)
+                        (get$0 4 (alloc (get$0 4 ls.1)))
+                        (mset! ls.1 8 9)
+                        (mset! ls.1 16 (begin (set! x.2 1) (mset! ls.1 0 (begin (set! x.2 1)  x.2)) x.2))
+                        (mset! ls.1 24 7)
+                        (mset! ls.1 32 8)
+                        (mset! ls.1 40 3)
+                        (get$0 4 ls.1)))))
+
+
 (pretty-print
+(expose-allocation-pointer 
 (impose-calling-conventions    
 (flatten-set!
  (remove-complex-opera*
-  (verify-scheme t1)))))
+  (verify-uil t1))))))

@@ -18,6 +18,7 @@
     (Compiler assign-registers)
     (Compiler everybody-home)
     (Compiler assign-frame)
+    (Compiler expose-allocation-pointer)
     (Compiler finalize-frame-locations)
     (Compiler discard-call-live)
     (Compiler finalize-locations)
@@ -36,12 +37,10 @@
 
 (define-compiler (p423-compile p423-step pass->wrapper)
   (verify-uil)
-
-  ;; assign8: What you add to the rest of the compiler is up to you! -RRN [2013.02.25]
-
   (remove-complex-opera*)
   (flatten-set!)
   (impose-calling-conventions)
+  (expose-allocation-pointer)
   (uncover-frame-conflict)
   (pre-assign-frame)
   (assign-new-frame)

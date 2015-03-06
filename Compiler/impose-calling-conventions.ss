@@ -58,21 +58,27 @@
     ;; Returns a list of exps
     (define (substitute-proc-vars params rp)
       (match params
+        ((alloc ,x)  `((set! ,return-value-register ,params)
+                         (,rp ,frame-pointer-register ,return-value-register)))
+        ((mref ,x ,y)  `((set! ,return-value-register ,params)
+                         (,rp ,frame-pointer-register ,return-value-register)))
         ((,x ,y ,z) (guard (binop? x)) `((set! ,return-value-register ,params)
                                          (,rp ,frame-pointer-register ,return-value-register)))
-        ((,x ,y ...) (let*-values
-                         (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
-                          ((exp2 params l2) (assign-val-frames params '() 0 '())))
-                       (let ((rpset `(set! ,return-address-register ,rp)))
-                         `(,exp2 ... ,exp1 ... ,rpset
-                                 (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
+        ((,x ,y ...) (guard (triv? x)) (let*-values
+                                           (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
+                                            ((exp2 params l2) (assign-val-frames params '() 0 '())))
+                                         (let ((rpset `(set! ,return-address-register ,rp)))
+                                           `(,exp2 ... ,exp1 ... ,rpset
+                                                   (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
         (,x (guard (triv? x)) `((set! ,return-value-register ,x)
                                 (,rp ,frame-pointer-register ,return-value-register)))))
     
     ;; Return pre , value and fls 
     (define (Value exp ls fls)
       (match exp
-        ((,x ,y ...) (guard (not (binop? x)))
+        ((alloc ,x) (values exp fls))   
+        ((mref ,x ,y) (values exp fls))
+        ((,x ,y ...) (guard (triv? x))
          (let ((n (get-unique-label-p ls 'rp)))
            (let*-values
                (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
@@ -93,10 +99,6 @@
         ((begin ,x ... ,y) (let*-values (((x fls) (Effect* x ls fls))
                                          ((y fls) (Pred y ls fls)))
                              (values `(begin ,x ... ,y) fls)))
-        ;; Not possible
-        ;; ((,x ,y ,z) (guard (binop? x)) (let*-values (((pre e1 fls) (Value y ls fls))
-        ;;                                              ((pre e2 fls) (Value z ls fls)))
-        ;;                                  (values (make-begin (append (append e1 e2) `((,x ,y ,z)))) fls)))
         (,else (values exp fls))))
 
     (define (Effect* exp ls fls)
@@ -117,6 +119,7 @@
         ((set! ,u (,x ,y ...)) (guard (not (binop? x))) (let*-values (((exp fls) (Value `(,x ,y ...) ls fls)))
                                                           (values (make-begin `(,exp (set! ,u ,return-value-register))) fls)))
         ((set! ,x ,y) (values exp fls))
+        ((mset! ,x ,y) (values exp fls))        
         ;; Apparently this case is not poosible
         ;; ((,x ,y ,z) (guard (binop? x)) (let*-values (((pre1 e1 fls) (Value y ls fls))
         ;;                                              ((pre2 e2 fls) (Value z ls fls)))
@@ -134,12 +137,14 @@
                                      ((y fls) (Tail y ls '() rp fls))
                                      ((z fls) (Tail z ls '() rp fls)))
                          (values (make-begin `(,prep-exp ... (if ,x ,y ,z))) fls)))
+        ;((mref ,x ,y) (values exp ls))
         ((begin ,x ... ,y) (let*-values (((x fls) (Effect* x ls fls))
                                          ((y fls) (Tail y ls '() rp fls)))
                              (values `(begin ,prep-exp ... ,x ... ,y) fls)))
+        ((mref ,x ,y) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))
         ((,x ,y ,z) (guard (binop? x)) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))
         (,x (guard triv? x) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))
-        ((,x ,y ...) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))))
+        ((,x ,y ...) (guard (triv? x)) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))))
   
     ;;frame-pointer-register, return-address-register, and return-value-register    
     (define (Body exp params)

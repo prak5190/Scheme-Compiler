@@ -32,21 +32,24 @@
                          (values `((if ,x ,(make-begin yls) ,(make-begin zls))) ls)))
         ((begin ,x ... ,z) (let*-values (((expls ls) (Effect* x ls))
                                          ((exp2 ls) (Value xorig z ls)))
-                             (values `((begin ,expls ... ,exp2 ...)) ls)))
+                             (values `(,expls ... ,exp2 ...) ls)))
+        ((alloc ,x) (values `((set! ,xorig (alloc ,x))) ls))
+        ((mref ,x ,y) (values `((set! ,xorig (mref ,x ,y))) ls))
         ((,x ,y ,z) (guard (binop? x)) (values `((set! ,xorig (,x ,y ,z))) ls))
-        ((,x ,y ...) (values `((set! ,xorig (,x ,y ...))) ls))
+        ((,x ,y ...) (values `((set! ,xorig (,x ,y ...))) ls))        
         (,x (guard triv? x) (values `((set! ,xorig ,x)) ls))))
         
     ;;  Returns exp list and list of variable
     (define (Effect exp ls)
-      (match exp       
+      (match exp
+        ;; ((mset! ,x ,y ,z) (MV
         ((set! ,x ,y) (Value x y ls))
         ((if ,x ,y ,z) (let*-values (((x ls) (Pred x ls))
                                      ((yls ls) (Effect y ls))
                                      ((zls ls) (Effect z ls)))
                          (values `((if ,x ,y ,z)) ls)))
         ((begin ,x ...) (let*-values (((x ls) (Effect* x ls)))
-                          (values `((begin ,x ...)) ls)))
+                          (values `(,x ...) ls)))
         ((,x ,y ...) (let*-values (((y ls) (Effect* y ls)))
                        (values `((,x ,y ...)) ls)))
         (,else (values `(,exp) ls))))
