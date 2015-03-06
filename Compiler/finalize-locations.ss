@@ -47,7 +47,9 @@
           [(if ,x ,y ,z) `(if ,(Pred x locls) ,(Effect y locls) ,(Effect z locls))]
           [(begin ,x ... ,y) `(begin ,(map (lambda(x) (Effect x locls)) x) ... ,(Effect y locls))]
           [(return-point ,x ,y) `(return-point ,x ,(Effect y locls))]
-          [(set! ,v (,b ,t1 ,t2)) `(set! ,(q v) (,b ,(q t1) ,(q t2)))]
+          [(mset! ,[q -> v] ...) `(mset! ,v ...)]
+          [(set! ,v (,[q -> x] ...)) `(set! ,(q v) (,x ...))]
+          ;; [(set! ,v (,b ,t1 ,t2)) `(set! ,(q v) (,b ,(q t1) ,(q t2)))]
           [(set! ,v ,t) (let ((v (q v)) (t (q t)))
                           (if (eqv? v t)
                               '(nop)
@@ -72,12 +74,14 @@
     
     ;; Validate Tail
     (define (Tail exp locls)                   ;get-trace-define
-      (match exp
-        ((begin ,x ... ,t)
-         (append (cons `begin (map (lambda(x) (Effect x locls)) x)) `(,(Tail t locls))))
-        ((if ,x ,y ,z) `(if ,(Pred x locls) ,(Tail y locls) ,(Tail z locls)))
-        ((,x ,y ,z) (guard (relop? x)) `(,x ,(Tail y locls) ,(Tail z locls)))
-        ((,x) `(,(substituteLocation x locls)))))    
+      (let ((q (lambda(x) (substituteLocation x locls))))
+        (match exp
+          ((begin ,x ... ,t)
+           (append (cons `begin (map (lambda(x) (Effect x locls)) x)) `(,(Tail t locls))))
+          ((if ,x ,y ,z) `(if ,(Pred x locls) ,(Tail y locls) ,(Tail z locls)))
+          ((mref ,[q -> x] ,[q -> y]) (values))
+          ((,x ,y ,z) (guard (relop? x)) `(,x ,(Tail y locls) ,(Tail z locls)))        
+          ((,x) `(,(substituteLocation x locls))))))
 
     
     ;; Iterate through labels and validate 
