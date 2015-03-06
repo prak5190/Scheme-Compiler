@@ -28,7 +28,7 @@
     
     (define (Effect exp)
       (match exp       
-        ((if ,[Pred -> x] ,[Effect -> y] ,[Effect -> z]) `((if ,x ,y ,z)))
+        ((if ,[Pred -> x] ,[Effect -> y] ,[Effect -> z]) `((if ,x ,(make-begin y) ,(make-begin z))))
         ((begin ,[Effect -> x] ... ,[Effect -> y]) `((begin ,x ... ... ,y ...)))
         ((set! ,x (alloc ,y)) `((set! ,x ,allocation-pointer-register)
                                 (set! ,allocation-pointer-register (+ ,allocation-pointer-register ,y))))
