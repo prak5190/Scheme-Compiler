@@ -72,7 +72,7 @@
          )
         (,else (errorf who "invalid Program ~s" exp))))              
 
-    (define (finalize-locations exp)                   ;get-trace-define
+    (define (finalize-frame-locations exp)                   ;get-trace-define
       (Program exp))
     
-    (finalize-locations program)))
+    (finalize-frame-locations program)))

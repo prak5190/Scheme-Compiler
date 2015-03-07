@@ -40,7 +40,10 @@
                                          (let*-values (((pre1 l1 x) (Value x ls))
                                                        ((pre l valls) (Value* y (append l1 ls))))
                                            (values `(,pre1 ... ,pre ... (set! ,n (,x ,valls ...))) (append l1 (cons n l)) n))))
-        (,x (guard triv? x) (values '() '() x))))
+        ((,x ,y ...) (let*-values (((pre1 l1 x) (Value x ls))
+                                   ((pre l valls) (Value* y (append ls l1))))
+                    (values `(,pre1 ... ,pre ...) (append l1 l) `(,x ,valls ...))))
+        (,x (values '() '() x))))
 
     (define (Value* exp ls)
       (cond
@@ -114,9 +117,9 @@
                       (values (make-begin `(,pre ... (alloc ,x))) l)))
         ((mref ,x ,y) (let*-values (((pre l x) (Value x ls))
                                     ((pre1 l1 y) (Value y ls)))
-                      (values (make-begin `(,pre ... ,pre1 ...  (mref ,x ,y))) (append l l1))))        
+                        (values (make-begin `(,pre ... ,pre1 ...  (mref ,x ,y))) (append l l1))))        
         ((,x ,y ...) (let*-values (((pre ls valls) (Value* y ls)))                             
-                       (values (make-begin `(,pre ... (,x ,valls ...))) ls)))
+                       (values (make-begin `(,pre ... (,x ,valls ...))) ls)))        
         (,x (guard triv? x) (values exp '()))))
     
     (define (Body exp ls)
