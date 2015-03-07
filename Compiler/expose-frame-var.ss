@@ -18,8 +18,10 @@
 
     (define (convertFrameVar x)
       (if (frame-var? x) (make-disp-opnd frame-pointer-register
-                                         (+ (ash (frame-var->index x) word-shift) fp-offset)) x))
-    
+                                         (+ (ash (frame-var->index x) word-shift) fp-offset)) x)) 
+    (define (expose-memory x offset)
+      (make-disp-opnd x offset))
+      
     (define (Pred exp)
       (match exp
         ((true) exp)
@@ -36,6 +38,8 @@
         [(begin ,[Effect -> x] ... ,[Effect -> t]) `(begin ,x ... ,t)]
         [(if ,x ,y ,z) `(if ,(Pred x) ,(Effect y) ,(Effect z))]
         [(return-point ,x ,y) `(return-point ,x ,(Effect y))]
+        [(set! ,x (mref ,x ,off)) `(set! ,x ,(expose-memory x off))]
+        [(mset! ,x ,off ,v) `(set! ,(expose-memory x off) ,v)]
         [(set! ,fp (+ ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (+ fp-offset off)) exp]
         [(set! ,fp (- ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (- fp-offset off)) exp]
         [(set! ,[convertFrameVar -> v] (,b ,[convertFrameVar -> t1] ,[convertFrameVar -> t2]))
