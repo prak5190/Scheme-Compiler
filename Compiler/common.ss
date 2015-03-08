@@ -127,6 +127,13 @@
                                      ((l2 g2 s) (Effect y ls cg s)))
                          (Pred x (union l1 l2) (combine-cg g1 g2 '()) s))]
         [(begin ,x ...) (Effect* x ls cg s)]
+        [(mset! ,x ,y ,z)
+         ;; Just reading all the 3 values , so just do the same as for y in  set! x y 
+         (let* ((l ls)
+                (l (if (cgvar? x) (union `(,x) l) l))
+                (l (if (cgvar? y) (union `(,y) l) l))
+                (l (if (cgvar? z) (union `(,z) l) l)))
+           (values l cg s))]
         [(set! ,v (,b ,t1 ,t2)) 
          (let* ((l (difference ls `(,v)))
                 (g (add-conflict v l cg))
