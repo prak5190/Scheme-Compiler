@@ -127,11 +127,12 @@
                                      ((l2 g2 s) (Effect y ls cg s)))
                          (Pred x (union l1 l2) (combine-cg g1 g2 '()) s))]
         [(begin ,x ...) (Effect* x ls cg s)]
-        [(set! ,v (,b ,t1 ,t2)) (let* ((l (difference ls `(,v)))
-                                       (g (add-conflict v l cg))
-                                       (l (if (cgvar? t1) (union `(,t1) l) l))
-                                       (l (if (cgvar? t2) (union `(,t2) l) l)))
-                                  (values l g s))]
+        [(set! ,v (,b ,t1 ,t2)) 
+         (let* ((l (difference ls `(,v)))
+                (g (add-conflict v l cg))
+                (l (if (cgvar? t1) (union `(,t1) l) l))
+                (l (if (cgvar? t2) (union `(,t2) l) l)))
+           (values l g s))]
         [(set! ,v ,t) (let* ((l (difference ls `(,v)))
                              (g (add-conflict v l cg))
                              (l (if (cgvar? t) (union `(,t) l) l)))                             

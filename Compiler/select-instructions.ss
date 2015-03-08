@@ -36,12 +36,33 @@
         ((,x ,y ...) (let*-values
                          (((ls xl) (f x ls tls))
                           ((ls yls) (enforce* f y ls tls)))                      
-                      (values ls `(,xl ... ,yls ...))))        
+                      (values ls `(,xl ... ,yls ...))))
         (,else (values ls expls))))
+    
+    (define (enforce-mc-mset exp ls tls)
+      (match exp
+        ((mset! ,x ,y ,z)
+         (guard (or
+                 (and (frame-var? x) (frame-var? z))
+                 (and (frame-var? x) (is-int64? z))))
+         (let ((n (get-unique-name (append ls tls))))
+           (enforce* enforce-mc-mset  `((set! ,n ,x)
+                                        (mset! ,n ,y ,z))  (cons n ls) tls)))
+        ((mset! ,x ,y ,z)
+         (guard (or (frame-var? y) (is-int64? y)))
+         (let ((n (get-unique-name (append ls tls))))
+           (enforce* enforce-mc-mset  `((set! ,n ,y)
+                                        (mset! ,x ,n ,z))  (cons n ls) tls)))        
+        (,else (values ls `(,exp)))))
     
     (define (enforce-mc-s2 exp ls tls)
       (match exp
-        
+        ((set! ,v (mref ,x ,y)) (if (frame-var? x)
+                                    (let ((u (get-unique-name (append ls tls))))
+                                      (values `((set! ,u ,x)
+                                                (set! ,v (mref ,u ,y)))
+                                              (cons u ls)))
+                                    (values ls `(,exp))))
         ((set! ,v (,b ,t1 ,t2))
          (guard (and (binop? b) (not (eqv? v t1))))
          ;; X
@@ -49,8 +70,8 @@
              (enforce-mc-s2 `(set! ,v (,b ,t2 ,t1)) ls tls)
              (let ((n (get-unique-name (append ls tls))))
                (enforce* enforce-mc-s2   `((set! ,n ,t1)
-                                     (set! ,n (,b ,n ,t2))
-                                     (set! ,v ,n)) (cons n ls) tls))))
+                                           (set! ,n (,b ,n ,t2))
+                                           (set! ,v ,n)) (cons n ls) tls))))
         ;; V = t1 now                
         ((set! ,v (sra ,t1 ,t)) (values ls `(,exp)))
         ;; X2
@@ -127,7 +148,7 @@
         ((,x ,y ,z) (enforce-mc-s2 exp ls tls))
         ;; The else case - applies to true, false - Do nothing
         (,x (values ls `(,exp)))))
-
+    
     ;; Returns ls and exp
     (define (Effect exp ls tls)                   ;get-define
       (match exp
@@ -136,6 +157,7 @@
                                      ((ls z) (Effect z ls tls)))                         
                          (values ls `((if ,(add-begin x) ,(add-begin y) ,(add-begin z)))))]
         [(begin ,x ...) (Effect* x ls tls)]
+        [(mset! ,x ,y ,z) (enforce-mc-mset exp ls tls)]
         [(set! ,v (,b ,t1 ,t2)) (enforce-mc-s2 exp ls tls)]
         [(set! ,v ,t) (enforce-mc-s2 exp ls tls)]
         [(return-point ,x ,y) (let-values (((ls y) (Effect y ls tls)))

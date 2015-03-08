@@ -22,9 +22,11 @@
     (define (expose-memory x offset)
       (if (and (register? x) (register? offset))
           (make-index-opnd x offset)
-          (make-disp-opnd x offset)))
-    ;; make-index-opnd
-      
+          (if (int32? x)
+              (make-disp-opnd offset x)
+              (make-disp-opnd x offset))))
+
+    ;; make-index-opnd      
     (define (Pred exp)
       (match exp
         ((true) exp)
