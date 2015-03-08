@@ -50,7 +50,7 @@
         [(set! ,[convertFrameVar -> v] (,b ,[convertFrameVar -> t1] ,[convertFrameVar -> t2]))
          `(set! ,v (,b ,t1 ,t2))]
         [(set! ,[convertFrameVar -> v] ,[convertFrameVar -> t]) `(set! ,v ,t)]
-        [(,x)  `(,(convertFrameVar x)) `(,x)]))
+        [(,x)  `(,(convertFrameVar x))]))
     
     ;; Validate Tail
     (define (Tail exp)                   ;get-trace-define
