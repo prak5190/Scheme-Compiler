@@ -57,7 +57,7 @@
         ((if ,x ,y ,z) (let*-values (((e l) (Pred x ls))
                                      ((e1 l1) (Effect y (append l ls)))
                                      ((e2 l2) (Effect z (append ls (append l1 l)))))
-                         (values `((if ,e ,(make-begin e1) ,(make-begin e2))) `(,l1 ... ,l2 ...))))
+                         (values `((if ,e ,(make-begin e1) ,(make-begin e2))) `(,l ... ,l1 ... ,l2 ...))))
         ((begin ,x ... ,y) (let*-values (((x l) (Effect* x ls))
                                         ((y l1) (Effect y (append l ls))))
                              (values `((begin ,x ... ,y ...)) (append l1 l))))
