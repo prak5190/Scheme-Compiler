@@ -37,12 +37,11 @@
                                                        ((e2 l2 z) (Value z (append ls l1))))
                                            (values `(,e1 ... ,e2 ... (set! ,n (,x ,y ,z))) `(,n ,l1 ... ,l2 ...) n))))
         ((,x ,y ...) (guard (triv? x)) (let ((n (get-unique-name ls)))
-                                         (let*-values (((pre1 l1 x) (Value x ls))
-                                                       ((pre l valls) (Value* y (append l1 ls))))
-                                           (values `(,pre1 ... ,pre ... (set! ,n (,x ,valls ...))) (append l1 (cons n l)) n))))
-        ((,x ,y ...) (let*-values (((pre1 l1 x) (Value x ls))
-                                   ((pre l valls) (Value* y (append ls l1))))
-                    (values `(,pre1 ... ,pre ...) (append l1 l) `(,x ,valls ...))))
+                                         (let*-values (((pre l valls) (Value* y ls)))
+                                           (values `(,pre ... (set! ,n (,x ,valls ...))) (cons n l) n))))
+        ((,y ...) (let ((n (get-unique-name ls)))
+                    (let*-values (((pre l valls) (Value* y ls)))
+                      (values `(,pre ... (set! ,n ,valls)) (cons n l) n))))
         (,x (values '() '() x))))
 
     (define (Value* exp ls)
@@ -54,6 +53,7 @@
 
     (define (Effect exp ls)
       (match exp
+        ((nop) (values `((nop)) '()))
         ((if ,x ,y ,z) (let*-values (((e l) (Pred x ls))
                                      ((e1 l1) (Effect y (append l ls)))
                                      ((e2 l2) (Effect z (append ls (append l1 l)))))
@@ -85,6 +85,8 @@
     ;; Returns exp to be prepended ,list to be added to locals and var to be used
     (define (Pred exp ls)
       (match exp
+        ((true) (values exp '()))
+        ((false) (values exp '()))
         ((,x ,y ,z) (guard (relop? x))  (let*-values (((e1 l1 y) (Value y ls))
                                                       ((e2 l2 z) (Value z (append ls l1))))
                                           (values (make-begin `(,e1 ... ,e2 ...  (,x ,y ,z))) `(,l1 ... ,l2 ...))))
@@ -109,7 +111,7 @@
                          (values `(if ,x ,e1 ,e2) `(,l ... ,l1 ... ,l2 ...))))        
         ((,x ,y ,z) (guard (binop? x)) (let*-values (((e1 l1 y) (Value y ls))
                                                      ((e2 l2 z) (Value z (append ls l1))))
-                                         (values (make-begin (append (append e1 e2) `((,x ,y ,z)))) (append l1 l2))))                    
+                                         (values (make-begin (append (append e1 e2) `((,x ,y ,z)))) (append l1 l2))))
         ((begin ,x ... ,y) (let*-values (((x l) (Effect* x ls))
                                         ((y l1) (Tail y (append l ls))))
                              (values `(begin ,x ... ,y) (append l1 l))))
