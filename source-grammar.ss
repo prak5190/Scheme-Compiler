@@ -133,8 +133,12 @@
      (Triv Var)
      (Frame (UVar *))))
 
-;; Hmm... when are you going to get rid of that 'alloc' form? -RRN [2013.02.25]
-(l26-expose-allocation-pointer)
+;; Remove alloc from grammar
+(l26-expose-allocation-pointer
+ (%remove
+  (Tail alloc)
+  (Value alloc))
+ )
 
  (l27-uncover-frame-conflict
     (%remove 
