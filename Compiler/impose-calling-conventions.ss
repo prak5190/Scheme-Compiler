@@ -87,14 +87,17 @@
                (values `(return-point ,n (begin
                                            ,exp2 ... ,exp1 ... ,rpset
                                            (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))
-                       `(,(reverse l2) ,fls ...))))))
+                       (let ((fls (filter (lambda(x) (not (null? x))) fls)))                         
+                         (if (and (null? l2) (null? fls))                             
+                             `()                                
+                             `(,(reverse l2) ,fls ...))))))))
         (,else (values exp fls))))
       
     (define (Pred exp ls fls)
       (match exp
         ((if ,x ,y ,z) (let*-values (((x fls) (Pred x ls fls))
                                      ((y fls) (Pred y ls fls))
-                                     ((z fals) (Pred z ls fls)))
+                                     ((z fls) (Pred z ls fls)))
                          (values `(if ,x ,y ,z) fls)))
         ((begin ,x ... ,y) (let*-values (((x fls) (Effect* x ls fls))
                                          ((y fls) (Pred y ls fls)))
