@@ -71,20 +71,19 @@ parseValue (List [Symbol "if",p,v1,v2]) = do
   v1' <- parseValue v1
   v2' <- parseValue v2
   return$ IfV p' v1' v2'
-parseValue (List (op:rst)) = do
-  firstItem <- orPassM (fmap Left $ parseBinop op) (fmap Right $ parseValue op)
-  case firstItem of
-    Left binop -> do
-     rst'   <- mapM parseValue rst
-     case rst' of
-       [x,y] -> return $ AppV1 binop x y
-       _     -> parseFailureM "parseValue: Wrong number of args to binop"
-    Right val' -> do
+parseValue (List (binop:rst)) =
+  -- either a binop or an application
+  orPassM
+    (do
+      binop' <- parseBinop binop
+      rst'   <- mapM parseValue rst
+      case rst' of
+        [x,y] -> return$ AppV1 binop' x y
+        _     -> parseFailureM$ "binop "++show binop'++" applied to wrong number of args: "++show rst')
+    (do
+      v' <- parseValue binop
       rst' <- mapM parseValue rst
-      return $ AppV2 val' rst'
-         
-
-
+      return$ AppV2 v' rst')
 
 parseValue triv =
 --  trace ("Is this triv?" ++show triv) $
