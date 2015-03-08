@@ -58,20 +58,20 @@
     ;; Returns a list of exps
     (define (substitute-proc-vars params rp)
       (match params
-     ((alloc ,x)  `((set! ,return-value-register ,params)
-                         (,rp ,frame-pointer-register ,return-value-register)))
+        ((alloc ,x)  `((set! ,return-value-register ,params)
+                       (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register)))
         ((mref ,x ,y)  `((set! ,return-value-register ,params)
-                         (,rp ,frame-pointer-register ,return-value-register)))
+                         (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register)))
         ((,x ,y ,z) (guard (binop? x)) `((set! ,return-value-register ,params)
-                                         (,rp ,frame-pointer-register ,return-value-register)))
+                                         (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register)))
         ((,x ,y ...) (guard (triv? x)) (let*-values
                                            (((exp1 params l1) (assign-val-reg y '() parameter-registers '()))
                                             ((exp2 params l2) (assign-val-frames params '() 0 '())))
                                          (let ((rpset `(set! ,return-address-register ,rp)))
                                            `(,exp2 ... ,exp1 ... ,rpset
-                                                   (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
+                                                   (,x ,return-address-register ,frame-pointer-register ,allocation-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))))
         (,x (guard (triv? x)) `((set! ,return-value-register ,x)
-                                (,rp ,frame-pointer-register ,return-value-register)))))
+                                (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register)))))
     
     ;; Return pre , value and fls 
     (define (Value exp ls fls)
@@ -146,7 +146,7 @@
         (,x (guard triv? x) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))
         ((,x ,y ...) (guard (triv? x)) (values `(begin ,prep-exp ... ,(substitute-proc-vars exp rp) ...) fls))))
   
-    ;;frame-pointer-register, return-address-register, and return-value-register    
+    ;;framexx-pointer-register, return-address-register, and return-value-register    
     (define (Body exp params)
       (match exp
         ((locals (,x ...) ,y)

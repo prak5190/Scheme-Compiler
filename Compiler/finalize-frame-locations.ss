@@ -61,7 +61,7 @@
          (append (cons `begin (map (lambda(x) (Effect x locls)) x)) `(,(Tail t locls))))
         ((if ,x ,y ,z) `(if ,(Pred x locls) ,(Tail y locls) ,(Tail z locls)))
         ((,x ,y ,z) (guard (relop? x)) `(,x ,(Tail y locls) ,(Tail z locls)))
-        ((,x ...) exp)))    
+        ((,x ,y ...) `(,(substituteLocation x locls) ,y ...))))
 
     (define (Program exp)                   ;get-trace-define
       (match exp
