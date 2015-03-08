@@ -67,10 +67,10 @@
                                         ((e2 l2 y) (Value y (append ls l1)))
                                         ((e3 l3 z) (Value z (append ls (append l1 l2)))))
                             (values `(,e1 ... ,e2 ... ,e3 ... (mset! ,x ,y ,z)) `(,l1 ... ,l2 ... ,l3 ...))))
-        ((,x ,y ...) (guard (triv? x)) (let ((n (get-unique-name ls)))
-                                         (let*-values (((pre1 l1 x) (Value x ls))
-                                                       ((pre l valls) (Value* y (append l1 ls))))
-                                           (values `(,pre1 ... ,pre ... (,x ,valls ...)) (append l1 (cons n l))))))
+        ((nop) (values `((nop)) `()))
+        ((,x ...) (let ((n (get-unique-name ls)))
+                       (let*-values (((pre l valls) (Value* x ls)))
+                         (values `(,pre ... (,valls ...)) (cons n l)))))
         (,x (values `(,x) '()))))
     
     ;; Returns modified list and list to be added 
@@ -118,8 +118,8 @@
         ((mref ,x ,y) (let*-values (((pre l x) (Value x ls))
                                     ((pre1 l1 y) (Value y ls)))
                         (values (make-begin `(,pre ... ,pre1 ...  (mref ,x ,y))) (append l l1))))        
-        ((,x ,y ...) (let*-values (((pre ls valls) (Value* y ls)))                             
-                       (values (make-begin `(,pre ... (,x ,valls ...))) ls)))        
+        ((,x ...) (let*-values (((pre ls valls) (Value* x ls)))                             
+                       (values (make-begin `(,pre ... (,valls ...))) ls)))
         (,x (guard triv? x) (values exp '()))))
     
     (define (Body exp ls)

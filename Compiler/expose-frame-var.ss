@@ -22,7 +22,7 @@
     (define (expose-memory x offset)
       (if (and (register? x) (register? offset))
           (make-index-opnd x offset)
-          (if (int32? x)
+          (if (and (int32? x) (not (int64? offset)))
               (make-disp-opnd offset x)
               (make-disp-opnd x offset))))
 
@@ -43,10 +43,10 @@
         [(begin ,[Effect -> x] ... ,[Effect -> t]) `(begin ,x ... ,t)]
         [(if ,x ,y ,z) `(if ,(Pred x) ,(Effect y) ,(Effect z))]
         [(return-point ,x ,y) `(return-point ,x ,(Effect y))]
-        [(set! ,x (mref ,y ,off)) `(set! ,x ,(expose-memory y off))]
-        [(mset! ,x ,off ,v) `(set! ,(expose-memory x off) ,v)]
         [(set! ,fp (+ ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (+ fp-offset off)) exp]
         [(set! ,fp (- ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (- fp-offset off)) exp]
+        [(set! ,[convertFrameVar -> x] (mref ,y ,off)) `(set! ,x ,(expose-memory y off))]
+        [(mset! ,x ,off ,[convertFrameVar -> v]) `(set! ,(expose-memory x off) ,v)]
         [(set! ,[convertFrameVar -> v] (,b ,[convertFrameVar -> t1] ,[convertFrameVar -> t2]))
          `(set! ,v (,b ,t1 ,t2))]
         [(set! ,[convertFrameVar -> v] ,[convertFrameVar -> t]) `(set! ,v ,t)]
