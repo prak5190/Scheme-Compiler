@@ -1,0 +1,13 @@
+A8 : 
+Passes all tests.
+
+New Passes added : 
+    - expose-allocation-pointer - Changed source grammar to remove alloc
+
+Modifications in other passes :
+    - expose-frame-var - Conversion of mset! and mref takes place in this. Added appropriate changes to source grammar
+      Reason : It parses the AST in the same way as required for mset and mref conversion, hence added the convert as a method and added 2 rules to enable conversion, the file needs renaming to reflect it.
+
+    - select-instructions :
+      Added rules to move mset! index to unspillable when it is a framevar , similarly addded unspillables for handling frame to mref 
+            
