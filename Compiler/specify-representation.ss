@@ -102,7 +102,7 @@
       
       (define (Pred-Prim exp)
         (match exp
-          ((fixnum ,x) (let* ((mask mask-fixnum)
+          ((fixnum? ,x) (let* ((mask mask-fixnum)
                               (tag tag-fixnum)
                               (x (Value x)))
                          `(= (logand ,x ,mask) ,tag)))
