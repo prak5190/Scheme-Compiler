@@ -9,6 +9,7 @@
     ;; Load your passes from the files you wrote them in:
     (Compiler remove-complex-opera*)
     (Compiler expose-allocation-pointer)
+    (Compiler specify-representation)
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
     (Compiler verify-uil)
@@ -27,13 +28,10 @@
     (Compiler flatten-program)
     (Compiler generate-x86-64))
 
-(define t1 '(letrec ((a$1 (lambda(a.4 b.2) (+ a.4 b.2))))
-              (let ((a.5 1) (b.3 2))
-                (begin
-                  (mset! a.5 0 (alloc 10))
-                  (let ((k.7 (let((k.11 (let ((a.12 11)) 11))) k.11)))
-                    (mset! a.5 0 (+ (+ k.7 2) (+ (a$1 1 2) 3))))
-                  5))))
+(define t1 `(letrec () (let ((a.1 '1))
+                         (if (eq? '1 '1)
+                             (cons '1 '2)
+                             '#f))))
 (pretty-print
- (uncover-locals
+ (specify-representation
   (verify-scheme t1)))
