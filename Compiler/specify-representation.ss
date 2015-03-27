@@ -68,9 +68,8 @@
                                    (mset! ,tmp ,offset-cdr ,tmp-cdr)
                                    ,tmp)))))
           ((make-vector ,x) (let* ((x (Value x))
-                                   (tmp (unique-name 'tm))
-                                   (n (+ disp-vector-data x)))
-                              `(let ([,tmp (+ (alloc ,n) ,tag-vector)])
+                                   (tmp (unique-name 'tm)))
+                              `(let ([,tmp (+ (alloc (+ ,disp-vector-data ,x)) ,tag-vector)])
                                  (begin
                                    (mset! ,tmp ,offset-vector-length ,x)
                                    ,tmp))))
