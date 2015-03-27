@@ -184,7 +184,7 @@
       (define (Exp exp)                   ;get-trace-define
         (match exp
           ((,x (lambda (,y ...) ,z)) (let ((z (Tail z)))
-                                       `(,x (lambda (,y ...) (locals ,z)))))))
+                                       `(,x (lambda (,y ...) ,z))))))
       
       (define (Program exp)                   ;get-trace-define
         (match exp
