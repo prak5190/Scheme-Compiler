@@ -173,7 +173,7 @@
                                `(begin ,x ... ,(Effect y))))       
           ((let (,x ...) ,y) (let* ((x (Value* x)))
                                `(let (,x ...) ,(Effect y))))
-          ((,x ...) (guard (effect-prim? x)) (Effect-Prim exp))
+          ((,x ,y ...) (guard (effect-prim? x)) (Effect-Prim exp))
           ((,x ...) (Value* x))
           (,else  else)))
 
