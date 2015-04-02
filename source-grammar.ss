@@ -221,7 +221,6 @@
 	    ;; Remove alloc!
 	    (set! Var (mref Triv Triv))
 	    )))
-
  (l27-uncover-frame-conflict
     (%remove 
       (Body locals))
@@ -321,7 +320,10 @@
 
 (l37-expose-frame-var
   (%remove UFVar Loc)
-  (%add (Loc Reg Disp)))
+  (%add
+   (Loc Reg Ind)
+   (Loc Reg Disp))
+  )
 
 (l38-expose-memory-operands
    (%remove (Tail mref) 
