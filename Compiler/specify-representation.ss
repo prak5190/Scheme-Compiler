@@ -14,21 +14,7 @@
     (let* ((offset-car (- disp-car tag-pair))
            (offset-cdr (- disp-cdr tag-pair))
            (offset-vector-length (- disp-vector-length tag-vector))
-           (offset-vector-data (- disp-vector-data tag-vector)))
-
-      ;; Map to number of arguments -- No need i guess
-      (define (value-prim? exp)                   ;get-trace-define
-        (define value-prim '((+ 2) (- 2) (* 2) (car 1) (cdr 1) (cons 2) (make-vector 1) (vector-length 1) (vector-ref 2) (void 0)))
-        (and (assq exp value-prim) #t))
-      
-      (define (effect-prim? exp)                   ;get-trace-define
-        (define effect-prim '((set-car! 2) (set-cdr! 2) (vector-set! 3)))
-        (and (assq exp effect-prim) #t))
-      
-      (define (pred-prim? exp)                   ;get-trace-define
-        (define pred-prim '((< 2) (<= 2) (= 2) (>= 2) (> 2) (boolean? 1) (eq? 2) (fixnum? 1) (null? 1) (pair? 1) (vector? 1)))
-        (and (assq exp pred-prim) #t))
-      
+           (offset-vector-data (- disp-vector-data tag-vector)))      
       (define (Value* expls)
         (cond
          ((null? expls) expls)
