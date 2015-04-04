@@ -17,27 +17,52 @@
     (define (Exp exp)                   ;get-trace-define
       (match exp
         ((,x (lambda () ,y))  `(,x . ,y))))
-
-    ;; Replace function with jump statements
-    (define (replaceFunc k i) (cons (car k) (Tail (cdr k) i)))
     
-    ;; Validate Tail
-    (define (Tail exp i)                   ;get-trace-define
+    (define (substitute x al)
+      (cond
+       ((assq x al) => (lambda(r) (cadr r)))
+       (else x)))
+   
+    (define (Tail exp al)                   ;get-trace-define
       (match exp
-        ((if ,x (,y) (,z)) (cond
-                            ((eqv? i y) `((if (not ,x) (jump ,z)) (jump ,y)))
-                            (else  `((if ,x (jump ,y))  (jump ,z)))))                               
-        ((begin ,x ... ,t) (append x (Tail t i)))
-        ((,x)  `((jump ,x)))))
+        ((if ,x ,y ,z) (let* ((x (Tail x al))
+                              (y (Tail y al))
+                              (z (Tail z al)))
+                         `(if ,x ,y ,z)))
+        ((begin ,x ...) `(begin ,(map (lambda(x) (Tail x al)) x) ...))
+        ((,x ...)  `(,(map (lambda(x) (substitute x al)) x) ...))))
     
+    (define (remap* al)
+      (fold-left remap '() al))
+    (define (remap s al)
+      (cond
+       ((null? al) s)
+       ((assq (cadr al) s) => (lambda(r) (cons `(,(car al) . ,(cdr r)) s)))
+       (else (cons al s))))
+
+    (define (substitute-from-al* x al)
+      (fold-left (lambda(s x)
+                   (substitute-from-al s x al)) '() x))
+    (define (substitute-from-al s x al)
+      (cond
+       ((null? x) s)
+       ((assq (car x) al) => (lambda(r) (if (eq? (car r) (cadr r))
+                                            (cons `(,(car r) (lambda() ,(cdr r))) s)
+                                            s)))
+       (else (cons `(,(car x) (lambda() ,(Tail (cdr x) al))) s))))
+        
     ;; Validate Program
     (define (Program exp)                   ;get-trace-define
       (match exp
-        ((letrec (,[Exp -> x]  ...) ,y) (let (( k (fold-right (lambda(a s)                                                      
-                                                      `(,(car a) . ,(append (replaceFunc a (car s)) (cdr s)))) '(_) x)))
-                                          (append `(code ,(Tail y (car k)) ...) (cdr k)))))) 
-                                            
-    (define (flatten exp)                   ;get-trace-define
+        ((letrec (,[Exp -> x]  ...) ,y) (let*((al (filter (lambda(x)
+                                                   (match (cdr x)
+                                                     ((,x) (guard label? x) #t)
+                                                     (,else #f))) x))
+                                              (al (remap* al))
+                                              (expls (substitute-from-al* x al))
+                                              (y (Tail y al)))
+                                          `(letrec ,expls ,y)))))
+    
+    (define (optimize-jumps exp)                   ;get-trace-define
       (Program exp))
-    (flatten program))  
-)
+    (optimize-jumps program)))
