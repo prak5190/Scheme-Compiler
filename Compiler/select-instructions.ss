@@ -9,9 +9,6 @@
     (Framework match)
     (Framework helpers)
     (Compiler common))
-  
-  (define (var? exp)                   ;get-define
-    (or (register? exp) (frame-var? exp) (uvar? exp)))
     
   (define-who (select-instructions program)
     ;; Is it a tranisitive binary operator ?

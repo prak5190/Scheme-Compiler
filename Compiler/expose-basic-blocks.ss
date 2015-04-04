@@ -10,10 +10,7 @@
     (Framework match)
     (Framework helpers)
     (Compiler common))
-  
-  ;; A variable is a either a register or a frame variable 
-  (define (var? exp)                   ;get-trace-define
-                (or (register? exp) (frame-var? exp) (uvar? exp)))  
+    
   ;; extract-suffix name -> use this to enforce unique name
   ;; Using define-who macro 
   (define-who (expose-basic-blocks program)

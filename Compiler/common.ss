@@ -2,6 +2,7 @@
   (export
    get-conflict
    is-int64?
+   var?
    triv?
    binop?
    relop?
@@ -12,6 +13,7 @@
    effect-prim?
    pred-prim?
    prim?
+   make-nopless-begin
   )
   (import
     ;; Load Chez Scheme primitives:
@@ -19,7 +21,11 @@
     ;; Load compiler framework:
     (Framework match)
     (Framework helpers))
-  
+  (define (make-nopless-begin x*)
+    (let ([x* (remove '(nop) x*)])
+      (if (null? x*)
+          '(nop)
+          (make-begin x*))))
   (define (value-prim? exp)                   ;get-trace-define
     (define value-prim '((+ 2) (- 2) (* 2) (car 1) (cdr 1) (cons 2) (make-vector 1) (vector-length 1) (vector-ref 2) (void 0)))
     (and (assq exp value-prim) #t))
@@ -49,7 +55,7 @@
   ;; Matches only 64 bit and not 32 bit
   (define (is-int64? exp)
     (or (and (int64? exp) (not (int32? exp))) (label? exp)))
-
+  
   (define (triv? exp)
     (or (uvar? exp) (int64? exp) (label? exp)))
 

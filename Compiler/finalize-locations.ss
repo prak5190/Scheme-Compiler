@@ -9,11 +9,7 @@
     ;; Load compiler framework:
     (Framework match)
     (Framework helpers)
-    (Compiler common))
-
-  ;; A variable is a either a register or a frame variable 
-  (define (var? exp)                   ;get-trace-define
-                (or (register? exp) (frame-var? exp) (uvar? exp)))  
+    (Compiler common))  
   
   (define-who (finalize-locations program)
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv , Label
