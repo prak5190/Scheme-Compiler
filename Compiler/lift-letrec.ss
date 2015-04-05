@@ -15,7 +15,7 @@
       (cond
        ((null? expls) (values expls ls))
        (else (let*-values (((x ls) (Exp (car expls) ls))
-                           ((y ls) (Exp* (cdr expls) ls)))
+                           ((y ls) (Exp* (cdr expls) (cons x ls))))
                (values (cons x y) ls)))))
     
     (define (Exp exp ls)                   ;get-trace-define
@@ -42,7 +42,7 @@
                                   (values `(let ,(map (lambda(x y) `(,x ,y)) x y) ,z) ls)))
         ((letrec (,x ...) ,y) (let*-values (((x ls) (Exp* x ls))
                                             ((y ls) (Expr y ls)))
-                                (values `(let (,x ...) ,y) ls)))
+                                (values y ls)))
         ((quote ,x) (values exp ls))
         ((,x ,y ...) (guard prim? x) (let-values (((y ls) (Expr* y ls)))
                                        (values `(,x ,y ...) ls)))
