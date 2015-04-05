@@ -16,7 +16,7 @@
        ((null? expls) (values expls ls))
        (else (let*-values (((x ls) (Exp (car expls) ls))
                            ((y ls) (Exp* (cdr expls) (cons x ls))))
-               (values (cons x y) ls)))))
+               (values `(nop) ls)))))
     
     (define (Exp exp ls)                   ;get-trace-define
       (match exp
@@ -24,7 +24,7 @@
                                      (values `(,x (lambda (,y ...) ,z)) ls)))))
     (define (Expr* expls ls)
       (cond
-       ((null? expls) (values expls ls))
+       ((null? expls) (values '() ls))
        (else (let*-values (((x ls) (Expr (car expls) ls))
                            ((y ls) (Expr* (cdr expls) ls)))
                (values (cons x y) ls)))))
@@ -44,8 +44,8 @@
                                             ((y ls) (Expr y ls)))
                                 (values y ls)))
         ((quote ,x) (values exp ls))
-        ((,x ,y ...) (guard prim? x) (let-values (((y ls) (Expr* y ls)))
-                                       (values `(,x ,y ...) ls)))
+        ((,x ,y ...) (guard (prim? x)) (let-values (((y ls) (Expr* y ls)))
+                                         (values `(,x ,y ...) ls)))
         ((,x ...) (let-values (((x ls) (Expr* x ls)))
                     (values `(,x ...) ls)))
         (,else (values else ls))))
