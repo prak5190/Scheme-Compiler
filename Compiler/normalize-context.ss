@@ -60,8 +60,8 @@
         ((,x ,[Value -> y] ...) (guard (or (value-prim? x) (label? x) (uvar? x))) `(if (eq? (,x ,y ...) '#f) (false) (true)))
         ((,x ,[Value -> y] ...) (guard (effect-prim? x)) `(begin (,x ,y ...) (true)))
         ((,[Value -> x] ...) `(if (eq? (,x ...) '#f) (false) (true)))
-        (,x (guard (var? x)) x)
-        (,else  `(nop))))
+        (,x (guard (var? x)) `(if (eq? ,x '#f) (false) (true)))
+        (,else  `(true))))
     
     (define (Effect* expls)
       (cond
