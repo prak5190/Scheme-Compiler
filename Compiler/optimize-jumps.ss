@@ -33,13 +33,18 @@
         ((,x ...)  `(,(map (lambda(x) (substitute x al)) x) ...))))
     
     (define (remap* al)
-      (fold-left remap '() al))
-    (define (remap s al)
+      (map (lambda(x)
+             (remap x al)) al))
+      ;; (fold-left (lambda (s x)
+      ;;              (remap s x al))  '() al))
+    (define (remap al tal)
       (cond
-       ((null? al) s)
-       ((assq (cadr al) s) => (lambda(r) (cons `(,(car al) . ,(cdr r)) s)))
-       (else (cons al s))))
-
+       ((null? al) '())
+       ((assq (cadr al) tal) => (lambda(r)
+                                  (set-cdr! al (cdr (remap r tal)))
+                                  al))
+       (else al)))
+  
     (define (substitute-from-al* x al)
       (fold-left (lambda(s x)
                    (substitute-from-al s x al)) '() x))
