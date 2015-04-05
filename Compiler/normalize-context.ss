@@ -40,10 +40,10 @@
         ((quote ,x) exp)
         ((,x ,[Value -> y] ...) (guard (or (value-prim? x) (label? x) (uvar? x))) `(,x ,y ...))
         ((,x ,[Value -> y] ...) (guard (pred-prim? x)) `(if (,x ,y ...) '#t '#f))                
-        ((,x ,[Value -> y] ...) (guard (effect-prim? x)) `(begin (,x ,y ...) (nop)))
+        ((,x ,[Value -> y] ...) (guard (effect-prim? x)) `(begin (,x ,y ...) (void)))
         ((,x ...) (Value* x))
         (,x (guard (or (uvar? x) (label? x))) x)
-        (,else `(nop))))
+        (,else `(void))))
 
     (define (Pred exp)
       (match exp
