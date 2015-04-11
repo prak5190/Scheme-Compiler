@@ -13,6 +13,8 @@
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
     (Compiler verify-uil)
+    (Compiler uncover-free)
+    (Compiler convert-closures)
     (Compiler uncover-frame-conflict)
     (Compiler optimize-jumps)
     (Compiler select-instructions)
@@ -46,27 +48,31 @@
                       (* (vector-ref v.3 '0) (vector-ref v.4 '0))
                       (* (vector-ref v.3 '1) (vector-ref v.4 '1)))
                      '100)))))
-(define n '(letrec ()
-  (let ([x.1 '1] [y.2 '2] [a.3 '3] [b.4 '4] [p.5 (cons '#f '#t)])
-    (begin
-      (* (begin (set-car! p.5 '#t) x.1) y.2)
-      (if (if (car p.5) (if (< x.1 y.2) '#f '#t) '17)
-          (if (= a.3 b.4) '#f '#t)
-          (<= y.2 x.1))))))
-#;(pretty-print
- (normalize-context
- (lift-letrec n)))
+(define n '(letrec ([f.1 (lambda ()
+                    (letrec ([loop.2 (lambda (link.3)
+                                       (letrec ([anon.5 (lambda ()
+                                                          (link.3))])
+                                         anon.5))])
+                      (loop.2
+                        (letrec ([anon.4 (lambda () '668)]) anon.4))))])
+        ((f.1))))
 
-
-(define o1 '(letrec ([c$9 (lambda () (c$5))]
-         [a$10 (lambda () (if (= rax 40) (c$7) (a$8)))]
-         [c$7 (lambda () (c$5))]
-         [a$8 (lambda () (if (= rax 32) (c$5) (a$6)))]
-         [c$5 (lambda () (begin (set! rax (+ rax rax)) (r15)))]
-         [a$6 (lambda () (begin (set! rax (* rax 2)) (r15)))])
-  (begin (set! rax 40) (if (= rax 48) (c$5) (a$10)))))
-
+(define t1 '(let ((a.100 '1))
+(letrec ([fact.0 (lambda (n.3 k.4)
+                         (if (eq? n.3 '0)
+                             (k.4 '1)
+                             (fact.0 (- n.3 '1)
+                                     (letrec ([anon.5 (lambda (v.6)
+                                                        (k.4 (* n.3 v.6)))])
+                                       anon.5))))]
+               [anon.1 (lambda (v.2) (begin (fact.0 a.100 '2) v.2))])
+        (fact.0 '5 anon.1))))
 (pretty-print
- (optimize-jumps o1))
+ (convert-closures
+ (uncover-free
+  (verify-scheme t1))))
+
+
+
 
 
