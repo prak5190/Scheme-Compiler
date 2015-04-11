@@ -24,6 +24,7 @@
     (Compiler normalize-context)
     (Compiler verify-scheme)
     (Compiler uncover-locals)
+    (Compiler introduce-procedure-primitives)
     (Compiler remove-let)
     (Compiler discard-call-live)
     (Compiler assign-registers)
@@ -67,10 +68,12 @@
                                        anon.5))))]
                [anon.1 (lambda (v.2) (begin (fact.0 a.100 '2) v.2))])
         (fact.0 '5 anon.1))))
+
 (pretty-print
+ (introduce-procedure-primitives
  (convert-closures
  (uncover-free
-  (verify-scheme t1))))
+  (verify-scheme t1)))))
 
 
 
