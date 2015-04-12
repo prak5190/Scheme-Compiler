@@ -64,7 +64,7 @@
                                    ,tmp))))
           ((make-procedure ,label ,x) (let* ((tmp (unique-name 'tm))
                                              (size (+ disp-procedure-data (Value x))))
-                                        `(let ([,tmp (+ (alloc ,size) ,tag-vector)])
+                                        `(let ([,tmp (+ (alloc ,size) ,tag-procedure)])
                                            (begin
                                              (mset! ,tmp ,offset-procedure-length ,label)
                                              ,tmp))))

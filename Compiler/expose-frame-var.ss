@@ -45,12 +45,13 @@
         [(return-point ,x ,y) `(return-point ,x ,(Effect y))]
         [(set! ,fp (+ ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (+ fp-offset off)) exp]
         [(set! ,fp (- ,fp ,off)) (guard (eqv? fp frame-pointer-register)) (set! fp-offset (- fp-offset off)) exp]
-        [(set! ,[convertFrameVar -> x] (mref ,y ,off)) `(set! ,x ,(expose-memory y off))]
-        [(mset! ,x ,off ,[convertFrameVar -> v]) `(set! ,(expose-memory x off) ,v)]
+        ;[(set! ,[convertFrameVar -> x] (mref ,y ,off)) `(set! ,x ,(expose-memory y off))]
+        ;[(mset! ,x ,off ,[convertFrameVar -> v]) `(set! ,(expose-memory x off) ,v)]
         [(set! ,[convertFrameVar -> v] (,b ,[convertFrameVar -> t1] ,[convertFrameVar -> t2]))
          `(set! ,v (,b ,t1 ,t2))]
         [(set! ,[convertFrameVar -> v] ,[convertFrameVar -> t]) `(set! ,v ,t)]
-        [(,x)  `(,(convertFrameVar x))]))
+        [(,x)  `(,(convertFrameVar x))]
+        [,else else]))
     
     ;; Validate Tail
     (define (Tail exp)                   ;get-trace-define
