@@ -204,5 +204,5 @@
       
      (begin
        ;; Need to determine what the count should be
-       (unique-name-count 1000)
+       (unique-name-count 1100)
        (specify-representation program)))))
