@@ -40,7 +40,7 @@
         ((quote ,x)  exp)
         ((,x ,[Expr -> y] ...) (guard (prim? x)) `(,x ,y ...))
         ((,x ,[Expr -> y] ...) (guard (uvar? x))  `(,x ,x ,y ...))
-        ((,x ,[Expr -> y] ...)  (let ((cp.uniq (unique-name 'cp)))
+        ((,[Expr -> x] ,[Expr -> y] ...)  (let ((cp.uniq (unique-name 'cp)))
                                   `(let ((,cp.uniq ,x))
                                      (,cp.uniq ,cp.uniq ,y ...))))
         (,x (guard (uvar? x)) x)
@@ -48,7 +48,7 @@
            
     (define (Program exp)                   ;get-trace-define
       (Expr exp))
-
+    
     (define (convert-closures exp)                   ;get-trace-define
       ;; Need to determine what the count should be
       (unique-name-count 900)

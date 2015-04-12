@@ -12,6 +12,7 @@
     (Compiler specify-representation)
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
+    (Compiler expose-memory-operands)
     (Compiler verify-uil)
     (Compiler uncover-free)
     (Compiler convert-closures)
@@ -69,11 +70,19 @@
                [anon.1 (lambda (v.2) (begin (fact.0 a.100 '2) v.2))])
         (fact.0 '5 anon.1))))
 
+(define t15 '(let ([x.1 (cons '5 '10)])
+        (let ([z.2 (void)])
+          (if (set-car! x.1 '5)
+              z.2
+              (+ '5 '3)))))
 (pretty-print
+ (specify-representation
+ (normalize-context
+ (lift-letrec
  (introduce-procedure-primitives
  (convert-closures
  (uncover-free
-  (verify-scheme t1)))))
+  (verify-scheme t15))))))))
 
 
 
