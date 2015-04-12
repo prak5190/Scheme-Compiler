@@ -22,7 +22,7 @@
       (match exp
         ((,x (lambda (,y ...) (free ,fr ,[Expr -> z])))
          (let ((cp-uniq (unique-name 'cp)))           
-               (values `(,x (lambda (,cp-uniq ,y ...) (bind-free ,(cons cp-uniq fr) ,z)))
+               (values `(,(unique-label x) (lambda (,cp-uniq ,y ...) (bind-free ,(cons cp-uniq fr) ,z)))
                        (append `(,x ,(unique-label x)) fr))))))
     
     
