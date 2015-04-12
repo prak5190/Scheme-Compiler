@@ -87,7 +87,7 @@
                (values `(return-point ,n (begin
                                            ,exp2 ... ,exp1 ... ,rpset
                                            (,x ,return-address-register ,frame-pointer-register ,(reverse l1) ... ,(reverse l2) ...)))
-                       (let ((fls (filter (lambda(x) (not (null? x))) fls)))                         
+                       (let ((fls (filter (lambda(x) (not (null? x))) fls)))
                          (if (and (null? l2) (null? fls))                             
                              `()                                
                              `(,(reverse l2) ,fls ...))))))))
@@ -114,10 +114,10 @@
     (define (Effect exp ls fls)
       (match exp       
         ((if ,x ,y ,z) (let*-values (((x fls) (Pred x ls fls))
-                                     ((y ls) (Effect y ls fls))
-                                     ((z ls) (Effect z ls fls)))
+                                     ((y fls) (Effect y ls fls))
+                                     ((z fls) (Effect z ls fls)))
                          (values `(if ,x ,y ,z) fls)))
-        ((begin ,x ...) (let*-values (((x ls) (Effect* x ls fls)))
+        ((begin ,x ...) (let*-values (((x fls) (Effect* x ls fls)))
                           (values `(begin ,x ...) fls)))
         ((set! ,u (,x ,y ...)) (guard (triv? x)) (let*-values (((exp fls) (Value `(,x ,y ...) ls fls)))
                                                           (values (make-begin `(,exp (set! ,u ,return-value-register))) fls)))
@@ -127,7 +127,7 @@
         ;; ((,x ,y ,z) (guard (binop? x)) (let*-values (((pre1 e1 fls) (Value y ls fls))
         ;;                                              ((pre2 e2 fls) (Value z ls fls)))
         ;;                                  (values (append (append e1 e2) `((,x ,e1 ,e2))) fls)))
-        ((,x ,y ...) (guard (triv? x)) (Value exp ls fls))                     
+        ((,x ,y ...) (guard (triv? x)) (Value exp ls fls))
 
         (,else (values exp fls))))
     
