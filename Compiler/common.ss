@@ -36,7 +36,7 @@
     (and (assq exp effect-prim) #t))
   
   (define (pred-prim? exp)                   ;get-trace-define
-    (define pred-prim '((< 2) (<= 2) (= 2) (>= 2) (> 2) (boolean? 1) (eq? 2) (fixnum? 1) (null? 1) (pair? 1) (vector? 1)))
+    (define pred-prim '((< 2) (<= 2) (= 2) (>= 2) (> 2) (boolean? 1) (eq? 2) (fixnum? 1) (null? 1) (pair? 1)  (procedure? 1) (vector? 1)))
     (and (assq exp pred-prim) #t))
   
   (define (prim? exp)
