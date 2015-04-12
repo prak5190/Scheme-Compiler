@@ -36,7 +36,7 @@
         ((begin ,[Expr -> x] ...) `(begin ,x ... ))
         ((let ((,x ,[Expr -> y]) ...) ,[Expr -> z]) `(let ,(map (lambda(x y) `(,x ,y)) x y) ,z))
         ((letrec (,x ...) ,[Expr -> y]) (let*-values (((x ls) (Exp* x)))
-                                          `(letrec (,x ...) (closure ,ls ,y))))
+                                          `(letrec (,x ...) (closures ,ls ,y))))
         ((quote ,x)  exp)
         ((,x ,[Expr -> y] ...) (guard (prim? x)) `(,x ,y ...))
         ((,x ,[Expr -> y] ...) (guard (uvar? x))  `(,x ,x ,y ...))

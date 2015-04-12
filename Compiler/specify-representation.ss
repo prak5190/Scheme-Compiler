@@ -14,7 +14,10 @@
     (let* ((offset-car (- disp-car tag-pair))
            (offset-cdr (- disp-cdr tag-pair))
            (offset-vector-length (- disp-vector-length tag-vector))
-           (offset-vector-data (- disp-vector-data tag-vector)))      
+           ;;disp-procedure-code, and disp-procedure-data
+           (offset-procedure-length (- disp-procedure-code tag-procedure))
+           (offset-vector-data (- disp-vector-data tag-vector))
+           (offset-procedure-data (- disp-procedure-data tag-procedure)))      
       (define (Value* expls)
         (cond
          ((null? expls) expls)
@@ -59,11 +62,22 @@
                                  (begin
                                    (mset! ,tmp ,offset-vector-length ,x)
                                    ,tmp))))
+          ((make-procedure ,label ,x) (let* ((tmp (unique-name 'tm))
+                                             (size (+ disp-procedure-data (Value x))))
+                                        `(let ([,tmp (+ (alloc ,size) ,tag-vector)])
+                                           (begin
+                                             (mset! ,tmp ,offset-procedure-length ,label)
+                                             ,tmp))))
           ((vector-length ,x) (let* ((x (Value x)))
                                 `(mref ,x ,offset-vector-length)))
+          ((procedure-code ,x) `(mref ,(Value x) ,offset-procedure-length))
           ((vector-ref ,x ,y) (let* ((x (Value x))
                                      (y (Value y)))
                                 `(mref ,x (+ ,offset-vector-data ,y))))
+          ((procedure-ref ,x ,y) (let* ((x (Value x))
+                                        (y (Value y))
+                                        (size (+ offset-procedure-data y)))
+                                `(mref ,x ,size)))          
           ((void) (Immediate 'void))
           ((,x ,y ,z) (guard (binop? x)) (let* ((y (Value y))
                                                 (z (Value z)))
@@ -146,7 +160,12 @@
           ((vector-set! ,x ,y ,z) (let* ((x (Value x))
                                          (y (Value y))
                                          (z (Value z)))
-                                    `(mset! ,x (+ ,offset-vector-data ,y) ,z)))))
+                                    `(mset! ,x (+ ,offset-vector-data ,y) ,z)))
+          ((procedure-set! ,x ,y ,z) (let* ((x (Value x))
+                                            (y (Value y))
+                                            (z (Value z))
+                                            (size (+ offset-procedure-data y)))
+                                       `(mset! ,x ,size ,z)))))
       
       (define (Effect exp)
         (match exp

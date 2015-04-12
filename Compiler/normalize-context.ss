@@ -84,7 +84,7 @@
         ((,x ,[Value -> y] ...) (guard (or (uvar? x) (label? x))) `(,x ,y ...))
         ;; Ignore x in both case 
         ((,x ,[Effect -> y] ...) (guard (value-prim? x)) (make-nopless-begin y))
-        ((,x ,[Effect -> y] ...) (guard (pred-prim? x)) (make-nopless-begin y))        
+        ((,x ,[Effect -> y] ...) (guard (pred-prim? x)) (make-nopless-begin y))    
         ((,x ...) (Value* x))
         (,x (guard (var? x)) `(nop))
         (,else  `(nop))))

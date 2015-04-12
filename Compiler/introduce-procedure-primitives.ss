@@ -17,7 +17,7 @@
     (define (Exp exp)                   ;get-trace-define
       (match exp
         ((,x (lambda (,y ...) (bind-free ,ls ,z)))
-           `(,x (lambda (,y ...) ,(Expr z ls))))))
+           `(,(unique-label x) (lambda (,y ...) ,(Expr z ls))))))
     
     (define (Expr* exp ls)
       (map (lambda(x) (Expr x ls)) exp))
@@ -45,7 +45,7 @@
                          `(if ,x ,y ,z)))
         ((begin ,x ...) `(begin ,(Expr* x ls)... ))
         ((let ((,x ,y) ...) ,z) `(let ,(map (lambda(x y) `(,x ,y)) x (Expr* y ls)) ,(Expr z ls)))
-        ((letrec (,x ...) (closure ,lls ,y)) (let* ((x (Exp* x))
+        ((letrec (,x ...) (closures ,lls ,y)) (let* ((x (Exp* x))
                                                     (make-proc-ls (Closure* lls))
                                                     (proc-set-ls (get-proc-set* lls ls)))
                                                `(letrec (,x ...) (let ,make-proc-ls
