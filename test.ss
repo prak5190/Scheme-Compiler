@@ -12,6 +12,7 @@
     (Compiler expose-allocation-pointer)
     (Compiler specify-representation)
     (Compiler remove-anonymous-lambda)
+    (Compiler sanitize-binding-forms)              
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
     (Compiler expose-memory-operands)
@@ -53,13 +54,16 @@
                                    v.4099))
                                (+ x.3 '4))
                        )
+        (let ([x.41 '0] [f.21 (lambda (x.11) x.11)] [y.32 '1])
+          (+ x.41 (f.21 y.32)))
         (+ (a.2) ((lambda(x.31) (begin                                 
                                  (+ x.31 '4))
                          ) '4)))))))
 (pretty-print
+ (sanitize-binding-forms
  (remove-anonymous-lambda
   (optimize-direct-call
-   (verify-scheme t1))))
+   (verify-scheme t1)))))
 
 
 
