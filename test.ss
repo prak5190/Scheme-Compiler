@@ -11,6 +11,7 @@
     (Compiler optimize-direct-call)
     (Compiler expose-allocation-pointer)
     (Compiler specify-representation)
+    (Compiler remove-anonymous-lambda)
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
     (Compiler expose-memory-operands)
@@ -56,8 +57,9 @@
                                  (+ x.31 '4))
                          ) '4)))))))
 (pretty-print
- (optimize-direct-call
-  (verify-scheme t1)))
+ (remove-anonymous-lambda
+  (optimize-direct-call
+   (verify-scheme t1))))
 
 
 
