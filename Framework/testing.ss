@@ -353,7 +353,9 @@
 (define (result->string pass-result)
   (cond
     [(wrapper-violation? pass-result)
-     (list "Fail" "Wrapper violation")]
+     (list "Fail" (format "~a: ~s"
+       "wrapper violation"
+        pass-result))]    
     [(pass-verification-violation? pass-result)
      (list "Fail"
            (format "~a: ~s"
@@ -369,7 +371,9 @@
 (define (result->pass/fail pass-result)
   (cond
     [(wrapper-violation? pass-result)
-     "wrapper violation"]
+          (format "~a: ~s"
+       "wrapper violation"
+       (pass-verification-violation-pass pass-result))] 
     [(pass-verification-violation? pass-result)
      (format "~a: ~s"
        "wrapper answer verification error"
