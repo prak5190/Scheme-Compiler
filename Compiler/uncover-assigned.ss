@@ -21,7 +21,9 @@
     (define (Exp exp)                   ;get-trace-define
       (match exp
         ((,x (lambda (,y ...) ,z)) (let-values (((z ls) (Expr z)))
-                                     (values `(,x (lambda (,y ...) ,z)) ls)))))
+                                     (let* ((as-ls (intersection y ls))
+                                            (rem-ls (difference ls as-ls)))
+                                       (values `(,x (lambda (,y ...) (assigned ,as-ls ,z))) ls))))))
 
 
     
@@ -51,11 +53,11 @@
                                 (let* ((un-ls (union l1 l2))
                                        (as-ls (intersection (map car x) (union l1 l2)))
                                        (rem-ls (difference un-ls as-ls)))
-                                  (values `(letrec (,x ...) ,y) rem-ls))))
+                                  (values `(letrec (,x ...) (assigned ,as-ls ,y)) rem-ls))))
         ((lambda (,x ...) ,z) (let-values (((z ls) (Expr z)))
                                 (let* ((as-ls (intersection x ls))
                                        (rem-ls (difference ls as-ls)))
-                                  (values `(lambda (,x ...) ,z) ls))))
+                                  (values `(lambda (,x ...) (assigned ,as-ls ,z)) ls))))
         ((quote ,x) (values exp '()))
         ((set! ,x ,y) (let-values (((y ls) (Expr y)))
                         (values `(set! ,x ,y) (union `(,x) ls))))

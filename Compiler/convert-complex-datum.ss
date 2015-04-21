@@ -56,7 +56,7 @@
                                   (ls (map (lambda(x y)
                                              `(vector-set! ,n ,x ,(Quote y))) (iota x) y))
                                   (val `(let ((,n (make-vector (quote ,x))))
-                                          (begin ,ls ,n))))
+                                          (begin ,ls ... ,n))))
                              (values n `((,n ,val)))))
         ((quote ,x) (guard (not (list? x))) (values exp '()))
         ((quote ,x) (let ((n (unique-name 'tmp)))                  
