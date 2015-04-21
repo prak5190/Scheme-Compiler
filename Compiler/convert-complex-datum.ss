@@ -51,6 +51,13 @@
                                 (values `(letrec (,x ...) ,y) (append l1 l2))))
         ((lambda (,x ...) ,z) (let-values (((z ls) (Expr z)))
                                 (values `(lambda (,x ...) ,z) ls)))
+        ((quote #(,y ...)) (let* ((x (length y))
+                                  (n (unique-name 'tmp))
+                                  (ls (map (lambda(x y)
+                                             `(vector-set! ,n ,x ,(Quote y))) (iota x) y))
+                                  (val `(let ((,n (make-vector (quote ,x))))
+                                          (begin ,ls ,n))))
+                             (values n `((,n ,val)))))
         ((quote ,x) (let ((n (unique-name 'tmp)))                  
                       (values n `((,n ,(Quote x))))))        
         ((,x ,y ...) (guard (prim? x)) (let-values (((y ls) (Expr* y)))
@@ -61,7 +68,7 @@
         (,else (values exp '()))))
     
     (define (Program exp)                   ;get-trace-define
-      (unique-name-count 800)      
+      ;; (unique-name-count 800)      
       (let-values (((exp ls) (Expr exp)))
         (if (null? ls)
             exp

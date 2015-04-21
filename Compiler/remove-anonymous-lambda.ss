@@ -41,7 +41,7 @@
       (Expr exp))
 
     (define (remove-anonymous-lambda exp)                   ;get-trace-define
-      (unique-name-count 700)
-      (Program exp))
+      ;; (unique-name-count 700)
+      (program exp))                    
     
     (remove-anonymous-lambda program)))

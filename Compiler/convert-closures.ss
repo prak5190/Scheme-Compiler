@@ -51,7 +51,7 @@
     
     (define (convert-closures exp)                   ;get-trace-define
       ;; Need to determine what the count should be
-      (unique-name-count 800)
+
       (Program exp))
     
     (convert-closures program)))

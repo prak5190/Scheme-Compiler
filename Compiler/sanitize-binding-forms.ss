@@ -41,7 +41,7 @@
       (Expr exp))
 
     (define (sanitize-binding-forms exp)                   ;get-trace-define
-      (unique-name-count 700)
+      ;; (unique-name-count 700)
       (Program exp))
     
     (sanitize-binding-forms program)))
