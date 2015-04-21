@@ -2,13 +2,7 @@
 module FrameworkHs.Helpers
   (
     -- * Types for compiler configuration and construction
-    P423Config ( P423Config
-               , framePointerRegister
-               , allocationPointerRegister
-               , returnAddressRegister
-               , returnValueRegister
-               , parameterRegisters
-               )
+    P423Config (.. )
   , PassM, getConfig, runPassM, orPassM
   , P423Exception ( AssemblyFailedException
                   , ParseErrorException
@@ -129,6 +123,7 @@ data P423Config =
     , returnAddressRegister :: Reg
     , returnValueRegister :: Reg
     , parameterRegisters :: [Reg]
+    , runWrappers :: Bool  
     }
 
 -- | A monad for implementing passes.  It provides access to the global
@@ -533,6 +528,53 @@ instance PP Reg where
     R13 -> fromString "r13"
     R14 -> fromString "r14"
     R15 -> fromString "r15"
+
+instance PP EffectPrim where
+  pp b = case b of
+    SetCar    -> fromString "set-car!"
+    SetCdr    -> fromString "set-cdr!"
+    VectorSet -> fromString "vector-set!"
+    ProcedureSet -> fromString "procedure-set!"
+
+instance PP PredPrim where
+  pp p = fromString $ case p of
+    Lt -> "<" ; Lte -> "<=" ; Eq -> "=" ; Gte -> ">=" ; Gt -> ">"
+    BooleanP -> "boolean?" ; EqP -> "eq?" ; FixnumP -> "fixnum?"
+    NullP -> "null?" ; PairP -> "pair?" ; VectorP -> "vector?"
+    ProcedureP -> "procedure?"
+
+instance PP ValPrim where
+  pp p = fromString$ case p of    
+    Times -> "*" ; Plus -> "+" ; Minus -> "-"; Car -> "car" ; Cdr -> "cdr" ; Cons -> "cons"
+    MakeVector -> "make-vector" ; VectorLength -> "vector-length" ; VectorRef -> "vector-ref"
+    Void -> "void"
+    MakeProcedure -> "make-procedure" ; ProcedureCode -> "procedure-code" ; ProcedureRef -> "procedure-ref"
+
+instance PP Immediate where
+  pp p = fromString$ case p of
+    Fixnum i -> show i
+    NullList -> "()"
+    HashT -> "#t"
+    HashF -> "#f"
+
+instance PP Datum where
+  pp p = case p of
+    PairDatum car cdr ->
+      case gatherPairs cdr of
+        Just ls -> parens (pp car `mappend` (mconcat (map ((spc `mappend`) . pp) ls)))
+        Nothing -> parens (pp car `mappend` (fromString " . ") `mappend` pp cdr)
+    VectorDatum ls -> fromString "#" `mappend`
+                      parens (mconcat (intersperse spc (map pp ls)))
+    ImmediateDatum i -> pp i
+   where
+     spc        = fromString " "
+     parens bld = fromString "(" `mappend` bld `mappend` fromString ")"
+     gatherPairs (ImmediateDatum NullList) = Just []
+     gatherPairs (PairDatum x y) = 
+        case gatherPairs y of
+           Nothing -> Nothing
+           Just ls -> Just (x:ls)
+     gatherPairs _ = Nothing
 
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
