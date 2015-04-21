@@ -10,6 +10,7 @@
     (Compiler remove-complex-opera*)
     (Compiler optimize-direct-call)
     (Compiler expose-allocation-pointer)
+    (Compiler uncover-assigned)
     (Compiler specify-representation)
     (Compiler convert-complex-datum) 
     (Compiler optimize-known-call)
@@ -50,9 +51,16 @@
   (optimize-direct-call
 (verify-scheme t1)))))
 
-(define t1 '(eq? '(2) (cdr '(1 2))))
+(define t1 '(let ((f.2 (lambda() '(2 3))))
+              (let ([f.1 (lambda () '(1 2))]
+                    [x.4 '1])
+                (begin                  
+                  (eq? (eq? (f.1) (f.1)) '#(32 (33 33) 34))
+                  (set! x.4 (+ x.4 x.4))))))
+
 (pretty-print
- (convert-complex-datum t1))
+ (uncover-assigned
+ (convert-complex-datum t1)))
 
 
 
@@ -60,6 +68,4 @@
 
 
 
-(let ((f.2 (lambda() '(2 3))))
-  (let ([f.1 (lambda () '(1 2))])
-    (eq? (f.1) (f.1))))
+
