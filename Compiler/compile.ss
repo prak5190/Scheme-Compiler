@@ -36,6 +36,7 @@
     (Compiler assign-registers)
     (Compiler everybody-home)
     (Compiler assign-frame)
+    (Compiler expose-allocation-pointer)
     (Compiler finalize-frame-locations)
     (Compiler discard-call-live)
     (Compiler finalize-locations)

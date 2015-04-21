@@ -197,7 +197,7 @@
 ;;;   whether grammar verification is performed inside each wrapper.
 
 
-(library (Framework helpers aux)
+(library (Framework helpers aux2)
   (export
     word-shift
     max-frame-var)
@@ -257,7 +257,7 @@
     )
   (import
     (chezscheme)
-    (Framework helpers aux)
+    (Framework helpers aux2)
     (Framework match))
 
 (define-syntax define-who
