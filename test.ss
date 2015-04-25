@@ -66,13 +66,18 @@
               (begin 
                 ;(set! f.2 (lambda (x.4) (- x.4 '1)))
                 (+ (f.2  '1) (g.1 '1)))))
-
+(define t108 '((letrec ([length.391 (lambda (ptr.392)
+                              (if (null? ptr.392)
+                                  '0
+                                  (+ '1 (length.391 (cdr ptr.392)))))])
+                 length.391)
+               '(5 10 11 5 15)))
 (pretty-print
- (convert-assignments
+(convert-assignments
  (purify-letrec
  (uncover-assigned
  (convert-complex-datum
-  (verify-scheme t2))))))
+  (verify-scheme t108))))))
 
 
 
