@@ -25,7 +25,7 @@
           ((if ,[Expr -> x] ,[Expr -> y] ,[Expr -> z]) `(if ,x ,y ,z))
           ((begin ,[Expr -> x] ...) `(begin ,x ...))
           ((let ((,x ,y) ...) (assigned ,als ,z)) (let* ((y (map (lambda(y) (Expr y)) y))
-                                                         (tx-ls (map (lambda(y x) `(,(unique-name (string->symbol (extract-root x))) y)) y x))
+                                                         (tx-ls (map (lambda(y x) `(,(unique-name (string->symbol (extract-root x))) ,y)) y x))
                                                          (cons-ls (map (lambda (x y) `(,x (cons ,y (void)))) x (map car tx-ls)))
                                                          (z (OExpr z (union als ls))))
                                                     `(let ,tx-ls (let ,cons-ls ,z))))

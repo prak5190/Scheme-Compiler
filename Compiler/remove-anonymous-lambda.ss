@@ -26,7 +26,7 @@
         ((if ,[Expr -> x] ,[Expr -> y] ,[Expr -> z]) `(if ,x ,y ,z))
         ((begin ,[Expr -> x] ...) `(begin ,x ...))
         ((let ((,x ,[NExpr -> y]) ...) ,[Expr -> z]) (let ((ls (map (lambda(x y) `(,x ,y)) x y)))
-                                           `(let ,ls ,z)))
+                                                       `(let ,ls ,z)))
         ((letrec (,[Exp -> x] ...) ,[Expr -> y]) `(letrec (,x ...) ,y))        
         ((lambda (,x ...) ,[Expr -> z]) (let ((uniq (unique-name 'anon)))                                          
                                           `(letrec ((,uniq (lambda (,x ...) ,z)))
@@ -42,6 +42,6 @@
 
     (define (remove-anonymous-lambda exp)                   ;get-trace-define
       ;; (unique-name-count 700)
-      (program exp))                    
+      (Program exp))                    
     
     (remove-anonymous-lambda program)))
