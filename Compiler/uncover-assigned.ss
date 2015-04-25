@@ -11,20 +11,20 @@
     (Compiler common))
   
   (define-who (uncover-assigned program)        
-    (define (Exp* expls)
+    (define (Exp* expls yls)
       (cond
        ((null? expls) (values expls '()))
-       (else (let*-values (((x l1) (Exp (car expls)))
-                           ((y l2) (Exp* (cdr expls))))
+       (else (let*-values (((x l1) (Exp (car expls) yls))
+                           ((y l2) (Exp* (cdr expls) yls)))
                (values (cons x y) (union l1 l2))))))
 
-    (define (Exp exp)                   ;get-trace-define
+    (define (Exp exp y)                   ;get-trace-define
       (match exp
-        ((,x (lambda (,y ...) ,z)) (let-values (((z ls) (Expr z)))
-                                     (let* ((as-ls (intersection y ls))
-                                            (rem-ls (difference ls as-ls)))
-                                       (values `(,x (lambda (,y ...) (assigned ,as-ls ,z))) ls))))))
-
+        ((,x ,z) (let-values (((z ls) (Expr z)))
+                   (let* ((as-ls (intersection y ls))
+                          (rem-ls (difference ls as-ls)))
+                     (values `(,x ,z) ls))))))
+    
 
     
     (define (Expr* expls)
@@ -48,7 +48,7 @@
                                          (as-ls (intersection x (union l1 l2)))
                                          (rem-ls (difference un-ls as-ls)))
                                     (values `(let ,(map (lambda(x y) `(,x ,y)) x y) (assigned ,as-ls ,z)) rem-ls))))
-        ((letrec (,x ...) ,y) (let*-values (((x l1) (Exp* x))
+        ((letrec (,x ...) ,y) (let*-values (((x l1) (Exp* x (map car x)))
                                             ((y l2) (Expr y)))
                                 (let* ((un-ls (union l1 l2))
                                        (as-ls (intersection (map car x) (union l1 l2)))

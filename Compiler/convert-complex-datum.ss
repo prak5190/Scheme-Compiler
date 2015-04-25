@@ -20,8 +20,8 @@
 
     (define (Exp exp)                   ;get-trace-define
       (match exp
-        ((,x (lambda (,y ...) ,z)) (let-values (((z ls) (Expr z)))
-                                     (values `(,x (lambda (,y ...) ,z)) ls)))))
+        ((,x ,z) (let-values (((z ls) (Expr z)))
+                   (values `(,x ,z) ls)))))
 
     (define (Quote exp)
       (match exp
