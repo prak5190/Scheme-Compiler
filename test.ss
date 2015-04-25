@@ -11,6 +11,7 @@
     (Compiler optimize-direct-call)
     (Compiler expose-allocation-pointer)
     (Compiler uncover-assigned)
+    (Compiler convert-assignments)
     (Compiler specify-representation)
     (Compiler convert-complex-datum) 
     (Compiler optimize-known-call)
@@ -67,10 +68,11 @@
                 (+ (f.2  '1) (g.1 '1)))))
 
 (pretty-print
+ (convert-assignments
  (purify-letrec
  (uncover-assigned
  (convert-complex-datum
-  (verify-scheme t2)))))
+  (verify-scheme t2))))))
 
 
 
