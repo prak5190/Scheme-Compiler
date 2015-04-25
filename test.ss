@@ -15,6 +15,7 @@
     (Compiler convert-complex-datum) 
     (Compiler optimize-known-call)
     (Compiler remove-anonymous-lambda)
+    (Compiler purify-letrec)
     (Compiler sanitize-binding-forms)              
     (Compiler flatten-set!)
     (Compiler impose-calling-conventions)
@@ -58,9 +59,18 @@
                   (eq? (eq? (f.1) (f.1)) '#(32 (33 33) 34))
                   (set! x.4 (+ x.4 x.4))))))
 
+(define t2 '(letrec ((f.2 (lambda (x.5) (+ x.5 '1)))
+                     (g.1 (lambda (y.3) (set! f.2 '22)))
+                     (a.7 '23))
+              (begin 
+                ;(set! f.2 (lambda (x.4) (- x.4 '1)))
+                (+ (f.2  '1) (g.1 '1)))))
+
 (pretty-print
+ (purify-letrec
  (uncover-assigned
- (convert-complex-datum t1)))
+ (convert-complex-datum
+  (verify-scheme t2)))))
 
 
 
