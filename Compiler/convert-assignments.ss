@@ -48,7 +48,7 @@
                                                       `(lambda (,new-x ...) ,z)
                                                       `(lambda (,new-x ...) (let ,cons-ls  ,z)))))
           ((quote ,x) exp)
-          ((set! ,[Expr -> y] ...) `(set-car! ,y ...))
+          ((set! ,y ,[Expr -> z] ...) `(set-car! ,y ,z ...))
           ((,x ,[Expr -> y] ...) (guard (prim? x)) `(,x ,y ...))
           ((,[Expr -> x] ...) `(,x ...))
           (,x (guard (uvar? x)) (if (memq x ls)
