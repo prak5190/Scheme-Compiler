@@ -63,7 +63,7 @@
         ((quote #(,y ...)) (let* ((n1 (unique-name 'tmp))                                  
                                   (val (Vector y)))
                              (values n1 `((,n1 ,val)))))
-        ((quote ,x) (guard (not (list? x))) (values exp '()))
+        ((quote ,x) (guard (not (pair? x))) (values exp '()))
         ((quote ,x) (let ((n (unique-name 'tmp)))                  
                       (values n `((,n ,(Quote x))))))        
         ((,x ,y ...) (guard (prim? x)) (let-values (((y ls) (Expr* y)))
