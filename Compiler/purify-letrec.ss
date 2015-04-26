@@ -48,7 +48,7 @@
 
     (define (Expr-ls exp ls)
       (let* ((Expr (lambda(x) (Expr-ls x ls)))
-             (notin? (lambda(x) (memq x ls))))
+             (notin? (lambda(x) (not (memq x ls)))))
         (match exp
           ((if ,x ,y ,z) (andmap Expr `(,x ,y ,z)))
           ((begin ,x ...) (andmap Expr x))
