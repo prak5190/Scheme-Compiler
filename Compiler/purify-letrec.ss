@@ -25,7 +25,7 @@
     
     (define (Exp xls yls body als)                   ;get-trace-define
       (let* ((expls (map (lambda(x y) `(,x ,y)) xls yls)))
-        (let*-values (((simp expls) (partition (lambda(x) (and (not (memq (car x) als)) (is-simple (cadr x) xls))) expls))
+        (let*-values (((simp expls) (partition (lambda(x) (and (not (memq (car x) als)) (is-simple x xls))) expls))
                       ((lamb complex) (partition (lambda(x) (and (not (memq (car x) als)) (is-lambda x))) expls)))
           (if (null? complex)
               `(let ,simp (assigned () (letrec ,lamb
@@ -34,15 +34,15 @@
                      (comp-ass (intersection (map car complex) als))
                      (als (difference als comp-ass))
                      (comp-temp (map (lambda(x) `(,(unique-name 't) ,(cadr x))) complex))
-                     (comp-set-ls (map (lambda (x y) `(set! ,x ,y)) (map car complex) (map car comp-temp))))                 
+                     (comp-set-ls (map (lambda (x y) `(set! ,x ,y)) (map car complex) (map car comp-temp))))
                 `(let ,simp
                    (assigned ()
                              (let ,comp-init
                                (assigned ,comp-ass
                                          (letrec ,lamb
                                            (let ,comp-temp
-                                             (assigned ()
-                                                       ,(make-begin (append comp-set-ls (cons `(assigned ,als ,body) '())))))))))))))))
+                                             (assigned ,als
+                                                       ,(make-begin (append comp-set-ls `(,body) ))))))))))))))
     
     
 
