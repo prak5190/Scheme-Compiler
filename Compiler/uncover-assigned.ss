@@ -57,7 +57,7 @@
         ((lambda (,x ...) ,z) (let-values (((z ls) (Expr z)))
                                 (let* ((as-ls (intersection x ls))
                                        (rem-ls (difference ls as-ls)))
-                                  (values `(lambda (,x ...) (assigned ,as-ls ,z)) ls))))
+                                  (values `(lambda (,x ...) (assigned ,as-ls ,z)) rem-ls))))
         ((quote ,x) (values exp '()))
         ((set! ,x ,y) (let-values (((y ls) (Expr y)))
                         (values `(set! ,x ,y) (union `(,x) ls))))
