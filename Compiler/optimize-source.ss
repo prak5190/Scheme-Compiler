@@ -33,7 +33,7 @@
       (match x
         ((quote ,x)  (guard (number? x)) #t)
         (,else #f)))
-    (define (is-constant-bool? x)
+    (define (is-constant-or-bool? x)
       (match x
         ;; Even number can work since normalize-context would transform it to a true exp anyway
         ((quote ,x)  (guard (or (boolean? x) (number? x))) #t)
@@ -59,14 +59,14 @@
         ((if ,x ,y ,z) (let*-values (((x ls) (Expr x ls))
                                      ((y ls) (Expr y ls))
                                      ((z ls) (Expr z ls)))
-                         (if (is-constant-bool? x)
+                         (if (is-constant-or-bool? x)
                              (if (get-unquoted x) (values y ls) (values z ls))
                              (values `(if ,x ,y ,z) ls))))        
         ((begin ,x ...) (let*-values (((x ls) (Expr* x ls)))
                           (values `(begin ,x ... ) ls)))
         ((let ((,x ,y) ...) ,z) (let*-values (((y ls) (Expr* y ls))
                                               ((letls l1) (partition (lambda(x)
-                                                                      (not (is-constant? (cadr x))))
+                                                                       (not (is-constant-or-bool? (cadr x))))
                                                                      (map (lambda(x y) `(,x ,y)) x y)))
                                               ((z ls) (Expr z (append l1 ls))))
                                   (if (null? letls)
