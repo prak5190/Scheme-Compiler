@@ -35,7 +35,7 @@
               
               
     (define (Env-Prim exp env ls)
-      (let ((Expr (lambda(xs) (Expr xs env ls))))
+      (let ((Expr (lambda(x) (Expr x env ls))))
         (match exp
           ((,x ,[Expr -> y] ...) (guard (prim? x)) (if (eqv? (length y) (get-prim-arg-length x))
                                                        `(,x ,y ...)
@@ -67,11 +67,12 @@
                                                   (z (make-begin (map (lambda(z) (ExprLs z xls)) z))))
                                              `(let ,letls ,z))))
           ((letrec ,x ...) (error who "Malformed letrec expression ~s" exp))
-          ((lambda (,x ...) ,z ...) (begin
-                                      (check-unique x exp)
-                                      (let* ((xls (map (lambda(x) `(,x ,(unique-name x))) x))                                           
-                                             (z (make-begin (map (lambda(z) (ExprLs z xls)) z))))
-                                        `(lambda ,x ,z))))
+          ((lambda ,x ,z ...) (begin
+                                (check-unique x exp)
+                                (let* ((xls (map (lambda(x) `(,x ,(unique-name x))) x))
+                                       (x (map cadr xls))
+                                       (z (make-begin (map (lambda(z) (ExprLs z xls)) z))))
+                                  `(lambda ,x ,z))))
           ((lambda ,x ...) (error who "Invalid lambda expression ~s" exp))
           ((begin ,[Expr -> x] ... ,[Expr -> y]) `(begin ,x ... ,y))
           ((begin ,x ...) (error who "Malformed begin expression ~s" exp))
@@ -117,7 +118,7 @@
     
     
     (define (Program exp)                   ;get-trace-define
-      (let* ((main-prims '(let if begin letrec and or quote set! not))             
+      (let* ((main-prims '(let if begin letrec and or quote set! not lambda))             
              (env (append (map (lambda(x) `(,x ,Init-Env)) main-prims)
                           (map (lambda(x) `(,x ,Env-Prim)) (append (map car pred-prim)
                                                                    (append (map car value-prim)
