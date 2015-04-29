@@ -48,13 +48,18 @@
 
 
 
-(define t1 '(if '#f
-                (let ((k.1 (+ '1 (+ '2 (+ '3 '4)))))
-                  (+ k.1 '2))
+(define t1 '(if '#t
+                (let ((k.3 '()))
+                  (let ((k.1 (+ '1 (+ '2 (+ '3 '4)))) (k.2 k.3))
+                    (+ k.1 '2)))
                 '20))
+(define t2 '(let ((k.1 '()))
+              (if (null? k.1)
+                  '2
+                  '1)))
 
 (pretty-print
- (optimize-source t1))
+ (optimize-source t2))
 
 
 

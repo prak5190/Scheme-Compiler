@@ -31,15 +31,18 @@
 
     (define (is-constant? x)
       (match x
+        ((quote ()) #t)
         ((quote ,x)  (guard (number? x)) #t)
         (,else #f)))
     (define (is-constant-or-bool? x)
       (match x
+        ((quote ()) #t)
         ;; Even number can work since normalize-context would transform it to a true exp anyway
         ((quote ,x)  (guard (or (boolean? x) (number? x))) #t)
         (,else #f)))
     (define (get-unquoted exp)
       (match exp
+        ((quote ()) ''())
         ((quote ,x) x)
         (,e e)))
       
@@ -49,7 +52,7 @@
 
     (define (apply-op exp)
       (match exp
-        ((,o (quote ,x) ...) (let ((val (eval `(,o ,x ...))))
+        ((,o ,[get-unquoted -> x] ...) (let ((val (eval `(,o ,x ...))))
                                       (if (or (fixnum? val) (boolean? val))
                                           `',val
                                           exp)))))
@@ -69,9 +72,10 @@
                                                                        (not (is-constant-or-bool? (cadr x))))
                                                                      (map (lambda(x y) `(,x ,y)) x y)))
                                               ((z ls) (Expr z (append l1 ls))))
-                                  (if (null? letls)
-                                      (values z (append l1 ls))                                      
-                                      (values `(let ,letls ,z) (append l1 ls)))))
+                                  (let* ((letls (filter (lambda(x) (memq (car x) ls)) letls)))
+                                    (if (null? letls)
+                                        (values z (append l1 ls))                                      
+                                        (values `(let ,letls ,z) (append l1 ls))))))
         ((letrec (,x ...) ,y) (let*-values (((x ls) (Exp* x ls))
                                             ((y ls) (Expr y ls)))
                                 (values y ls)))
@@ -84,8 +88,8 @@
         ((,x ...) (let-values (((x ls) (Expr* x ls)))
                     (values `(,x ...) ls)))
         (,x (guard (uvar? x)) (cond
-                               ((assq x ls) => (lambda(r) (values (cadr r) ls)))
-                               (else (values x ls))))
+                               ((assq x ls) => (lambda(r) (values (cadr r) (cons x ls))))
+                               (else (values x (cons x ls)))))
         (,else (values else ls))))
            
     (define (Program exp)                   ;get-trace-define
