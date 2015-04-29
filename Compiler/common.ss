@@ -31,11 +31,9 @@
           '(nop)
           (make-begin x*))))
   (define value-prim '((+ 2) (- 2) (* 2) (car 1) (cdr 1) (cons 2) (make-vector 1) (vector-length 1) (vector-ref 2)
-                       (procedure-code 3) (procedure-ref 2) (make-procedure 2) (void 0)))
-  (define (value-prim? exp)                   ;get-trace-define
-  
-    (and (assq exp value-prim) #t))
-
+                       (procedure-code 3) (procedure-ref 2) (make-procedure 2) (void 0)))  
+  (define (value-prim? exp)                   ;get-trace-define  
+    (and (assq exp value-prim) #t))  
   (define effect-prim '((procedure-set! 3) (set-car! 2) (set-cdr! 2) (vector-set! 3)))
   (define (effect-prim? exp)                   ;get-trace-define    
     (and (assq exp effect-prim) #t))

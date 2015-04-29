@@ -18,6 +18,7 @@
     (Compiler convert-closures)
     (Compiler optimize-known-call)
     (Compiler introduce-procedure-primitives)
+    (Compiler optimize-source)
     (Compiler lift-letrec)
     (Compiler normalize-context)
     (Compiler specify-representation)
