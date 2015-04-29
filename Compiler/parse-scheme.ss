@@ -99,7 +99,7 @@
           
     (define (Expr exp env ls)
       (match exp
-        (,x (guard (integer? x)) (if (fixnum? x)
+        (,x (guard (number? x)) (if (fixnum? x)
                                      `',x
                                      (error who "~s is not in fixnum range" x)))
         (#t `'#t)
@@ -117,14 +117,14 @@
     
     
     (define (Program exp)                   ;get-trace-define
-      (let* ((main-prims '(let if begin letrec and or quote set!))             
+      (let* ((main-prims '(let if begin letrec and or quote set! not))             
              (env (append (map (lambda(x) `(,x ,Init-Env)) main-prims)
                           (map (lambda(x) `(,x ,Env-Prim)) (append (map car pred-prim)
                                                                    (append (map car value-prim)
                                                                            (map car effect-prim)))))))
         (Expr exp env '())))
 
-    (trace-define (parse-scheme exp)                   ;get-trace-define      
+    (define (parse-scheme exp)                   ;get-trace-define      
       (Program exp))
     
     (parse-scheme program)))
