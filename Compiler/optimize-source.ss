@@ -33,7 +33,16 @@
       (match x
         ((quote ,x)  (guard (number? x)) #t)
         (,else #f)))
-    
+    (define (is-constant-bool? x)
+      (match x
+        ;; Even number can work since normalize-context would transform it to a true exp anyway
+        ((quote ,x)  (guard (or (boolean? x) (number? x))) #t)
+        (,else #f)))
+    (define (get-unquoted exp)
+      (match exp
+        ((quote ,x) x)
+        (,e e)))
+      
     (define (is-foldable-prim? x)
       (or (memq x '(+ - *))
           (assq x pred-prim)))
@@ -49,8 +58,10 @@
       (match exp
         ((if ,x ,y ,z) (let*-values (((x ls) (Expr x ls))
                                      ((y ls) (Expr y ls))
-                                     ((z ls) (Expr z ls)))                         
-                         (values `(if ,x ,y ,z) ls)))
+                                     ((z ls) (Expr z ls)))
+                         (if (is-constant-bool? x)
+                             (if (get-unquoted x) (values y ls) (values z ls))
+                             (values `(if ,x ,y ,z) ls))))        
         ((begin ,x ...) (let*-values (((x ls) (Expr* x ls)))
                           (values `(begin ,x ... ) ls)))
         ((let ((,x ,y) ...) ,z) (let*-values (((y ls) (Expr* y ls))
