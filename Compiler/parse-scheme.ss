@@ -23,13 +23,13 @@
       
     (define (Datum exp)
       (match exp
-        ;;(#(,[Datum -> x] ...) `"#",x)
+        (#(,[Datum -> x] ...) exp)
         (,x (guard (integer? x)) (if (fixnum? x)
-                                     `,x
+                                     exp
                                      (error who "~s is not in fixnum range" x)))
-        (#t '#t)
-        (#f '#f)
-        (() (quote ()))
+        (#t exp)
+        (#f exp)
+        (() exp)
         (,x (guard (symbol? x)) x)
         ((,[Datum -> x] . ,[Datum -> y]) `(,x . ,y))
         (else (error who "Invalid exp 11111" exp))))
@@ -48,7 +48,7 @@
       (let ((Expr (lambda(x) (Expr x env ls)))
             (ExprLs (lambda(x l) (Expr x env (append l ls)))))
         (match exp
-          ((quote ,[Datum -> x])  `(quote ,x))          
+          ((quote ,[Datum -> x])  `(quote ,x))
           ((quote ,x ...) (error who "Invalid quote ~s" exp))
           ((if ,[Expr -> x] ,[Expr -> y]) `(if ,x ,y (void)))
           ((if ,[Expr -> x] ,[Expr -> y] ,[Expr -> z]) `(if ,x ,y ,z))
