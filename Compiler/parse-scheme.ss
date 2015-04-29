@@ -17,9 +17,11 @@
             #t
             (let ((x (car x*))
                   (x* (cdr x*)))
-              (if (memq x x*)
-                  (error who "Duplicate var ~s declared  in Expr ~s" x exp)
-                  (f x*))))))
+              (if (not (symbol? x))
+                  (error who "Should be a symbol " x exp)
+                  (if (memq x x*)
+                      (error who "Duplicate var ~s declared  in Expr ~s" x exp)
+                      (f x*)))))))
       
     (define (Datum exp)
       (match exp
@@ -53,27 +55,27 @@
           ((if ,[Expr -> x] ,[Expr -> y]) `(if ,x ,y (void)))
           ((if ,[Expr -> x] ,[Expr -> y] ,[Expr -> z]) `(if ,x ,y ,z))
           ((if ,x ...) (error who "Incorrect Number of args to if in expression ~s" exp))
-          ((let ((,x ,[Expr -> y]) ...) ,z ...) (begin
+          ((let ((,x ,[Expr -> y]) ...) ,z1 ,z ...) (begin
                                                   (check-unique x exp)
                                                   (let* ((xls (map (lambda(x) `(,x ,(unique-name x))) x))
                                                          (letls (map (lambda(x y) `(,(cadr x) ,y)) xls y))
-                                                         (z (make-begin (map (lambda(z) (ExprLs z xls)) z))))
+                                                         (z (make-begin (map (lambda(z) (ExprLs z xls)) (cons z1 z)))))
                                                     `(let ,letls ,z))))
           ((let ,x ...) (error who "Malformed let expression ~s" exp))
-          ((letrec ((,x ,y) ...) ,z ...) (begin
+          ((letrec ((,x ,y) ...) ,z1 ,z ...) (begin
                                            (check-unique x exp)
                                            (let* ((xls (map (lambda(x) `(,x ,(unique-name x))) x))
                                                   (y (map (lambda(y) (ExprLs y xls)) y))
                                                   (letls (map (lambda(x y) `(,(cadr x) ,y)) xls y))
-                                                  (z (make-begin (map (lambda(z) (ExprLs z xls)) z))))
+                                                  (z (make-begin (map (lambda(z) (ExprLs z xls)) (cons z1 z)))))
                                              `(letrec ,letls ,z))))
           ((letrec ,x ...) (error who "Malformed letrec expression ~s" exp))
-          ((lambda ,x ,z ...) (begin
-                                (check-unique x exp)
-                                (let* ((xls (map (lambda(x) `(,x ,(unique-name x))) x))
-                                       (x (map cadr xls))
-                                       (z (make-begin (map (lambda(z) (ExprLs z xls)) z))))
-                                  `(lambda ,x ,z))))
+          ((lambda ,x ,z1 ,z ...) (begin
+                                    (check-unique x exp)
+                                    (let* ((xls (map (lambda(x) `(,x ,(unique-name x))) x))
+                                           (x (map cadr xls))
+                                           (z (make-begin (map (lambda(z) (ExprLs z xls)) (cons z1 z)))))
+                                      `(lambda ,x ,z))))
           ((lambda ,x ...) (error who "Invalid lambda expression ~s" exp))
           ((begin ,[Expr -> x] ... ,[Expr -> y]) `(begin ,x ... ,y))
           ((begin ,x ...) (error who "Malformed begin expression ~s" exp))
