@@ -23,6 +23,7 @@
       
     (define (Datum exp)
       (match exp
+        ;;(#(,[Datum -> x] ...) `"#",x)
         (,x (guard (integer? x)) (if (fixnum? x)
                                      `,x
                                      (error who "~s is not in fixnum range" x)))
@@ -65,7 +66,7 @@
                                                   (y (map (lambda(y) (ExprLs y xls)) y))
                                                   (letls (map (lambda(x y) `(,(cadr x) ,y)) xls y))
                                                   (z (make-begin (map (lambda(z) (ExprLs z xls)) z))))
-                                             `(let ,letls ,z))))
+                                             `(letrec ,letls ,z))))
           ((letrec ,x ...) (error who "Malformed letrec expression ~s" exp))
           ((lambda ,x ,z ...) (begin
                                 (check-unique x exp)
@@ -114,7 +115,8 @@
                       ((assq x ls) (map (lambda(x) (Expr x env ls)) (cons x y)))
                       ;; Environment meant for primitives and macros which can actually transform code
                       ((assq x env) => (lambda(r) ((cadr r) exp env ls)))
-                      (else (map (lambda(x) (Expr x env ls)) (cons x y)))))))
+                      (else (map (lambda(x) (Expr x env ls)) (cons x y)))))
+        (,else (error who "Unknown expression " exp))))
     
     
     (define (Program exp)                   ;get-trace-define
@@ -124,7 +126,7 @@
                                                                    (append (map car value-prim)
                                                                            (map car effect-prim)))))))
         (Expr exp env '())))
-
+    
     (define (parse-scheme exp)                   ;get-trace-define      
       (Program exp))
     
