@@ -1,6 +1,5 @@
-(let ((f.2 (lambda() '(2 3))))
-              (let ([f.1 (lambda () '(1 2))]
-                    [x.4 '1])
-                (begin                  
-                  (eq? (eq? (f.1) (f.1)) '#(32 (33 33) 34))
-                  (set! x.4 (+ x.4 x.4)))))
+;; Trying to hit the unique number and getting a clash
+(let ((f.1000 1))
+  (letrec((a.1000 1))
+    (let ((b 2))
+      (+ a.1000 b))))
