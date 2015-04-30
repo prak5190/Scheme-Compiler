@@ -59,9 +59,11 @@
                       '#f)
                   '222
                   '333)))
+(define t3 '(letrec ([k$1 (lambda (cp.2) '1)])
+              (let ([k.1 (make-procedure k$1 '0)]) '221)))
 
 (pretty-print
- (optimize-source t2))
+ (optimize-source t3))
 
 
 

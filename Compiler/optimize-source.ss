@@ -16,7 +16,7 @@
        ((null? expls) (values expls '()))
        (else (let*-values (((x l1) (Exp (car expls) ls))
                            ((y l2) (Exp* (cdr expls) ls)))
-               (values `(nop) '())))))
+               (values (cons x y) (append l1 l2))))))
     
     (define (Exp exp ls)                   ;get-trace-define
       (match exp
@@ -79,7 +79,7 @@
                                         (values `(let ,letls ,z) (append l2 (append l1 l3)))))))
         ((letrec (,x ...) ,y) (let*-values (((x l1) (Exp* x ls))
                                             ((y l2) (Expr y ls)))
-                                (values y (append l1 l2))))
+                                (values `(letrec ,x ,y) (append l1 l2))))
         ((quote ,x) (values exp '()))
         ((,x ,y ...) (guard (prim? x)) (let-values (((y l1) (Expr* y ls)))
                                          (if (and (is-foldable-prim? x)
