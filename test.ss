@@ -53,10 +53,12 @@
                   (let ((k.1 (+ '1 (+ '2 (+ '3 '4)))) (k.2 k.3))
                     (+ k.1 '2)))
                 '20))
-(define t2 '(let ((k.1 '()))
-              (if (null? k.1)
-                  '2
-                  '1)))
+(define t2 '(let ((k.3 (cons '11 '2)) (k.2 (cons '1 '2)))
+              (if (if (= k.2 k.3)
+                      (> '1 '2)
+                      '#f)
+                  '222
+                  '333)))
 
 (pretty-print
  (optimize-source t2))
