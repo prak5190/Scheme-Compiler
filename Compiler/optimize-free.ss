@@ -69,7 +69,8 @@
         ((,x (lambda (,y ...) (bind-free ,bf ,z))) (let-values (((z ls) (Expr z ls)))                                                     
                                                      (if (and (null? bfc) (memq x (map unique-label ls)))
                                                          (values `(,x (lambda (,(cdr y) ...) (bind-free (dummy) ,z))) ls)
-                                                         (values `(,x (lambda (,y ...) (bind-free (,(car bf) ,bfc ...) ,z))) ls))))))
+                                                         (let ((bf (filter (lambda(x) (not (memq x ls))) bf)))
+                                                           (values `(,x (lambda (,y ...) (bind-free ,bf ,z))) ls)))))))
   
     (define (Expr* expls ls)
       (cond
@@ -91,8 +92,9 @@
                                   (values `(let ,(map (lambda(x y) `(,x ,y)) x y) ,z) ls)))
         ((letrec (,x ...) (closures ,lls (well-known ,wls ,y))) (let*-values (((free** ls) (prune-free (map car lls) (map cddr lls)  wls ls))
                                                                               ((x ls) (Exp* x free** ls))
-                                                                              ((y ls) (Expr y ls)))
-                                                                  (let* ((lls (filter (lambda(x) (not (memq (car x) ls))) lls)))
+                                                                              ((y ls) (Expr y ls)))         
+                                                                  (let* ((lls (filter (lambda(x) (not (memq (car x) ls))) lls))
+                                                                         (lls (map (lambda(x) (filter (lambda(x) (not (memq x ls))) x)) lls)))
                                                                     (values `(letrec (,x ...) (closures ,lls ,y)) ls))))
         ((quote ,x) (values exp ls))
         ((,x ,y ...) (guard (prim? x)) (let-values (((y ls) (Expr* y ls)))

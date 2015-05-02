@@ -30,6 +30,7 @@
     bind-free
     fill-closure!
     closures
+    well-known
     cookie
     procedure
     procedure?
@@ -559,13 +560,14 @@
 ;;-----------------------------------
 ;; uncover-well-known
 ;;-----------------------------------
+                              
 (define-language-wrapper
   (uncover-well-known/wrapper) 
   (x)
   (environment env)
   (import
     (only (Framework wrappers aux)
-      * + - cookie bind-free closures well-known)
+          * + - cookie bind-free closures well-known)
     (except (chezscheme) * + -))
   ,x)
 

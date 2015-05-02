@@ -42,7 +42,7 @@
                                               ((z ls) (Expr z ls)))
                                   (values `(let ,(map (lambda(x y) `(,x ,y)) x y) ,z) ls)))
         ((letrec (,x ...) (closures ,lls ,y)) (let* ((vars (map car lls))
-                                                     (ls (union vars ls)))
+                                                     (ls (union ls vars)))
                                                 (let*-values (((x ls) (Exp* x ls))
                                                               ((y ls) (Expr y ls)))
                                                   (let ((ls (difference ls vars))
