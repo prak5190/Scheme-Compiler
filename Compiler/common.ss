@@ -9,6 +9,7 @@
    get-unique-name
    get-unique-name-p
    get-unique-label-p
+   get-set-ls
    value-prim
    value-prim?
    effect-prim
@@ -92,7 +93,26 @@
       (if (memq (string->number (extract-suffix n)) (labelLs->suffx ls))
           (begin
             (get-unique-name-main ls p isLabel))              
-          n)))  
+          n)))
+  
+  (define (add-to-als x y ls)
+    (let ((ls (cond
+               ((assq x ls) => (lambda(r) (set-box! (cadr r) (cons y (unbox (cadr r))))
+                                      ls))
+               (else (cons `(,x ,(box `(,y))) ls)))))
+      (cond
+       ((assq y ls) => (lambda(r) (set-box! (cadr r) (cons x (unbox (cadr r))))
+                              ls))
+       (else (cons `(,y ,(box `(,x))) ls)))))
+    
+  (define (get-set-ls ls exp)
+    (map (lambda(x) `(,(car x) . ,(unbox (cadr x)))) (let get-set-ls ((ls ls) (exp exp))
+      (match exp
+        ((set! ,x ,y) (guard (and (var? x) (var? y))) (add-to-als x y ls))
+        ;; Special case quote while walkign ast
+        ((quote ,x) ls)
+        ((,x ...) (fold-left get-set-ls ls x))
+        (,else ls)))))
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
@@ -205,7 +225,7 @@
     (define (init-cg ls)
       (map (lambda(x) `(,x . ,(box '()))) ls))
     (define (unbox-cg cg)
-      (map (lambda(x) `(,(car x) . ,(unbox (cdr x)))) cg))
+      (map (lambda(x) `(,(car x) . ,(unbox (cdr x)))) cg))    
     (let-values
         (((ls cg s) (Tail program '() (init-cg list) '())))
       (values (unbox-cg cg) s))))
