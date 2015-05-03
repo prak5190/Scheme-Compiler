@@ -30,20 +30,40 @@
        ((< i (car ls)) i)
        ((eqv? i (car ls)) (find-free-ind (add1 i) ls))
        (else (find-free-ind i (cdr ls)))))
+
+    (define (find-set-ind x set-ls s sort-ls)
+      (cond
+       ((assq x set-ls) => (lambda (r) (let ((sets (cdr r)))
+                                         (let loop ((sets sets))
+                                           (if (null? sets)
+                                               #f
+                                               (let* ((cs (car sets))
+                                                      (mem-cs (assq cs s)))
+                                                 (if mem-cs
+                                                     (if (memq (frame-var->index (cadr mem-cs)) sort-ls)
+                                                         ;; Conflicts use next one
+                                                         (loop (cdr sets))
+                                                         ;; Else return the index 
+                                                         (car mem-cs))
+                                                     (loop (cdr sets)))))))))
+       (else #f)))
+                                                 
     
-    (define (assign x cg s)
+    (define (assign x cg s set-ls)
       (let ((c (assq x cg)))
         (if c
             (let* ((conflict-fv-ls (get-conflict-fvs (cdr c) s))
                    (sort-ls (sort < conflict-fv-ls))
-                   (ind (find-free-ind 0 sort-ls)))
+                   (set-ind (find-set-ind x set-ls s sort-ls))
+                   (ind (if set-ind set-ind (find-free-ind 0 sort-ls))))
               (cons `(,x ,(index->frame-var ind)) s))
             (cons `(,x ,(index->frame-var 0)) s))))
     
-    (define (assign* ls cg s)
+    (define (assign* ls cg s set-ls)
       (cond
        ((null? ls) s)
-       (else (assign* (cdr ls) cg (assign (car ls) cg s)))))
+       (else (let ((s (assign (car ls) cg s set-ls)))
+               (assign* (cdr ls) cg s set-ls)))))
     
     (define (Body exp)
       (match exp
@@ -53,7 +73,7 @@
                                      (frame-conflict ,fgraph
                                                      (call-live ,call-live ,y)))))
          (let* ((fgraph (sort (lambda(x y) (< (length x) (length y))) fgraph))                
-                (locate (assign* spills fgraph '())))
+                (locate (assign* spills fgraph '() (get-set-ls '() y))))
            `(locals ,(difference x spills)
                     (new-frames ,new-frames
                                 (locate ,locate

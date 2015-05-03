@@ -1,5 +1,6 @@
 A15 : 
 Passes all tests
 
+Challenge 1 : Done - Added method get-set-ls to common to find all direct assignments and then used it in pre-assign frame, assign frames and assign reg
 Challenge 2 : Done - Constant folding, Copy propogation, Useless code removal and Dead code removal
-Challenge 3 : uncover-well-known, optimize-free, optimize-self-reference done
+Challenge 3 : Done - uncover-well-known, optimize-free, optimize-self-reference done

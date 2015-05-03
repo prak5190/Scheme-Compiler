@@ -6,18 +6,9 @@
     ;; Load Chez Scheme primitives:
     (chezscheme)
     ;; Load compiler framework:
+    (Compiler common)
     (Framework match)
-    (Framework helpers))
-  ;;;; TODO Need to add machine constraints error 
-  ;; If it is a binary operator or not
-  (define (binop? exp)                   ;get-trace-define
-    (define binops '(+ - * logand logor sra))
-    (and (memq exp binops) #t))
-  
-  ;; A variable is a either a register or a frame variable 
-  (define (var? exp)                   ;get-trace-define
-                (or (register? exp) (frame-var? exp) (uvar? exp)))  
-
+    (Framework helpers))  
   ;; Using define-who macro 
   (define-who (assign-registers program)
     ;;
@@ -28,22 +19,37 @@
        (else (map-to-reg ls (cdr s)))))
     
     ;; Gets a sorted list by degree
-    (define (assign cg regls s spill)
+    (define (assign cg regls s spill set-ls)
       (cond
        ((null? cg) (values (reverse s) spill))
        ;; 
-;;       ((null? regls) (values s (append (map car cg) spill)))
-;        (errorf who "No registers left, Have to spill !!! ~s" cg))
+       ;;((null? regls) (values s (append (map car cg) spill)))
+       ;; (errorf who "No registers left, Have to spill !!! ~s" cg))
        (else (let* ((k (cdar cg))
                     (cg-assigned-reg (union k (map-to-reg k s)))
                     (aregls (difference regls cg-assigned-reg)))
                (if (null? aregls)
                    (assign (cdr cg) regls
-                           s (cons (caar cg) spill))
-;                   (errorf who "Cannot allocate register for ~s" (car k))                   
-                   (assign (cdr cg) regls
-                           (cons `(,(caar cg) ,(car aregls)) s) spill))))))
-
+                           s (cons (caar cg) spill) set-ls)
+                   ;;(errorf who "Cannot allocate register for ~s" (car k))
+                   (begin
+                     ;; (display "\n")
+                     ;; (display `(,aregls ,(caar cg) ,s ,set-ls))
+                     (let* ((cg-caar (caar cg)))
+                       (if (not (assq cg-caar s))
+                           (let ((s (cons `(,(caar cg) ,(car aregls)) s)))
+                             (cond
+                              ((assq cg-caar set-ls) => (lambda(r) (let* ((cg (fold-left (lambda (cg x)
+                                                                                           (if (assq x cg)
+                                                                                               (cons (assq x cg) cg)
+                                                                                               cg)) (cdr cg) (cdr r)))
+                                                                          (set-ls (filter (lambda(x) (not (memq x r))) set-ls)))
+                                                                     (assign cg regls s spill set-ls))))
+                              (else (assign (cdr cg) regls s spill set-ls))))
+                           (assign (cdr cg) regls s spill set-ls)))))))))
+                                                                         
+                                                                    
+    
     (define (sort-graph cg ul)
       (let-values (((ul-cg cg2) (partition (lambda (x) (memq (car x) ul)) cg)))
         (append
@@ -54,8 +60,9 @@
     (define (Body exp)
       (match exp
         ((locals ,x (ulocals ,ul (locate ,z (frame-conflict ,fc (register-conflict ,cg ,y)))))
-         (let ((sort-cg (sort-graph cg ul)))
-           (let-values (((ar spills) (assign sort-cg registers '() '())))
+         (let* ((sort-cg (sort-graph cg ul))
+                (set-ls (get-set-ls '() y)))
+           (let-values (((ar spills) (assign sort-cg registers '() '() set-ls)))
              (if (null? spills)
                  `(locate ,(append ar z) ,y)
                  `(locals ,(difference x spills) (ulocals ,ul (spills ,spills

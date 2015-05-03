@@ -106,13 +106,14 @@
        (else (cons `(,y ,(box `(,x))) ls)))))
     
   (define (get-set-ls ls exp)
-    (map (lambda(x) `(,(car x) . ,(unbox (cadr x)))) (let get-set-ls ((ls ls) (exp exp))
-      (match exp
-        ((set! ,x ,y) (guard (and (var? x) (var? y))) (add-to-als x y ls))
-        ;; Special case quote while walkign ast
-        ((quote ,x) ls)
-        ((,x ...) (fold-left get-set-ls ls x))
-        (,else ls)))))
+    (map (lambda(x) `(,(car x) . ,(unbox (cadr x))))
+         (let get-set-ls ((ls ls) (exp exp))
+           (match exp
+             ((set! ,x ,y) (guard (and (uvar? x) (uvar? y))) (add-to-als x y ls))
+             ;; Special case quote while walkign ast
+             ((quote ,x) ls)
+             ((,x ...) (fold-left get-set-ls ls x))
+             (,else ls)))))
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv
