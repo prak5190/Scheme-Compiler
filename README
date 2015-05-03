@@ -2,3 +2,4 @@ A15 :
 Passes all tests
 
 Challenge 2 : Done - Constant folding, Copy propogation, Useless code removal and Dead code removal
+Challenge 3 : uncover-well-known, optimize-free, optimize-self-reference done
