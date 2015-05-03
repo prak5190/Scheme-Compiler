@@ -30,25 +30,7 @@
        ((< i (car ls)) i)
        ((eqv? i (car ls)) (find-free-ind (add1 i) ls))
        (else (find-free-ind i (cdr ls)))))
-
-    (define (find-set-ind x set-ls s sort-ls)
-      (cond
-       ((assq x set-ls) => (lambda (r) (let ((sets (cdr r)))
-                                         (let loop ((sets sets))
-                                           (if (null? sets)
-                                               #f
-                                               (let* ((cs (car sets))
-                                                      (mem-cs (assq cs s)))
-                                                 (if mem-cs
-                                                     (if (memq (frame-var->index (cadr mem-cs)) sort-ls)
-                                                         ;; Conflicts use next one
-                                                         (loop (cdr sets))
-                                                         ;; Else return the index 
-                                                         (car mem-cs))
-                                                     (loop (cdr sets)))))))))
-       (else #f)))
-                                                 
-    
+                                                        
     (define (assign x cg s set-ls)
       (let ((c (assq x cg)))
         (if c

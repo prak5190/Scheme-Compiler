@@ -10,6 +10,7 @@
    get-unique-name-p
    get-unique-label-p
    get-set-ls
+   find-set-ind
    value-prim
    value-prim?
    effect-prim
@@ -114,6 +115,23 @@
              ((quote ,x) ls)
              ((,x ...) (fold-left get-set-ls ls x))
              (,else ls)))))
+
+  (define (find-set-ind x set-ls s sort-ls)
+      (cond
+       ((assq x set-ls) => (lambda (r) (let ((sets (cdr r)))
+                                         (let loop ((sets sets))
+                                           (if (null? sets)
+                                               #f
+                                               (let* ((cs (car sets))
+                                                      (mem-cs (assq cs s)))
+                                                 (if mem-cs
+                                                     (if (memq (frame-var->index (cadr mem-cs)) sort-ls)
+                                                         ;; Conflicts use next one
+                                                         (loop (cdr sets))
+                                                         ;; Else return the index 
+                                                         (car mem-cs))
+                                                     (loop (cdr sets)))))))))
+       (else #f)))
   
   (define-who (get-conflict program list cgvar?)        
     ;; An exp is divided into Program, Body,Tail, Effect, Var, Triv

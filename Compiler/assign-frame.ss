@@ -28,28 +28,30 @@
        ((< i (car ls)) i)
        ((eqv? i (car ls)) (find-free-ind (add1 i) ls))
        (else (find-free-ind i (cdr ls)))))
-    
-    (define (assign x cg s)
+
+    (define (assign x cg s set-ls)
       (let ((c (assq x cg)))
         (if c
             (let* ((conflict-fv-ls (get-conflict-fvs (cdr c) s))
                    (sort-ls (sort < conflict-fv-ls))
-                   (ind (find-free-ind 0 sort-ls)))
+                   (set-ind (find-set-ind x set-ls s sort-ls))
+                   (ind (if set-ind set-ind (find-free-ind 0 sort-ls))))
               (cons `(,x ,(index->frame-var ind)) s))
             (cons `(,x ,(index->frame-var 0)) s))))
-                             
-    ;; Gets a sorted list by degree
-    (define (assign* ls cg s)
+    
+    (define (assign* ls cg s set-ls)
       (cond
        ((null? ls) s)
-       (else (assign* (cdr ls) cg (assign (car ls) cg s)))))
+       (else (let ((s (assign (car ls) cg s set-ls)))
+               (assign* (cdr ls) cg s set-ls)))))
+    
     ;;    (index->frame-var n)
     (define (Body exp)
       (match exp
         ((locals (,x ...) (ulocals ,ul (spills ,sp (locate ,z (frame-conflict ,cg ,y)))))
          (let* ((cg (sort (lambda(x y) (< (length x) (length y))) cg))                
                 (frame-loc (filter (lambda(x) (frame-var? (cadr x))) z))
-                (ar (assign* sp cg frame-loc)))
+                (ar (assign* sp cg frame-loc (get-set-ls '() y))))
            `(locals (,x ...) (ulocals ,ul (locate ,(union ar z) (frame-conflict ,cg ,y))))))
         ((locate (,x ...) ,y) exp)))
 
