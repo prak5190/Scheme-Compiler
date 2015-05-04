@@ -8,6 +8,7 @@
     ;; Load compiler framework:
     (Framework match)
     (Framework helpers)
+    (Compiler measurements)
     (Compiler common))
   
   (define-who (optimize-self-reference program)    
@@ -55,4 +56,6 @@
     (define (optimize-self-reference exp)                   ;get-trace-define
       (Program exp))
     
-    (optimize-self-reference program)))
+    (begin
+      (optimize-self-reference program)
+      (analyze-closure-size program))))

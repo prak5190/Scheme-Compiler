@@ -8,6 +8,7 @@
     ;; Load compiler framework:
     (Framework match)
     (Framework helpers)
+    (Compiler measurements)
     (Compiler common))
   
   (define-who (uncover-well-known program)        
@@ -67,5 +68,6 @@
 
     (define (uncover-well-known exp)                   ;get-trace-define
       (Program exp))
-    
-    (uncover-well-known program)))
+    (begin
+      (analyze-closure-size program)
+      (uncover-well-known program))))

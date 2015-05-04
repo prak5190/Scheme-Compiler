@@ -35,8 +35,8 @@
         [>= 'jl]))
     (define (convertStatement code)
       (match code
-        [(if (,r ,a ,b) (jump ,x)) (emit 'cmp b a) (emit-jump (relop->instr r) x)]
-        [(if (not (,r ,a ,b)) (jump ,x)) (emit 'cmp b a) (emit-jump (relop->oppinstr r) x)]        
+        [(if (,r ,a ,b) (jump ,x)) (emit 'cmpq b a) (emit-jump (relop->instr r) x)]
+        [(if (not (,r ,a ,b)) (jump ,x)) (emit 'cmpq b a) (emit-jump (relop->oppinstr r) x)]        
         [(set! ,dst (,b ,t1 ,src)) (emit (binop->instr b) src dst)]
         [(set! ,dst ,src) (guard (label? src)) (emit 'leaq src dst)]        
         [(set! ,dst ,src) (emit 'movq src dst)]
