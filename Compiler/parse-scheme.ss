@@ -117,6 +117,7 @@
                       ((assq x ls) (map (lambda(x) (Expr x env ls)) (cons x y)))
                       ;; Environment meant for primitives and macros which can actually transform code
                       ((assq x env) => (lambda(r) ((cadr r) exp env ls)))
+                      ((or (number? x) (memq x '(#t #f ()))) (error who "Invalid exp" exp))
                       (else (map (lambda(x) (Expr x env ls)) (cons x y)))))
         (,else (error who "Unknown expression " exp))))
     
